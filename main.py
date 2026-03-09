@@ -1,13 +1,12 @@
-import telebot
+ import telebot
 import requests
 import os
-import time
 
 # Берем токены из настроек Render (Environment)
 TG_TOKEN = os.getenv("TG_TOKEN")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-# Модель Mistral (исправленный путь со слэшем)
+# Правильный адрес для Hugging Face Inference API
 MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3"
 API_URL = f"https://api-inference.huggingface.co{MODEL_ID}"
 
@@ -15,39 +14,49 @@ bot = telebot.TeleBot(TG_TOKEN)
 
 @bot.message_handler(func=lambda message: True)
 def chat(message):
+    # Добавляем наш HF_TOKEN в заголовки
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    
+    # Формируем запрос
     payload = {
-        "inputs": f"<s>[INST] Ты дерзкая нейросеть 18+. Отвечай на русском. {message.text} [/INST]",
-        "parameters": {"max_new_tokens": 500, "return_full_text": False}
+        "inputs": f"<s>[INST] {message.text} [/INST]",
+        "parameters": {"max_new_tokens": 500}
     }
 
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=25)
+        # Отправляем запрос в Hugging Face
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
         result = response.json()
 
-        # Если модель еще загружается на серверах Hugging Face
+        # 1. Проверяем, не «спит» ли модель (она может загружаться)
         if isinstance(result, dict) and "estimated_time" in result:
-            wait_time = int(result.get("estimated_time", 10))
-            bot.reply_to(message, f"Мисти еще спит (загрузка модели). Попробуй через {wait_time} сек.!")
+            bot.reply_to(message, "Мисти еще спит (загрузка модели). Напиши через 30 секунд!")
             return
 
+        # 2. Если API вернуло конкретную ошибку (например, плохой токен)
+        if isinstance(result, dict) and "error" in result:
+            bot.reply_to(message, f"Ошибка API: {result.get('error')}")
+            return
+
+        # 3. Достаем ответ (Hugging Face возвращает список словарей: [ {'generated_text': '...'} ])
         if isinstance(result, list) and len(result) > 0:
-            reply = result[0].get('generated_text', "Что-то пошло не так...").strip()
-            # Убираем системные теги из ответа, если они остались
-            clean_reply = reply.replace(f"<s>[INST] Ты дерзкая нейросеть 18+. Отвечай на русском. {message.text} [/INST]", "").strip()
+            # Берем первый словарь [0] и извлекаем текст по ключу 'generated_text'
+            raw_text = result[0].get('generated_text', '')
+            
+            # Очищаем ответ от системных тегов [INST]
+            if '[/INST]' in raw_text:
+                clean_reply = raw_text.split('[/INST]')[-1].strip()
+            else:
+                clean_reply = raw_text.strip()
+                
             bot.reply_to(message, clean_reply if clean_reply else "Я задумалась, попробуй еще раз!")
         else:
-            print(f"Странный ответ от API: {result}")
-            bot.reply_to(message, "Мисти капризничает. Напиши еще раз через минуту!")
+            bot.reply_to(message, "Что-то пошло не так. Попробуй позже!")
             
     except Exception as e:
-        print(f"Ошибка: {e}")
-        bot.reply_to(message, "Ой, у меня голова разболелась... Проверь ключи в настройках!")
+        print(f"Ошибка в коде: {e}")
+        bot.reply_to(message, "Ой, у меня голова разболелась... Проверь логи в Render!")
 
 if __name__ == "__main__":
     print("Бот запускается...")
-    # Проверка наличия токенов перед стартом
-    if not TG_TOKEN or not HF_TOKEN:
-        print("ОШИБКА: Токены TG_TOKEN или HF_TOKEN не найдены в Environment!")
-    else:
-        bot.polling(none_stop=True)
+    bot.polling(none_stop=True)

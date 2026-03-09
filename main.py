@@ -1,8 +1,8 @@
 import os
 import telebot
-import requests
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from openai import OpenAI  # импортируем OpenAI
 
 # --- ПИЩАЛКА ДЛЯ RENDER ---
 class Handler(BaseHTTPRequestHandler):
@@ -19,7 +19,7 @@ def run_server():
 
 Thread(target=run_server, daemon=True).start()
 
-# --- ТОКЕНЫ ТОЛЬКО ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ---
+# --- ТОКЕНЫ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ---
 TG_TOKEN = os.getenv("TG_TOKEN")
 HF_TOKEN = os.getenv("HF_TOKEN")
 
@@ -28,53 +28,37 @@ if not TG_TOKEN or not HF_TOKEN:
 
 bot = telebot.TeleBot(TG_TOKEN)
 
-# --- НАСТРОЙКИ MISTRAL ---
-# --- НАСТРОЙКИ МОДЕЛИ (РАБОЧИЙ ВАРИАНТ) ---
-MODEL_ID = "dphn/Dolphin-Mistral-24B-Venice-Edition"
-API_URL = f"https://router.huggingface.co/models/{MODEL_ID}"
-HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
+# --- НАСТРОЙКИ МОДЕЛИ (OpenAI-совместимый режим) ---
+client = OpenAI(
+    base_url="https://router.huggingface.co/v1",
+    api_key=HF_TOKEN,
+)
 
-def query_mistral(prompt):
-    formatted_prompt = f"<s>[INST] {prompt} [/INST]"
-    payload = {
-        "inputs": formatted_prompt,
-        "parameters": {
-            "max_new_tokens": 500,
-            "return_full_text": False,
-            "temperature": 0.7
-        }
-    }
+MODEL_NAME = "dphn/Dolphin-Mistral-24B-Venice-Edition:featherless-ai"  # именно так!
+
+def query_dolphin(prompt):
     try:
-        response = requests.post(API_URL, headers=HEADERS, json=payload, timeout=30)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return {"error": f"HTTP {response.status_code}: {response.text}"}
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=500,
+            temperature=0.7
+        )
+        # Извлекаем текст ответа
+        return completion.choices[0].message.content
     except Exception as e:
-        return {"error": str(e)}
+        return f"❌ Ошибка API: {str(e)}"
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
         bot.send_chat_action(message.chat.id, 'typing')
-        output = query_mistral(message.text)
-
-        if isinstance(output, list) and len(output) > 0:
-            ai_response = output[0].get('generated_text', 'Пустой ответ от ИИ.')
-        elif isinstance(output, dict) and 'error' in output:
-            error_text = output['error']
-            if 'loading' in error_text.lower():
-                ai_response = "⏳ Модель загружается, попробуй через 20 секунд."
-            else:
-                ai_response = f"Ошибка: {error_text[:200]}"
-        else:
-            ai_response = "Не удалось получить ответ. Попробуй позже."
-
-        bot.reply_to(message, ai_response)
+        reply = query_dolphin(message.text)
+        bot.reply_to(message, reply)
     except Exception as e:
         print(f"Ошибка: {e}")
         bot.reply_to(message, "Техническая ошибка, уже чиним.")
 
 if __name__ == "__main__":
-    print("🚀 Бот с Mistral запущен!")
+    print("🚀 Бот с Dolphin-Mistral запущен!")
     bot.polling(none_stop=True)

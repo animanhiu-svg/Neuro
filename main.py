@@ -31,10 +31,7 @@ bot = telebot.TeleBot(TG_TOKEN)
 # --- НАСТРОЙКИ MISTRAL ---
 # --- НАСТРОЙКИ МОДЕЛИ (РАБОЧИЙ ВАРИАНТ) ---
 MODEL_ID = "dphn/Dolphin-Mistral-24B-Venice-Edition"
-
-# ЕДИНСТВЕННЫЙ РАБОТАЮЩИЙ АДРЕС (МАРТ 2026):
 API_URL = f"https://router.huggingface.co/models/{MODEL_ID}"
-
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 def query_mistral(prompt):

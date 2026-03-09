@@ -3,7 +3,7 @@ import telebot
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from openai import OpenAI
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 # -------------------- 1. ПИЩАЛКА ДЛЯ RENDER --------------------
 class Handler(BaseHTTPRequestHandler):
@@ -36,10 +36,9 @@ bot = telebot.TeleBot(TG_TOKEN)
 MODEL = "dphn/Dolphin-Mistral-24B-Venice-Edition:featherless-ai"
 
 # -------------------- 4. ХРАНИЛИЩЕ ДАННЫХ ПОЛЬЗОВАТЕЛЕЙ --------------------
-# user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
-# personality: 'soft', 'neutral', 'hot'
-user_settings = {}
-user_history = {}
+user_settings = {}      # {chat_id: {'limit': 400, 'personality': 'neutral'}}
+user_history = {}       # {chat_id: [messages]}
+menu_message_id = {}    # {chat_id: message_id} — текущее открытое меню
 
 # -------------------- 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ --------------------
 def get_system_prompt(personality):
@@ -56,216 +55,266 @@ def get_personality_name(personality):
     return names.get(personality, '😐 Нейтральная')
 
 def main_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("📜 Сценарии"),
-        KeyboardButton("⚙️ Настройки"),
-        KeyboardButton("❓ Помощь"),
-        KeyboardButton("ℹ️ О боте"),
-        KeyboardButton("🎮 Меню"),
-        KeyboardButton("🚫 Скрыть меню")
+        InlineKeyboardButton("📜 Сценарии", callback_data="main_scenarios"),
+        InlineKeyboardButton("⚙️ Настройки", callback_data="main_settings"),
+        InlineKeyboardButton("❓ Помощь", callback_data="main_help"),
+        InlineKeyboardButton("ℹ️ О боте", callback_data="main_about"),
+        InlineKeyboardButton("❌ Закрыть меню", callback_data="close_menu")
     )
     return markup
 
-def settings_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def settings_menu_keyboard(chat_id):
+    settings = user_settings.get(chat_id, {'limit': 400, 'personality': 'neutral'})
+    markup = InlineKeyboardMarkup(row_width=2)
     # Лимит
     markup.add(
-        KeyboardButton("🔹 Лимит: 100-200"),
-        KeyboardButton("🔸 Лимит: 400-600"),
-        KeyboardButton("🔹 Лимит: 800-1000"),
-        KeyboardButton("✏️ Свой лимит")
+        InlineKeyboardButton("🔹 100-200", callback_data="set_limit_150"),
+        InlineKeyboardButton("🔸 400-600", callback_data="set_limit_500"),
+        InlineKeyboardButton("🔹 800-1000", callback_data="set_limit_900"),
+        InlineKeyboardButton("✏️ Свой", callback_data="custom_limit")
     )
     # Характер
     markup.add(
-        KeyboardButton("🌸 Характер: Милая"),
-        KeyboardButton("😐 Характер: Нейтральная"),
-        KeyboardButton("🔥 Характер: Горячая")
+        InlineKeyboardButton("🌸 Милая" + (" ✅" if settings['personality']=='soft' else ""), callback_data="set_pers_soft"),
+        InlineKeyboardButton("😐 Нейтральная" + (" ✅" if settings['personality']=='neutral' else ""), callback_data="set_pers_neutral"),
+        InlineKeyboardButton("🔥 Горячая" + (" ✅" if settings['personality']=='hot' else ""), callback_data="set_pers_hot")
     )
-    # История
+    # История и управление
     markup.add(
-        KeyboardButton("📊 История: показать"),
-        KeyboardButton("🗑️ История: очистить")
-    )
-    # Управление
-    markup.add(
-        KeyboardButton("🔄 Сбросить всё"),
-        KeyboardButton("◀️ Назад")
+        InlineKeyboardButton("📊 История", callback_data="show_history"),
+        InlineKeyboardButton("🗑️ Очистить историю", callback_data="clear_history"),
+        InlineKeyboardButton("🔄 Сбросить всё", callback_data="reset_all"),
+        InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"),
+        InlineKeyboardButton("❌ Закрыть", callback_data="close_menu")
     )
     return markup
 
-def start_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.add(KeyboardButton("🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ"))
+def reply_panel_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(KeyboardButton("🕹 Панель управления"))
     return markup
 
 # -------------------- 6. ОБРАБОТЧИК КОМАНД --------------------
 @bot.message_handler(commands=['start'])
 def start(message):
-    user_settings[message.chat.id] = {'limit': 400, 'personality': 'neutral'}
-    user_history[message.chat.id] = []
+    chat_id = message.chat.id
+    user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
+    user_history[chat_id] = []
+    menu_message_id.pop(chat_id, None)  # сбрасываем ID меню
     bot.send_message(
-        message.chat.id,
+        chat_id,
         f"👋 Привет, {message.from_user.first_name}!\nЯ — ролевой бот, созданный для увлекательного общения.\nГотов начать?",
-        reply_markup=start_keyboard()
+        reply_markup=reply_panel_keyboard()
     )
 
-@bot.message_handler(commands=['menu'])
-def menu_command(message):
+# -------------------- 7. ОБРАБОТЧИК REPLY-КНОПКИ "ПАНЕЛЬ УПРАВЛЕНИЯ" --------------------
+@bot.message_handler(func=lambda message: message.text == "🕹 Панель управления")
+def open_main_menu(message):
     chat_id = message.chat.id
+    # Если уже есть открытое меню, удалим его (чтобы не плодить)
+    if chat_id in menu_message_id:
+        try:
+            bot.delete_message(chat_id, menu_message_id[chat_id])
+        except:
+            pass
+    # Отправляем новое меню
+    sent = bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
+    menu_message_id[chat_id] = sent.message_id
+
+# -------------------- 8. ОБРАБОТЧИК INLINE-КОЛБЭКОВ --------------------
+@bot.callback_query_handler(func=lambda call: True)
+def callback_handler(call):
+    chat_id = call.message.chat.id
+    data = call.data
+
+    # Инициализация на всякий случай
     if chat_id not in user_settings:
         user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
         user_history[chat_id] = []
-    bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
 
-# -------------------- 7. ОСНОВНОЙ ОБРАБОТЧИК СООБЩЕНИЙ --------------------
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    chat_id = message.chat.id
-    text = message.text
+    # Закрыть меню
+    if data == "close_menu":
+        try:
+            bot.delete_message(chat_id, call.message.message_id)
+        except:
+            pass
+        menu_message_id.pop(chat_id, None)
+        bot.answer_callback_query(call.id)
+        return
 
-    # Инициализация, если вдруг нет
-    if chat_id not in user_settings:
-        user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
-        user_history[chat_id] = []
-
-    # -------------------- БОЛЬШАЯ КНОПКА "НАЧАТЬ" --------------------
-    if text == "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ":
-        bot.send_message(chat_id, "🚀 Погнали! Пиши с чего начнём.", reply_markup=ReplyKeyboardRemove())
-        # Сразу отправляем главное меню после небольшой паузы (чтобы сообщение не слилось)
-        bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
+    # Назад в главное меню
+    if data == "back_to_main":
+        bot.edit_message_text(
+            "🎮 Главное меню",
+            chat_id,
+            call.message.message_id,
+            reply_markup=main_menu_keyboard()
+        )
+        bot.answer_callback_query(call.id)
         return
 
     # -------------------- ГЛАВНОЕ МЕНЮ --------------------
-    if text == "🎮 Меню":
-        bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
+    if data == "main_scenarios":
+        bot.edit_message_text(
+            "📜 Раздел сценариев пока в разработке. Скоро здесь появятся готовые завязки.",
+            chat_id,
+            call.message.message_id,
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+        )
+        bot.answer_callback_query(call.id)
         return
 
-    if text == "🚫 Скрыть меню":
-        bot.send_message(chat_id, "Меню скрыто. Чтобы вернуть, напиши /menu", reply_markup=ReplyKeyboardRemove())
-        return
-
-    if text == "📜 Сценарии":
-        bot.send_message(chat_id, "📜 Раздел сценариев пока в разработке. Скоро здесь появятся готовые завязки.")
-        bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
-        return
-
-    if text == "❓ Помощь":
+    if data == "main_help":
         help_text = (
             "❓ **Помощь**\n\n"
-            "🔹 Используй /start для начала.\n"
-            "🔹 Кнопки над полем ввода — главное меню.\n"
-            "🔹 В настройках можно выбрать:\n"
-            "   • **Лимит токенов** — длина ответа (100–1500).\n"
-            "   • **Характер** — Милая, Нейтральная, Горячая.\n"
-            "   • **История** — показать количество сообщений или очистить.\n"
-            "🔹 После настройки просто пиши сообщения — я отвечаю в ролевом режиме.\n"
-            "🔹 Кнопка «Скрыть меню» убирает клавиатуру. Вернуть — /menu."
+            "🔹 Нажми «Панель управления» внизу, чтобы открыть меню.\n"
+            "🔹 В настройках можно выбрать лимит токенов (длину ответа) и характер (Милая, Нейтральная, Горячая).\n"
+            "🔹 История хранит последние 20 сообщений для контекста.\n"
+            "🔹 После настройки просто пиши текст — я отвечу в ролевом режиме.\n"
+            "🔹 Меню можно закрыть кнопкой «❌ Закрыть»."
         )
-        bot.send_message(chat_id, help_text, parse_mode="Markdown")
-        bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
+        bot.edit_message_text(
+            help_text,
+            chat_id,
+            call.message.message_id,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+        )
+        bot.answer_callback_query(call.id)
         return
 
-    if text == "ℹ️ О боте":
+    if data == "main_about":
         about_text = (
             "ℹ️ **О боте**\n\n"
-            "Версия: 2.0\n"
-            "Модель: Dolphin-Mistral-24B-Venice-Edition (featherless-ai)\n"
+            "Версия: 3.0 (Inline-меню)\n"
+            "Модель: Dolphin-Mistral-24B-Venice-Edition\n"
             "Платформа: Hugging Face Router\n"
             "Разработан для ролевых игр 18+ без цензуры.\n"
             "Память: до 20 последних сообщений."
         )
-        bot.send_message(chat_id, about_text, parse_mode="Markdown")
-        bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
+        bot.edit_message_text(
+            about_text,
+            chat_id,
+            call.message.message_id,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+        )
+        bot.answer_callback_query(call.id)
+        return
+
+    if data == "main_settings":
+        settings = user_settings[chat_id]
+        history_count = len(user_history[chat_id]) // 2
+        text = (
+            f"⚙️ **Настройки**\n\n"
+            f"📏 Лимит: {settings['limit']} токенов\n"
+            f"🎭 Характер: {get_personality_name(settings['personality'])}\n"
+            f"💬 История: {history_count} диалоговых пар"
+        )
+        bot.edit_message_text(
+            text,
+            chat_id,
+            call.message.message_id,
+            parse_mode="Markdown",
+            reply_markup=settings_menu_keyboard(chat_id)
+        )
+        bot.answer_callback_query(call.id)
         return
 
     # -------------------- НАСТРОЙКИ --------------------
-    if text == "⚙️ Настройки":
+    if data.startswith("set_limit_"):
+        limit_map = {"set_limit_150": 150, "set_limit_500": 500, "set_limit_900": 900}
+        limit = limit_map.get(data, 400)
+        user_settings[chat_id]['limit'] = limit
+        bot.answer_callback_query(call.id, f"✅ Лимит: {limit}")
+        # Обновляем текст настроек
         settings = user_settings[chat_id]
         history_count = len(user_history[chat_id]) // 2
-        msg = (
-            f"⚙️ **Текущие настройки**\n\n"
+        text = (
+            f"⚙️ **Настройки**\n\n"
             f"📏 Лимит: {settings['limit']} токенов\n"
             f"🎭 Характер: {get_personality_name(settings['personality'])}\n"
-            f"💬 История: {history_count} диалоговых пар\n\n"
-            "Используй кнопки ниже для изменения:"
+            f"💬 История: {history_count} диалоговых пар"
         )
-        bot.send_message(chat_id, msg, parse_mode="Markdown", reply_markup=settings_menu_keyboard())
+        bot.edit_message_text(
+            text,
+            chat_id,
+            call.message.message_id,
+            parse_mode="Markdown",
+            reply_markup=settings_menu_keyboard(chat_id)
+        )
         return
 
-    # Лимит
-    if text == "🔹 Лимит: 100-200":
-        user_settings[chat_id]['limit'] = 150
-        bot.send_message(chat_id, "✅ Лимит установлен: **150** токенов", parse_mode="Markdown")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
-        return
-    if text == "🔸 Лимит: 400-600":
-        user_settings[chat_id]['limit'] = 500
-        bot.send_message(chat_id, "✅ Лимит установлен: **500** токенов", parse_mode="Markdown")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
-        return
-    if text == "🔹 Лимит: 800-1000":
-        user_settings[chat_id]['limit'] = 900
-        bot.send_message(chat_id, "✅ Лимит установлен: **900** токенов", parse_mode="Markdown")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
-        return
-    if text == "✏️ Свой лимит":
-        msg = bot.send_message(chat_id, "✏️ Введи желаемое число токенов (от 10 до 1500):", reply_markup=ReplyKeyboardRemove())
-        bot.register_next_step_handler(msg, process_custom_limit)
+    if data == "custom_limit":
+        # Запрашиваем ввод числа отдельным сообщением
+        bot.send_message(chat_id, "✏️ Введи желаемое число токенов (от 10 до 1500):", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler_by_chat_id(chat_id, process_custom_limit, call.message.message_id)
+        bot.answer_callback_query(call.id)
         return
 
-    # Характер
-    if text == "🌸 Характер: Милая":
-        user_settings[chat_id]['personality'] = 'soft'
-        bot.send_message(chat_id, "✅ Характер: **🌸 Милая**", parse_mode="Markdown")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
-        return
-    if text == "😐 Характер: Нейтральная":
-        user_settings[chat_id]['personality'] = 'neutral'
-        bot.send_message(chat_id, "✅ Характер: **😐 Нейтральная**", parse_mode="Markdown")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
-        return
-    if text == "🔥 Характер: Горячая":
-        user_settings[chat_id]['personality'] = 'hot'
-        bot.send_message(chat_id, "✅ Характер: **🔥 Горячая**", parse_mode="Markdown")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
-        return
-
-    # История
-    if text == "📊 История: показать":
+    if data.startswith("set_pers_"):
+        pers = data.split("_")[2]
+        user_settings[chat_id]['personality'] = pers
+        bot.answer_callback_query(call.id, f"✅ Характер: {get_personality_name(pers)}")
+        settings = user_settings[chat_id]
         history_count = len(user_history[chat_id]) // 2
-        bot.send_message(chat_id, f"💬 В истории **{history_count}** диалоговых пар.", parse_mode="Markdown")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
-        return
-    if text == "🗑️ История: очистить":
-        user_history[chat_id] = []
-        bot.send_message(chat_id, "🗑️ История диалога очищена.")
-        bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
+        text = (
+            f"⚙️ **Настройки**\n\n"
+            f"📏 Лимит: {settings['limit']} токенов\n"
+            f"🎭 Характер: {get_personality_name(settings['personality'])}\n"
+            f"💬 История: {history_count} диалоговых пар"
+        )
+        bot.edit_message_text(
+            text,
+            chat_id,
+            call.message.message_id,
+            parse_mode="Markdown",
+            reply_markup=settings_menu_keyboard(chat_id)
+        )
         return
 
-    # Сбросить всё
-    if text == "🔄 Сбросить всё":
+    if data == "show_history":
+        history_count = len(user_history[chat_id]) // 2
+        bot.answer_callback_query(call.id, f"В истории {history_count} пар сообщений", show_alert=True)
+        return
+
+    if data == "clear_history":
+        user_history[chat_id] = []
+        bot.answer_callback_query(call.id, "🗑️ История очищена")
+        # Обновляем текст настроек
+        settings = user_settings[chat_id]
+        text = (
+            f"⚙️ **Настройки**\n\n"
+            f"📏 Лимит: {settings['limit']} токенов\n"
+            f"🎭 Характер: {get_personality_name(settings['personality'])}\n"
+            f"💬 История: 0 диалоговых пар"
+        )
+        bot.edit_message_text(
+            text,
+            chat_id,
+            call.message.message_id,
+            parse_mode="Markdown",
+            reply_markup=settings_menu_keyboard(chat_id)
+        )
+        return
+
+    if data == "reset_all":
         user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
         user_history[chat_id] = []
-        bot.send_message(chat_id, "🔄 Все настройки сброшены, история очищена.")
-        bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
+        bot.answer_callback_query(call.id, "🔄 Настройки сброшены")
+        # Возвращаем главное меню
+        bot.edit_message_text(
+            "🎮 Главное меню",
+            chat_id,
+            call.message.message_id,
+            reply_markup=main_menu_keyboard()
+        )
         return
 
-    # Назад в главное меню
-    if text == "◀️ Назад":
-        bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
-        return
-
-    # -------------------- ЕСЛИ НИЧЕГО НЕ ПОДОШЛО - ОБРАБОТКА РОЛЕВОГО СООБЩЕНИЯ --------------------
-    # Убираем клавиатуру перед ответом, чтобы не мешала
-    bot.send_chat_action(chat_id, 'typing')
-    reply = query_dolphin(text, chat_id)
-    bot.send_message(chat_id, reply, reply_markup=ReplyKeyboardRemove())
-    # После ответа возвращаем главное меню (чтобы было удобно)
-    bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
-
-# -------------------- 8. ОБРАБОТКА ВВОДА СВОЕГО ЛИМИТА --------------------
-def process_custom_limit(message):
+# -------------------- 9. ОБРАБОТКА ВВОДА СВОЕГО ЛИМИТА --------------------
+def process_custom_limit(message, menu_message_id_to_edit):
     chat_id = message.chat.id
     try:
         limit = int(message.text)
@@ -274,18 +323,38 @@ def process_custom_limit(message):
         if limit > 1500:
             limit = 1500
         user_settings[chat_id]['limit'] = limit
-        bot.send_message(chat_id, f"✅ Лимит установлен: **{limit}** токенов", parse_mode="Markdown")
+        bot.send_message(chat_id, f"✅ Лимит установлен: {limit}", reply_markup=reply_panel_keyboard())
     except ValueError:
-        bot.send_message(chat_id, "❌ Нужно ввести число от 10 до 1500. Попробуй ещё раз.")
-    # Возвращаем меню настроек
-    bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard())
+        bot.send_message(chat_id, "❌ Нужно ввести число от 10 до 1500.", reply_markup=reply_panel_keyboard())
 
-# -------------------- 9. ФУНКЦИЯ ЗАПРОСА К МОДЕЛИ (С ИСТОРИЕЙ) --------------------
+    # Возвращаемся к меню настроек (редактируем старое сообщение меню)
+    try:
+        settings = user_settings[chat_id]
+        history_count = len(user_history[chat_id]) // 2
+        text = (
+            f"⚙️ **Настройки**\n\n"
+            f"📏 Лимит: {settings['limit']} токенов\n"
+            f"🎭 Характер: {get_personality_name(settings['personality'])}\n"
+            f"💬 История: {history_count} диалоговых пар"
+        )
+        bot.edit_message_text(
+            text,
+            chat_id,
+            menu_message_id_to_edit,
+            parse_mode="Markdown",
+            reply_markup=settings_menu_keyboard(chat_id)
+        )
+    except:
+        # Если сообщение не найдено, отправим новое
+        sent = bot.send_message(chat_id, "⚙️ Настройки", reply_markup=settings_menu_keyboard(chat_id))
+        menu_message_id[chat_id] = sent.message_id
+
+# -------------------- 10. ФУНКЦИЯ ЗАПРОСА К МОДЕЛИ --------------------
 def query_dolphin(prompt, chat_id):
     settings = user_settings.get(chat_id, {'limit': 400, 'personality': 'neutral'})
     limit = settings['limit']
     personality = settings['personality']
-    history = user_history.get(chat_id, [])[-20:]  # последние 20 сообщений
+    history = user_history.get(chat_id, [])[-20:]
 
     messages = [{"role": "system", "content": get_system_prompt(personality)}]
     messages.extend(history)
@@ -302,10 +371,9 @@ def query_dolphin(prompt, chat_id):
         )
         reply = completion.choices[0].message.content
 
-        # Сохраняем историю
         user_history[chat_id].append({"role": "user", "content": prompt})
         user_history[chat_id].append({"role": "assistant", "content": reply})
-        if len(user_history[chat_id]) > 40:  # 20 пар
+        if len(user_history[chat_id]) > 40:
             user_history[chat_id] = user_history[chat_id][-40:]
 
         return reply
@@ -313,7 +381,18 @@ def query_dolphin(prompt, chat_id):
         print(f"Ошибка API: {e}")
         return f"⏳ Ошибка: {str(e)[:50]}"
 
-# -------------------- 10. ЗАПУСК --------------------
+# -------------------- 11. ОСНОВНОЙ ОБРАБОТЧИК ТЕКСТОВЫХ СООБЩЕНИЙ (RP) --------------------
+@bot.message_handler(func=lambda message: message.text and not message.text.startswith('/') and message.text != "🕹 Панель управления")
+def handle_rp(message):
+    chat_id = message.chat.id
+    if chat_id not in user_settings:
+        user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
+        user_history[chat_id] = []
+    bot.send_chat_action(chat_id, 'typing')
+    reply = query_dolphin(message.text, chat_id)
+    bot.send_message(chat_id, reply, reply_markup=reply_panel_keyboard())
+
+# -------------------- 12. ЗАПУСК --------------------
 if __name__ == "__main__":
-    print("🚀 Бот с Reply-клавиатурой и антицензурой запущен!")
+    print("🚀 Бот с Inline-меню и чистыми сообщениями запущен!")
     bot.polling(none_stop=True)

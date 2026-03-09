@@ -8,7 +8,7 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 
 # Правильный адрес для Hugging Face Inference API
 MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3"
-API_URL = f"https://api-inference.huggingface.co{MODEL_ID}"
+API_URL = f"https://api-inference.huggingface.co/{MODEL_ID}"
 
 bot = telebot.TeleBot(TG_TOKEN)
 

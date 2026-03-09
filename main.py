@@ -40,9 +40,11 @@ MODEL = "dphn/Dolphin-Mistral-24B-Venice-Edition:featherless-ai"
 # personality: 'soft', 'neutral', 'hot'
 user_settings = {}
 
-# user_history[chat_id] = list of messages (роль: user/assistant, не включая system)
-# максимум 20 сообщений (пара user+assistant считается за одно? будем хранить каждое сообщение отдельно)
+# user_history[chat_id] = list of messages (роль: user/assistant)
 user_history = {}
+
+# pinned_messages[chat_id] = message_id закреплённого меню (чтобы редактировать)
+pinned_messages = {}
 
 # -------------------- 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ --------------------
 def get_system_prompt(personality):
@@ -71,7 +73,7 @@ def get_settings_menu_keyboard(chat_id):
     settings = user_settings.get(chat_id, {'limit': 400, 'personality': 'neutral'})
     limit = settings['limit']
     personality = settings['personality']
-    history_count = len(user_history.get(chat_id, []))
+    history_count = len(user_history.get(chat_id, [])) // 2  # пары сообщений
 
     markup = InlineKeyboardMarkup(row_width=2)
     # Лимит
@@ -96,12 +98,38 @@ def get_settings_menu_keyboard(chat_id):
     )
     markup.add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
 
-    return markup, f"⚙️ Настройки бота\n\n📏 Лимит токенов: {limit}\n🎭 Характер: {get_personality_name(personality)}\n💬 История: {history_count} сообщ."
+    text = (f"⚙️ Настройки бота\n\n"
+            f"📏 Лимит токенов: {limit}\n"
+            f"🎭 Характер: {get_personality_name(personality)}\n"
+            f"💬 История: {history_count} диалоговых пар")
+    return markup, text
+
+def update_pinned_menu(chat_id, text, markup):
+    """Обновляет закреплённое меню или создаёт новое, если его нет."""
+    try:
+        if chat_id in pinned_messages:
+            bot.edit_message_text(text, chat_id, pinned_messages[chat_id], reply_markup=markup)
+        else:
+            sent = bot.send_message(chat_id, text, reply_markup=markup)
+            bot.pin_chat_message(chat_id, sent.message_id)
+            pinned_messages[chat_id] = sent.message_id
+    except Exception as e:
+        # Если сообщение не найдено (удалено), создаём новое
+        sent = bot.send_message(chat_id, text, reply_markup=markup)
+        bot.pin_chat_message(chat_id, sent.message_id)
+        pinned_messages[chat_id] = sent.message_id
 
 # -------------------- 6. ОБРАБОТЧИК КОМАНД --------------------
 @bot.message_handler(commands=['start'])
 def start(message):
-    # Приветствие с большой кнопкой
+    # Удаляем предыдущее закреплённое, если есть (опционально)
+    if message.chat.id in pinned_messages:
+        try:
+            bot.unpin_chat_message(message.chat.id, pinned_messages[message.chat.id])
+        except:
+            pass
+        del pinned_messages[message.chat.id]
+
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ", callback_data="enter_main_menu"))
     bot.send_message(
@@ -124,120 +152,90 @@ def callback_handler(call):
 
     # -------------------- БОЛЬШАЯ КНОПКА -> ГЛАВНОЕ МЕНЮ --------------------
     if data == "enter_main_menu":
-        bot.edit_message_text(
-            "🎮 Главное меню\n\nВыбери раздел:",
-            chat_id,
-            call.message.message_id,
-            reply_markup=get_main_menu_keyboard()
-        )
+        # Удаляем приветственное сообщение
+        bot.delete_message(chat_id, call.message.message_id)
+        # Создаём и закрепляем главное меню
+        update_pinned_menu(chat_id, "🎮 Главное меню\n\nВыбери раздел:", get_main_menu_keyboard())
         return
 
     # -------------------- ГЛАВНОЕ МЕНЮ --------------------
     if data == "main_scenarios":
         bot.answer_callback_query(call.id, "📜 Скоро здесь будут сценарии")
-        # Заглушка, можно вернуться назад через кнопку в сообщении
-        bot.edit_message_text(
+        update_pinned_menu(chat_id,
             "📜 Раздел сценариев пока в разработке.\n\nВернуться в главное меню:",
-            chat_id,
-            call.message.message_id,
-            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+            InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
         return
 
     if data == "main_help":
-        bot.edit_message_text(
-            "❓ Помощь\n\nИспользуй /start для входа.\nВ главном меню выбери «Настройки», чтобы настроить длину ответов и характер.\nПосле настройки просто пиши сообщения — я отвечу в ролевом режиме.\nПод каждым ответом есть кнопка ⚙️ для быстрого доступа к настройкам.",
-            chat_id,
-            call.message.message_id,
-            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+        update_pinned_menu(chat_id,
+            "❓ Помощь\n\nИспользуй /start для входа.\nВ главном меню выбери «Настройки», чтобы настроить длину ответов и характер.\nПосле настройки просто пиши сообщения — я отвечу в ролевом режиме.\nМеню всегда закреплено сверху.",
+            InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
         return
 
     if data == "main_about":
-        bot.edit_message_text(
+        update_pinned_menu(chat_id,
             "ℹ️ О боте\n\nВерсия: 1.0\nМодель: Dolphin-Mistral-24B-Venice-Edition (featherless-ai)\nПлатформа: Hugging Face Router\nРазработан для ролевых игр 18+",
-            chat_id,
-            call.message.message_id,
-            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+            InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
         return
 
     if data == "main_settings":
         markup, text = get_settings_menu_keyboard(chat_id)
-        bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        update_pinned_menu(chat_id, text, markup)
         return
 
     if data == "back_to_main":
-        bot.edit_message_text(
-            "🎮 Главное меню\n\nВыбери раздел:",
-            chat_id,
-            call.message.message_id,
-            reply_markup=get_main_menu_keyboard()
-        )
+        update_pinned_menu(chat_id, "🎮 Главное меню\n\nВыбери раздел:", get_main_menu_keyboard())
         return
 
     # -------------------- НАСТРОЙКИ --------------------
-    # Предустановки лимита
     if data.startswith("set_limit_"):
         limit_map = {"set_limit_150": 150, "set_limit_500": 500, "set_limit_900": 900}
         limit = limit_map.get(data, 400)
         user_settings[chat_id]['limit'] = limit
         bot.answer_callback_query(call.id, f"✅ Лимит установлен: {limit}")
-        # Обновляем меню настроек
         markup, text = get_settings_menu_keyboard(chat_id)
-        bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        update_pinned_menu(chat_id, text, markup)
         return
 
-    # Свой лимит
     if data == "custom_limit":
+        # Отправляем запрос в ЛС, так как меню остаётся закреплённым
         msg = bot.send_message(chat_id, "✏️ Введи желаемое число токенов (от 10 до 1500):")
-        bot.register_next_step_handler(msg, process_custom_limit, call.message.message_id)
+        bot.register_next_step_handler(msg, process_custom_limit)
         return
 
-    # Выбор характера
     if data.startswith("set_pers_"):
-        pers = data.split("_")[2]  # soft, neutral, hot
+        pers = data.split("_")[2]
         user_settings[chat_id]['personality'] = pers
         bot.answer_callback_query(call.id, f"✅ Характер: {get_personality_name(pers)}")
         markup, text = get_settings_menu_keyboard(chat_id)
-        bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        update_pinned_menu(chat_id, text, markup)
         return
 
-    # Очистить историю
     if data == "clear_history":
         user_history[chat_id] = []
         bot.answer_callback_query(call.id, "🗑️ История диалога очищена")
-        # Возврат в главное меню
-        bot.edit_message_text(
-            "🎮 Главное меню\n\nИстория очищена. Выбери раздел:",
-            chat_id,
-            call.message.message_id,
-            reply_markup=get_main_menu_keyboard()
+        # Возвращаем главное меню с уведомлением
+        update_pinned_menu(chat_id,
+            "🎮 Главное меню\n\nИстория очищена.",
+            get_main_menu_keyboard()
         )
         return
 
-    # Сбросить всё
     if data == "reset_all":
         user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
         user_history[chat_id] = []
         bot.answer_callback_query(call.id, "🔄 Настройки сброшены, история очищена")
-        # Возврат в главное меню
-        bot.edit_message_text(
-            "🎮 Главное меню\n\nВсе настройки сброшены. Выбери раздел:",
-            chat_id,
-            call.message.message_id,
-            reply_markup=get_main_menu_keyboard()
+        update_pinned_menu(chat_id,
+            "🎮 Главное меню\n\nВсе настройки сброшены.",
+            get_main_menu_keyboard()
         )
         return
 
-    # Кнопка "Настройки" под ответом бота
-    if data == "open_settings":
-        markup, text = get_settings_menu_keyboard(chat_id)
-        bot.send_message(chat_id, text, reply_markup=markup)
-        return
-
 # -------------------- 8. ОБРАБОТКА ВВОДА СВОЕГО ЛИМИТА --------------------
-def process_custom_limit(message, original_message_id):
+def process_custom_limit(message):
     chat_id = message.chat.id
     try:
         limit = int(message.text)
@@ -249,14 +247,9 @@ def process_custom_limit(message, original_message_id):
         bot.send_message(chat_id, f"✅ Лимит установлен: {limit}")
     except ValueError:
         bot.send_message(chat_id, "❌ Нужно ввести число от 10 до 1500. Попробуй ещё раз через настройки.")
-    # Возвращаем меню настроек (можно отредактировать предыдущее сообщение с настройками, но оно уже могло быть удалено, проще отправить новое)
+    # Возвращаемся к меню настроек (обновляем закреплённое)
     markup, text = get_settings_menu_keyboard(chat_id)
-    bot.send_message(chat_id, text, reply_markup=markup)
-    # Удаляем сообщение с запросом, чтобы не захламлять
-    try:
-        bot.delete_message(chat_id, original_message_id)
-    except:
-        pass
+    update_pinned_menu(chat_id, text, markup)
 
 # -------------------- 9. ФУНКЦИЯ ЗАПРОСА К МОДЕЛИ (С ИСТОРИЕЙ) --------------------
 def query_dolphin(prompt, chat_id):
@@ -265,11 +258,8 @@ def query_dolphin(prompt, chat_id):
     personality = settings['personality']
     history = user_history.get(chat_id, [])[-20:]  # последние 20 сообщений
 
-    # Формируем список сообщений для API
     messages = [{"role": "system", "content": get_system_prompt(personality)}]
-    # Добавляем историю (user/assistant)
     messages.extend(history)
-    # Добавляем текущее сообщение пользователя
     messages.append({"role": "user", "content": prompt})
 
     try:
@@ -283,10 +273,8 @@ def query_dolphin(prompt, chat_id):
         )
         reply = completion.choices[0].message.content
 
-        # Сохраняем историю: добавляем сообщение пользователя и ответ ассистента
         user_history[chat_id].append({"role": "user", "content": prompt})
         user_history[chat_id].append({"role": "assistant", "content": reply})
-        # Обрезаем до 20 сообщений (учитывая, что одно сообщение = один элемент списка; пара user+assistant = 2 элемента)
         if len(user_history[chat_id]) > 40:  # 20 пар
             user_history[chat_id] = user_history[chat_id][-40:]
 
@@ -299,7 +287,7 @@ def query_dolphin(prompt, chat_id):
 @bot.message_handler(func=lambda m: True)
 def handle_message(m):
     chat_id = m.chat.id
-    # Инициализация, если ещё нет
+    # Инициализация
     if chat_id not in user_settings:
         user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
     if chat_id not in user_history:
@@ -307,13 +295,24 @@ def handle_message(m):
 
     bot.send_chat_action(chat_id, 'typing')
     reply = query_dolphin(m.text, chat_id)
+    bot.send_message(chat_id, reply)  # без кнопки настроек
 
-    # Отправляем ответ с кнопкой "Настройки"
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("⚙️ Настройки", callback_data="open_settings"))
-    bot.send_message(chat_id, reply, reply_markup=markup)
+    # Убедимся, что закреплённое меню существует (если нет — восстановим)
+    try:
+        bot.get_chat(chat_id)  # просто проверка
+        # Проверим, есть ли у нас pinned_message_id и существует ли оно
+        if chat_id in pinned_messages:
+            try:
+                bot.edit_message_text("...", chat_id, pinned_messages[chat_id])  # пустышка для проверки
+            except:
+                # сообщение не существует, создаём новое
+                update_pinned_menu(chat_id, "🎮 Главное меню\n\nВыбери раздел:", get_main_menu_keyboard())
+        else:
+            update_pinned_menu(chat_id, "🎮 Главное меню\n\nВыбери раздел:", get_main_menu_keyboard())
+    except:
+        pass
 
 # -------------------- 11. ЗАПУСК --------------------
 if __name__ == "__main__":
-    print("🚀 Бот с памятью и настройками запущен!")
+    print("🚀 Бот с закреплённым меню и памятью запущен!")
     bot.polling(none_stop=True)

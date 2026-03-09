@@ -5,13 +5,13 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from openai import OpenAI
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
-# -------------------- 1. ПИЩАЛКА ДЛЯ RENDER --------------------
+# -------------------- 1. ПИЩАЛКА ДЛЯ RENDER 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header('Content-type', 'text/html')
         self.end_headers()
-        self.wfile.write(b"OK")
-    def log_message(self, *args): pass
+        self.wfile.write("I am alive!".encode('utf-8'))
 
 def run_server():
     port = int(os.getenv("PORT", 10000))

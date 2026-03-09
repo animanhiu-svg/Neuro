@@ -30,7 +30,7 @@ bot = telebot.TeleBot(TG_TOKEN)
 
 # --- НАСТРОЙКИ MISTRAL ---
 MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3"
-API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
+API_URL = f"https://router.huggingface.co/models/{MODEL_ID}"
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 def query_mistral(prompt):

@@ -29,8 +29,12 @@ if not TG_TOKEN or not HF_TOKEN:
 bot = telebot.TeleBot(TG_TOKEN)
 
 # --- НАСТРОЙКИ MISTRAL ---
-MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3"
+# --- НАСТРОЙКИ МОДЕЛИ (РАБОЧИЙ ВАРИАНТ) ---
+MODEL_ID = "dphn/Dolphin-Mistral-24B-Venice-Edition"
+
+# ЕДИНСТВЕННЫЙ РАБОТАЮЩИЙ АДРЕС (МАРТ 2026):
 API_URL = f"https://router.huggingface.co/models/{MODEL_ID}"
+
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 def query_mistral(prompt):

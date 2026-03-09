@@ -21,7 +21,7 @@ def run_server():
 Thread(target=run_server, daemon=True).start()
 
 # 2. Настройка бота с твоим токеном
-TOKEN = '8579809463:AAFr-8tqceB1E0FfUQnbDJKUjvYWpKybd' # Твой токен тут
+TOKEN = '8579809463:AAFr-8tqceB1E0FfUQnbDJKUjvYWpKybdGs' # Твой токен тут
 bot = telebot.TeleBot(TOKEN)
 
 # Твои функции (добавь свои, если нужно)

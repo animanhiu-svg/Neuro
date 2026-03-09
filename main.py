@@ -38,7 +38,7 @@ MODEL = "dphn/Dolphin-Mistral-24B-Venice-Edition:featherless-ai"
 # -------------------- 4. ХРАНИЛИЩЕ ДАННЫХ ПОЛЬЗОВАТЕЛЕЙ --------------------
 user_settings = {}      # {chat_id: {'limit': 400, 'personality': 'neutral'}}
 user_history = {}       # {chat_id: [messages]}
-menu_message_id = {}    # {chat_id: message_id} — текущее открытое меню
+menu_message_id = {}    # {chat_id: message_id} — текущее открытое меню (если есть)
 
 # -------------------- 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ --------------------
 def get_system_prompt(personality):
@@ -91,9 +91,22 @@ def settings_menu_keyboard(chat_id):
     )
     return markup
 
-def reply_panel_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-    markup.add(KeyboardButton("🕹 Панель управления"))
+def reply_main_keyboard():
+    """Большая Reply-клавиатура (всегда видна)"""
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("📜 Сценарии"),
+        KeyboardButton("⚙️ Настройки"),
+        KeyboardButton("❓ Помощь"),
+        KeyboardButton("ℹ️ О боте"),
+        KeyboardButton("🎮 Меню")  # для возврата в главное меню
+    )
+    return markup
+
+def reply_start_keyboard():
+    """Клавиатура с одной большой кнопкой для начала"""
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add(KeyboardButton("🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ"))
     return markup
 
 # -------------------- 6. ОБРАБОТЧИК КОМАНД --------------------
@@ -102,37 +115,129 @@ def start(message):
     chat_id = message.chat.id
     user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
     user_history[chat_id] = []
-    menu_message_id.pop(chat_id, None)  # сбрасываем ID меню
-    bot.send_message(
-        chat_id,
-        f"👋 Привет, {message.from_user.first_name}!\nЯ — ролевой бот, созданный для увлекательного общения.\nГотов начать?",
-        reply_markup=reply_panel_keyboard()
-    )
-
-# -------------------- 7. ОБРАБОТЧИК REPLY-КНОПКИ "ПАНЕЛЬ УПРАВЛЕНИЯ" --------------------
-@bot.message_handler(func=lambda message: message.text == "🕹 Панель управления")
-def open_main_menu(message):
-    chat_id = message.chat.id
-    # Если уже есть открытое меню, удалим его (чтобы не плодить)
+    # Удаляем предыдущее меню, если было
     if chat_id in menu_message_id:
         try:
             bot.delete_message(chat_id, menu_message_id[chat_id])
         except:
             pass
-    # Отправляем новое меню
-    sent = bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
-    menu_message_id[chat_id] = sent.message_id
+        menu_message_id.pop(chat_id, None)
+
+    bot.send_message(
+        chat_id,
+        f"👋 Привет, {message.from_user.first_name}!\nЯ — ролевой бот, созданный для увлекательного общения.\nГотов начать?",
+        reply_markup=reply_start_keyboard()
+    )
+
+# -------------------- 7. ОБРАБОТЧИК НАЖАТИЙ НА REPLY-КНОПКИ --------------------
+@bot.message_handler(func=lambda message: message.text in [
+    "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ",
+    "📜 Сценарии",
+    "⚙️ Настройки",
+    "❓ Помощь",
+    "ℹ️ О боте",
+    "🎮 Меню"
+])
+def handle_reply_buttons(message):
+    chat_id = message.chat.id
+    text = message.text
+
+    # Удаляем сообщение пользователя с текстом кнопки (чтобы не засорять чат)
+    try:
+        bot.delete_message(chat_id, message.message_id)
+    except:
+        pass
+
+    # Если нажата кнопка "НАЧАТЬ"
+    if text == "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ":
+        # Отправляем "Погнали!" и показываем главную Reply-клавиатуру
+        bot.send_message(chat_id, "🚀 Погнали! Пиши с чего начнём.", reply_markup=reply_main_keyboard())
+        return
+
+    # Для всех остальных кнопок показываем Inline-меню (главное или информационные)
+    if text == "📜 Сценарии":
+        bot.answer_callback_query? Но здесь не колбэк, а просто покажем заглушку в Inline-меню.
+        # Показываем информационное сообщение с кнопкой "Назад"
+        sent = bot.send_message(
+            chat_id,
+            "📜 Раздел сценариев пока в разработке. Скоро здесь появятся готовые завязки.",
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+        )
+        menu_message_id[chat_id] = sent.message_id
+        return
+
+    if text == "❓ Помощь":
+        help_text = (
+            "❓ **Помощь**\n\n"
+            "🔹 Кнопки внизу — главное меню.\n"
+            "🔹 «Настройки» — выбор лимита токенов (длины ответа) и характера (Милая, Нейтральная, Горячая).\n"
+            "🔹 История хранит последние 20 сообщений для контекста.\n"
+            "🔹 После настройки просто пиши текст — я отвечу в ролевом режиме.\n"
+            "🔹 Чтобы убрать меню, нажми «🎮 Меню» и закрой его."
+        )
+        sent = bot.send_message(
+            chat_id,
+            help_text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+        )
+        menu_message_id[chat_id] = sent.message_id
+        return
+
+    if text == "ℹ️ О боте":
+        about_text = (
+            "ℹ️ **О боте**\n\n"
+            "Версия: 5.0 (Reply+Inline гибрид)\n"
+            "Модель: Dolphin-Mistral-24B-Venice-Edition\n"
+            "Платформа: Hugging Face Router\n"
+            "Разработан для ролевых игр 18+ без цензуры.\n"
+            "Память: до 20 последних сообщений."
+        )
+        sent = bot.send_message(
+            chat_id,
+            about_text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+        )
+        menu_message_id[chat_id] = sent.message_id
+        return
+
+    if text == "⚙️ Настройки":
+        # Показываем меню настроек
+        settings = user_settings[chat_id]
+        history_count = len(user_history[chat_id]) // 2
+        msg_text = (
+            f"⚙️ **Настройки**\n\n"
+            f"📏 Лимит: {settings['limit']} токенов\n"
+            f"🎭 Характер: {get_personality_name(settings['personality'])}\n"
+            f"💬 История: {history_count} диалоговых пар"
+        )
+        sent = bot.send_message(
+            chat_id,
+            msg_text,
+            parse_mode="Markdown",
+            reply_markup=settings_menu_keyboard(chat_id)
+        )
+        menu_message_id[chat_id] = sent.message_id
+        return
+
+    if text == "🎮 Меню":
+        # Если уже есть открытое меню, удалим его
+        if chat_id in menu_message_id:
+            try:
+                bot.delete_message(chat_id, menu_message_id[chat_id])
+            except:
+                pass
+        # Показываем главное Inline-меню
+        sent = bot.send_message(chat_id, "🎮 Главное меню", reply_markup=main_menu_keyboard())
+        menu_message_id[chat_id] = sent.message_id
+        return
 
 # -------------------- 8. ОБРАБОТЧИК INLINE-КОЛБЭКОВ --------------------
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     chat_id = call.message.chat.id
     data = call.data
-
-    # Инициализация на всякий случай
-    if chat_id not in user_settings:
-        user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
-        user_history[chat_id] = []
 
     # Закрыть меню
     if data == "close_menu":
@@ -144,7 +249,7 @@ def callback_handler(call):
         bot.answer_callback_query(call.id)
         return
 
-    # Назад в главное меню
+    # Назад в главное меню (Inline)
     if data == "back_to_main":
         bot.edit_message_text(
             "🎮 Главное меню",
@@ -155,53 +260,19 @@ def callback_handler(call):
         bot.answer_callback_query(call.id)
         return
 
-    # -------------------- ГЛАВНОЕ МЕНЮ --------------------
+    # Обработка информационных кнопок (они теперь через Inline, но можно и через alert)
     if data == "main_scenarios":
-        bot.edit_message_text(
-            "📜 Раздел сценариев пока в разработке. Скоро здесь появятся готовые завязки.",
-            chat_id,
-            call.message.message_id,
-            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
-        )
-        bot.answer_callback_query(call.id)
+        bot.answer_callback_query(call.id, "📜 Скоро здесь будут готовые сценарии. Следи за обновлениями!", show_alert=True)
         return
 
     if data == "main_help":
-        help_text = (
-            "❓ **Помощь**\n\n"
-            "🔹 Нажми «Панель управления» внизу, чтобы открыть меню.\n"
-            "🔹 В настройках можно выбрать лимит токенов (длину ответа) и характер (Милая, Нейтральная, Горячая).\n"
-            "🔹 История хранит последние 20 сообщений для контекста.\n"
-            "🔹 После настройки просто пиши текст — я отвечу в ролевом режиме.\n"
-            "🔹 Меню можно закрыть кнопкой «❌ Закрыть»."
-        )
-        bot.edit_message_text(
-            help_text,
-            chat_id,
-            call.message.message_id,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
-        )
-        bot.answer_callback_query(call.id)
+        help_text = "❓ Помощь\n\nИспользуй кнопки внизу для навигации. В настройках можно выбрать лимит и характер."
+        bot.answer_callback_query(call.id, help_text, show_alert=True)
         return
 
     if data == "main_about":
-        about_text = (
-            "ℹ️ **О боте**\n\n"
-            "Версия: 3.0 (Inline-меню)\n"
-            "Модель: Dolphin-Mistral-24B-Venice-Edition\n"
-            "Платформа: Hugging Face Router\n"
-            "Разработан для ролевых игр 18+ без цензуры.\n"
-            "Память: до 20 последних сообщений."
-        )
-        bot.edit_message_text(
-            about_text,
-            chat_id,
-            call.message.message_id,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
-        )
-        bot.answer_callback_query(call.id)
+        about_text = "ℹ️ О боте\n\nВерсия 5.0, модель Dolphin-Mistral-24B, без цензуры."
+        bot.answer_callback_query(call.id, about_text, show_alert=True)
         return
 
     if data == "main_settings":
@@ -229,7 +300,6 @@ def callback_handler(call):
         limit = limit_map.get(data, 400)
         user_settings[chat_id]['limit'] = limit
         bot.answer_callback_query(call.id, f"✅ Лимит: {limit}")
-        # Обновляем текст настроек
         settings = user_settings[chat_id]
         history_count = len(user_history[chat_id]) // 2
         text = (
@@ -248,7 +318,7 @@ def callback_handler(call):
         return
 
     if data == "custom_limit":
-        # Запрашиваем ввод числа отдельным сообщением
+        # Запрашиваем ввод числа отдельным сообщением (без клавиатуры)
         bot.send_message(chat_id, "✏️ Введи желаемое число токенов (от 10 до 1500):", reply_markup=ReplyKeyboardRemove())
         bot.register_next_step_handler_by_chat_id(chat_id, process_custom_limit, call.message.message_id)
         bot.answer_callback_query(call.id)
@@ -283,7 +353,6 @@ def callback_handler(call):
     if data == "clear_history":
         user_history[chat_id] = []
         bot.answer_callback_query(call.id, "🗑️ История очищена")
-        # Обновляем текст настроек
         settings = user_settings[chat_id]
         text = (
             f"⚙️ **Настройки**\n\n"
@@ -304,7 +373,6 @@ def callback_handler(call):
         user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
         user_history[chat_id] = []
         bot.answer_callback_query(call.id, "🔄 Настройки сброшены")
-        # Возвращаем главное меню
         bot.edit_message_text(
             "🎮 Главное меню",
             chat_id,
@@ -323,11 +391,11 @@ def process_custom_limit(message, menu_message_id_to_edit):
         if limit > 1500:
             limit = 1500
         user_settings[chat_id]['limit'] = limit
-        bot.send_message(chat_id, f"✅ Лимит установлен: {limit}", reply_markup=reply_panel_keyboard())
+        bot.send_message(chat_id, f"✅ Лимит установлен: {limit}")
     except ValueError:
-        bot.send_message(chat_id, "❌ Нужно ввести число от 10 до 1500.", reply_markup=reply_panel_keyboard())
+        bot.send_message(chat_id, "❌ Нужно ввести число от 10 до 1500.")
 
-    # Возвращаемся к меню настроек (редактируем старое сообщение меню)
+    # Возвращаемся к меню настроек (редактируем старое сообщение)
     try:
         settings = user_settings[chat_id]
         history_count = len(user_history[chat_id]) // 2
@@ -382,7 +450,14 @@ def query_dolphin(prompt, chat_id):
         return f"⏳ Ошибка: {str(e)[:50]}"
 
 # -------------------- 11. ОСНОВНОЙ ОБРАБОТЧИК ТЕКСТОВЫХ СООБЩЕНИЙ (RP) --------------------
-@bot.message_handler(func=lambda message: message.text and not message.text.startswith('/') and message.text != "🕹 Панель управления")
+@bot.message_handler(func=lambda message: message.text and not message.text.startswith('/') and message.text not in [
+    "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ",
+    "📜 Сценарии",
+    "⚙️ Настройки",
+    "❓ Помощь",
+    "ℹ️ О боте",
+    "🎮 Меню"
+])
 def handle_rp(message):
     chat_id = message.chat.id
     if chat_id not in user_settings:
@@ -390,9 +465,9 @@ def handle_rp(message):
         user_history[chat_id] = []
     bot.send_chat_action(chat_id, 'typing')
     reply = query_dolphin(message.text, chat_id)
-    bot.send_message(chat_id, reply, reply_markup=reply_panel_keyboard())
+    bot.send_message(chat_id, reply)
 
 # -------------------- 12. ЗАПУСК --------------------
 if __name__ == "__main__":
-    print("🚀 Бот с Inline-меню и чистыми сообщениями запущен!")
+    print("🚀 Бот с Reply-кнопками и автоматической уборкой запущен!")
     bot.polling(none_stop=True)

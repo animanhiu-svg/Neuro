@@ -1,11 +1,12 @@
+# database.py
 # Хранилища данных пользователей (в памяти)
-user_settings = {}      # {chat_id: {'limit': 400, 'personality': 'neutral'}}
+user_settings = {}      # {chat_id: {'limit': 400, 'personality': 'neutral', 'custom_prompt': None}}
 user_history = {}       # {chat_id: [messages]}
 menu_message_id = {}    # {chat_id: message_id} — текущее открытое Inline-меню
 
 def update_user_setting(chat_id, key, value):
     if chat_id not in user_settings:
-        user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
+        user_settings[chat_id] = {'limit': 400, 'personality': 'neutral', 'custom_prompt': None}
     user_settings[chat_id][key] = value
 
 def get_user_setting(chat_id, key, default=None):
@@ -27,5 +28,5 @@ def get_history(chat_id):
     return user_history.get(chat_id, [])[-20:]  # последние 20 сообщений для контекста
 
 def reset_all(chat_id):
-    user_settings[chat_id] = {'limit': 400, 'personality': 'neutral'}
+    user_settings[chat_id] = {'limit': 400, 'personality': 'neutral', 'custom_prompt': None}
     user_history[chat_id] = []

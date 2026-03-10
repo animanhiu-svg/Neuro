@@ -1,4 +1,3 @@
-# keyboards.py
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 import config
 from database import get_user_setting, user_history

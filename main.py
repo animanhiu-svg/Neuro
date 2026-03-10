@@ -2,6 +2,7 @@ import telebot
 from openai import OpenAI
 from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 import requests
+import os
 
 import config
 import utils
@@ -40,29 +41,9 @@ def get_instruction(field):
     }
     return instructions.get(field, f"✏️ Введите значение для поля '{field}':")
 
-def return_to_character_menu(chat_id, message_id_to_delete=None):
-    """Возвращает пользователя в меню карточки, удаляя предыдущее сообщение."""
-    if message_id_to_delete:
-        try:
-            bot.delete_message(chat_id, message_id_to_delete)
-        except:
-            pass
-    markup, txt = kb.character_menu_keyboard(chat_id)
-    sent = bot.send_message(chat_id, txt, parse_mode="Markdown", reply_markup=markup)
-    menu_message_id[chat_id] = sent.message_id
-    # Возвращаем Reply-клавиатуру
-    bot.send_message(chat_id, "👤 Меню:", reply_markup=kb.reply_main_keyboard())
-
-def process_field_input(message, field_name, prompt_msg_id):
-    """Обработчик текстовых полей (кроме фото и пола)."""
+def process_field_input(message, field_name, query_msg_id=None):
     cid = message.chat.id
     text = message.text.strip()
-    # Удаляем сообщение с запросом и сообщение пользователя
-    try:
-        bot.delete_message(cid, prompt_msg_id)
-        bot.delete_message(cid, message.message_id)
-    except:
-        pass
     if text:
         if field_name != 'gender':
             text = replace_pronouns(text)
@@ -70,7 +51,16 @@ def process_field_input(message, field_name, prompt_msg_id):
         bot.send_message(cid, f"✅ Поле '{field_name}' обновлено.", reply_markup=kb.reply_main_keyboard())
     else:
         bot.send_message(cid, "❌ Пустое значение не принимается.", reply_markup=kb.reply_main_keyboard())
-    return_to_character_menu(cid, None)
+    # Удаляем сообщение с запросом, если оно ещё существует
+    if query_msg_id:
+        try:
+            bot.delete_message(cid, query_msg_id)
+        except:
+            pass
+    # Возвращаем меню карточки
+    markup, txt = kb.character_menu_keyboard(cid)
+    sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
+    menu_message_id[cid] = sent.message_id
 
 # -------------------- Команды --------------------
 @bot.message_handler(commands=['start'])
@@ -90,8 +80,8 @@ def start(message):
         "📝 **Как пользоваться:**\n"
         "1. Нажми «👤 Создать персонажа» и заполни карточку.\n"
         "2. Для пола нажми на кнопку и выбери из вариантов.\n"
-        "3. Для фото пришли картинку (бот сам её сохранит).\n"
-        "4. После заполнения нажми «🚀 Запустить» – бот применит карточку.\n"
+        "3. Для фото пришли картинку (бот сохранит её).\n"
+        "4. После заполнения нажми «🚀 Запустить» – бот отправит фото персонажа и приветствие.\n"
         "5. Дальше просто общайся – персонаж будет вести себя согласно роли.\n\n"
         "Готов? Жми кнопку внизу!"
     )
@@ -104,7 +94,7 @@ def handle_reply_buttons(message):
         return
     cid, text = message.chat.id, message.text
     try:
-        bot.delete_message(cid, message.message_id)
+        bot.delete_message(cid, message.message_id)  # удаляем сообщение с текстом кнопки
     except:
         pass
 
@@ -114,7 +104,9 @@ def handle_reply_buttons(message):
         menu_message_id[cid] = sent.message_id
 
     elif text == "👤 Создать персонажа":
-        return_to_character_menu(cid, None)
+        markup, txt = kb.character_menu_keyboard(cid)
+        sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
+        menu_message_id[cid] = sent.message_id
 
     elif text == "⚙️ Лимит":
         markup, txt = kb.limit_menu_keyboard(cid)
@@ -128,7 +120,7 @@ def handle_reply_buttons(message):
             "• «👤 Создать персонажа» – заполни карточку своего героя.\n"
             "• «⚙️ Лимит» – настрой длину ответов.\n"
             "• «ℹ️ О боте» – подробная инструкция.\n"
-            "• «🚀 Запустить» – применить карточку.",
+            "• «🚀 Запустить» – применить карточку (бот покажет фото и поздоровается).",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
@@ -142,7 +134,7 @@ def handle_reply_buttons(message):
             "1. Нажми «👤 Создать персонажа».\n"
             "2. Заполни поля (имя, пол и приветствие обязательны).\n"
             "3. Для фото нажми «🖼 Фото» и отправь картинку.\n"
-            "4. После заполнения нажми «🚀 Запустить» – бот применит карточку.\n"
+            "4. После заполнения нажми «🚀 Запустить» – бот покажет фото персонажа и отправит приветствие.\n"
             "5. Теперь просто общайся – персонаж будет вести себя согласно роли.\n\n"
             "**Важно:** Во всех полях «Я» автоматически заменяется на «Ты»."
         )
@@ -168,12 +160,14 @@ def run_metamorphosis(cid):
     greeting = get_field(cid, 'greeting')
     subtitles = get_field(cid, 'subtitles', '')
 
+    # Меняем имя бота (работает)
     try:
         bot.set_my_name(name)
         bot.send_message(cid, f"✅ Имя бота изменено на {name}", reply_markup=kb.reply_main_keyboard())
     except Exception as e:
         bot.send_message(cid, f"❌ Ошибка смены имени: {e}", reply_markup=kb.reply_main_keyboard())
 
+    # Меняем описание (работает)
     if subtitles:
         try:
             bot.set_my_description(subtitles)
@@ -181,10 +175,20 @@ def run_metamorphosis(cid):
         except Exception as e:
             bot.send_message(cid, f"❌ Ошибка описания: {e}", reply_markup=kb.reply_main_keyboard())
 
-    # Фото больше не меняем, а будем присылать в чат при старте (добавим позже)
+    # Отправляем фото персонажа (вместо смены аватарки)
+    photo_file_id = get_field(cid, 'char_photo')
+    if photo_file_id:
+        try:
+            bot.send_photo(cid, photo_file_id, caption="📸 **Фото персонажа**", parse_mode="Markdown")
+        except Exception as e:
+            bot.send_message(cid, f"❌ Не удалось отправить фото: {e}", reply_markup=kb.reply_main_keyboard())
+    else:
+        bot.send_message(cid, "⚠️ Фото не задано, пропускаю.", reply_markup=kb.reply_main_keyboard())
+
     clear_history(cid)
     bot.send_message(cid, "🧹 История диалога очищена.", reply_markup=kb.reply_main_keyboard())
 
+    # Отправляем приветствие
     bot.send_message(cid, f"**{greeting}**", parse_mode="Markdown", reply_markup=kb.reply_main_keyboard())
 
     sent = bot.send_message(cid, "🎮 Главное меню", reply_markup=kb.main_menu_keyboard())
@@ -211,7 +215,9 @@ def callback_handler(call):
         bot.answer_callback_query(call.id)
 
     elif data == "main_character":
-        return_to_character_menu(cid, call.message.message_id)
+        markup, txt = kb.character_menu_keyboard(cid)
+        bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+        bot.answer_callback_query(call.id)
 
     elif data == "main_limit":
         markup, txt = kb.limit_menu_keyboard(cid)
@@ -231,56 +237,59 @@ def callback_handler(call):
             gender_markup.add(
                 InlineKeyboardButton("👨 Мужской", callback_data="set_gender_male"),
                 InlineKeyboardButton("👩 Женский", callback_data="set_gender_female"),
-                InlineKeyboardButton("🔙 Назад", callback_data="back_to_character")
+                InlineKeyboardButton("◀️ Отмена", callback_data="cancel_input")
             )
             bot.edit_message_text("👫 Выбери пол персонажа:", cid, call.message.message_id, reply_markup=gender_markup)
             bot.answer_callback_query(call.id)
             return
         elif field == "photo":
-            # Запрос фото с кнопкой отмены
-            cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Отмена", callback_data="cancel_photo"))
-            msg = bot.send_message(cid, "🖼 Отправь фотографию персонажа (только картинка).", reply_markup=cancel_markup)
-            bot.register_next_step_handler(msg, process_photo_input, call.message.message_id, msg.message_id)
+            msg = bot.send_message(cid, "🖼 Отправь фотографию персонажа (только картинка).", reply_markup=ReplyKeyboardRemove())
+            bot.register_next_step_handler(msg, process_photo_input, call.message.message_id)
             bot.answer_callback_query(call.id)
             return
         else:
-            # Текстовые поля – добавляем кнопку отмены
-            cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Отмена", callback_data="cancel_input"))
             instruction = get_instruction(field)
-            msg = bot.send_message(cid, instruction, reply_markup=cancel_markup)
+            # Создаём клавиатуру с кнопкой "Отмена"
+            cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Отмена", callback_data="cancel_input"))
+            msg = bot.send_message(cid, instruction, reply_markup=ReplyKeyboardRemove())
+            # Прикрепляем к сообщению inline-кнопку "Отмена"
+            bot.edit_message_reply_markup(cid, msg.message_id, reply_markup=cancel_markup)
             bot.register_next_step_handler(msg, process_field_input, field, msg.message_id)
             bot.answer_callback_query(call.id)
 
     elif data == "cancel_input":
-        # Отмена ввода текстового поля
-        bot.delete_message(cid, call.message.message_id)
-        return_to_character_menu(cid, None)
-        bot.answer_callback_query(call.id)
-
-    elif data == "cancel_photo":
-        # Отмена загрузки фото
-        bot.delete_message(cid, call.message.message_id)
-        return_to_character_menu(cid, None)
+        # Удаляем последнее сообщение с запросом и возвращаемся в меню карточки
+        try:
+            bot.delete_message(cid, call.message.message_id)
+        except:
+            pass
+        markup, txt = kb.character_menu_keyboard(cid)
+        sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
+        menu_message_id[cid] = sent.message_id
         bot.answer_callback_query(call.id)
 
     elif data == "back_to_character":
-        return_to_character_menu(cid, call.message.message_id)
+        markup, txt = kb.character_menu_keyboard(cid)
+        bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
         bot.answer_callback_query(call.id)
 
     elif data == "set_gender_male":
         update_field(cid, 'gender', 'male')
         bot.answer_callback_query(call.id, "✅ Пол: Мужской")
-        return_to_character_menu(cid, call.message.message_id)
+        markup, txt = kb.character_menu_keyboard(cid)
+        bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
     elif data == "set_gender_female":
         update_field(cid, 'gender', 'female')
         bot.answer_callback_query(call.id, "✅ Пол: Женский")
-        return_to_character_menu(cid, call.message.message_id)
+        markup, txt = kb.character_menu_keyboard(cid)
+        bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
     elif data == "reset_card":
         reset_all(cid)
         bot.answer_callback_query(call.id, "♻️ Карточка сброшена")
-        return_to_character_menu(cid, call.message.message_id)
+        markup, txt = kb.character_menu_keyboard(cid)
+        bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
     elif data.startswith("set_limit_"):
         limits = {"set_limit_150":150, "set_limit_500":500, "set_limit_900":900}
@@ -291,21 +300,12 @@ def callback_handler(call):
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
     elif data == "custom_limit":
-        # Запрос лимита с кнопкой отмены
-        cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Отмена", callback_data="cancel_limit"))
-        msg = bot.send_message(cid, "✏️ Введи число токенов (10-1500):", reply_markup=cancel_markup)
-        bot.register_next_step_handler(msg, process_custom_limit, call.message.message_id, msg.message_id)
-        bot.answer_callback_query(call.id)
-
-    elif data == "cancel_limit":
-        bot.delete_message(cid, call.message.message_id)
-        # Возвращаемся в меню лимита
-        markup, txt = kb.limit_menu_keyboard(cid)
-        bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+        msg = bot.send_message(cid, "✏️ Введи число токенов (10-1500):", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(msg, process_custom_limit, call.message.message_id)
         bot.answer_callback_query(call.id)
 
 # -------------------- Обработка ввода своего лимита --------------------
-def process_custom_limit(message, menu_msg_id, prompt_msg_id):
+def process_custom_limit(message, menu_msg_id):
     cid = message.chat.id
     try:
         limit = max(10, min(1500, int(message.text)))
@@ -313,43 +313,30 @@ def process_custom_limit(message, menu_msg_id, prompt_msg_id):
         bot.send_message(cid, f"✅ Лимит: {limit}", reply_markup=kb.reply_main_keyboard())
     except:
         bot.send_message(cid, "❌ Нужно число от 10 до 1500.", reply_markup=kb.reply_main_keyboard())
-    # Удаляем сообщение с запросом и сообщение пользователя
     try:
-        bot.delete_message(cid, prompt_msg_id)
-        bot.delete_message(cid, message.message_id)
-    except:
-        pass
-    # Возвращаемся в меню лимита
-    markup, txt = kb.limit_menu_keyboard(cid)
-    try:
+        markup, txt = kb.limit_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
     except:
-        sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
+        sent = bot.send_message(cid, "📏 Лимит", reply_markup=markup)
         menu_message_id[cid] = sent.message_id
 
 # -------------------- Обработка загрузки фото --------------------
-def process_photo_input(message, menu_msg_id, prompt_msg_id):
+def process_photo_input(message, menu_msg_id):
     cid = message.chat.id
-    # Удаляем сообщение с запросом и сообщение пользователя
-    try:
-        bot.delete_message(cid, prompt_msg_id)
-    except:
-        pass
     if message.content_type == 'photo':
         file_id = message.photo[-1].file_id
         update_field(cid, 'char_photo', file_id)
         bot.send_message(cid, "✅ Фото сохранено!", reply_markup=kb.reply_main_keyboard())
         try:
-            bot.delete_message(cid, message.message_id)
+            markup, txt = kb.character_menu_keyboard(cid)
+            bot.edit_message_text(txt, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
         except:
-            pass
-        return_to_character_menu(cid, None)
+            sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
+            menu_message_id[cid] = sent.message_id
     else:
         bot.send_message(cid, "❌ Бро, пришли именно картинку, а не текст!", reply_markup=kb.reply_main_keyboard())
-        # Повторяем запрос с кнопкой отмены
-        cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Отмена", callback_data="cancel_photo"))
-        msg = bot.send_message(cid, "🖼 Отправь фотографию персонажа (только картинка).", reply_markup=cancel_markup)
-        bot.register_next_step_handler(msg, process_photo_input, menu_msg_id, msg.message_id)
+        msg = bot.send_message(cid, "🖼 Отправь фотографию персонажа (только картинка).", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(msg, process_photo_input, menu_msg_id)
 
 # -------------------- Основной обработчик RP-сообщений --------------------
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/') and m.text not in ["🎮 НАЧАТЬ", "👤 Создать персонажа", "⚙️ Лимит", "❓ Помощь", "ℹ️ О боте", "🚀 Запустить"])

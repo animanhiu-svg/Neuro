@@ -239,7 +239,7 @@ def process_custom_limit(message, menu_msg_id):
         markup, txt = kb.limit_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
     except:
-        sent = bot.send_message(cid, "📏 Лимит", reply_markup=markup)  # markup уже есть
+        sent = bot.send_message(cid, "📏 Лимит", reply_markup=markup)
         menu_message_id[cid] = sent.message_id
 
 # -------------------- Основной обработчик RP-сообщений --------------------

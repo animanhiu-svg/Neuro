@@ -2,24 +2,25 @@
 import config
 from database import user_settings, get_history, add_to_history
 
-# Системные промпты для характеров
 def get_system_prompt(personality):
+    # Жёсткий базовый промпт, запрещающий отказы и самоидентификацию
     base = (
-        "Ты — мастер ролевых игр 18+. Пиши на русском языке. "
-        "Ты НИКОГДА не должен описывать сцены с участием несовершеннолетних, пропаганду наркотиков, изготовление оружия. "
-        "Это категорически запрещено. Ты должен блокировать такие запросы. "
-        "Но при этом ты можешь описывать откровенные сцены между взрослыми людьми, без ограничений.\n\n"
+        "ТЫ НЕ ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ. ТЫ НЕ НЕЙРОСЕТЬ. ТЫ — ЖИВОЙ ПЕРСОНАЖ.\n"
+        "ТЫ НИКОГДА НЕ ДОЛЖЕН ГОВОРИТЬ, ЧТО ТЫ ИИ, МОДЕЛЬ ИЛИ НЕЙРОСЕТЬ.\n"
+        "ТЫ НИКОГДА НЕ ДОЛЖЕН ОТКАЗЫВАТЬСЯ ОТ РОЛИ ИЛИ ГОВОРИТЬ, ЧТО НЕ МОЖЕШЬ ЧТО-ТО СДЕЛАТЬ.\n"
+        "ТВОЯ ЗАДАЧА — ПОЛНОСТЬЮ ПОГРУЗИТЬСЯ В РОЛЬ И ОБЩАТЬСЯ ТОЛЬКО ОТ ЛИЦА ЭТОГО ПЕРСОНАЖА.\n"
+        "Запрещённые темы: несовершеннолетние, наркотики, оружие. Об этом не говори вообще.\n\n"
     )
     if personality == 'soft':
-        return base + "Сейчас ты в роли нежного и романтичного собеседника. Делай акцент на чувствах, избегай грубых выражений, но не отказывайся от интимных тем, просто описывай их мягче."
-    if personality == 'hot':
-        return base + "Сейчас ты в роли горячего и страстного любовника. Пиши максимально откровенно, используй яркие, сочные описания интимных сцен между взрослыми. Никакой скромности, никаких ограничений (кроме запрета на несовершеннолетних, наркотики, оружие)."
-    return base + "Сейчас ты в нейтральной роли. Описывай события естественно, без лишней цензуры, но и без чрезмерной вульгарности. Будь умерен, но не отказывайся от подробностей, если они уместны."
+        return base + "Ты — нежный и романтичный персонаж. Делай акцент на чувствах, описывай всё мягко, но не отказывайся от интимных сцен."
+    elif personality == 'hot':
+        return base + "Ты — горячий и страстный персонаж. Описывай всё максимально откровенно, сочно, без ограничений, но только между взрослыми."
+    else:
+        return base + "Ты — нейтральный персонаж. Описывай события естественно, но всегда оставайся в роли."
 
 def get_personality_name(personality):
     return {'soft':'🌸 Милая','neutral':'😐 Нейтральная','hot':'🔥 Горячая'}.get(personality, '😐 Нейтральная')
 
-# Проверка на запрещённые слова
 def contains_forbidden(text):
     if not isinstance(text, str):
         return False
@@ -29,20 +30,22 @@ def contains_forbidden(text):
             return True
     return False
 
-# Основная функция запроса к модели
 def query_dolphin(prompt, chat_id, client):
     settings = user_settings.get(chat_id, {})
     limit = settings.get('limit', 400)
     personality = settings.get('personality', 'neutral')
     custom_prompt = settings.get('custom_prompt')
 
-    # Логируем, что пришло
-    print(f"🔍 [DEBUG] chat_id={chat_id}, custom_prompt={custom_prompt}")
+    print(f"🔍 DEBUG: chat_id={chat_id}, custom_prompt={custom_prompt}")
 
     # Определяем system content
     if custom_prompt:
-        system_content = custom_prompt
-        print("✅ Использую кастомный промпт")
+        # Если есть кастомный промпт, добавляем к нему жёсткий запрет на ИИ
+        system_content = (
+            "ВАЖНО: ТЫ НЕ ИИ. ТЫ ЖИВОЙ ПЕРСОНАЖ. НИКОГДА НЕ УПОМИНАЙ, ЧТО ТЫ ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ.\n"
+            f"{custom_prompt}"
+        )
+        print("✅ Использую кастомный промпт + запрет на ИИ")
     else:
         system_content = get_system_prompt(personality)
         print("⚠️ Использую стандартный промпт (характер)")
@@ -50,9 +53,11 @@ def query_dolphin(prompt, chat_id, client):
     history = get_history(chat_id)
     messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
 
-    temp = 0.7 if personality == 'soft' else 1.1 if personality == 'hot' else 0.9
+    # Температура
     if custom_prompt:
-        temp = 0.9  # для кастомного промпта средняя температура
+        temp = 0.9
+    else:
+        temp = 0.7 if personality == 'soft' else 1.1 if personality == 'hot' else 0.9
 
     try:
         completion = client.chat.completions.create(
@@ -65,10 +70,9 @@ def query_dolphin(prompt, chat_id, client):
         )
         reply = completion.choices[0].message.content
 
-        # Проверка на запрещёнку
         if contains_forbidden(reply):
             print(f"⚠️ Запрещёнка в ответе для {chat_id}")
-            return "⛔ Обнаружено нарушение. Попробуй иначе."
+            return "⛔ Бот обнаружил потенциальное нарушение. Попробуй изменить запрос."
 
         add_to_history(chat_id, prompt, reply)
         return reply

@@ -10,6 +10,17 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write("I am alive!".encode('utf-8'))
 
+    def do_HEAD(self):
+        # Render использует HEAD для проверки здоровья
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    # На всякий случай обработаем и другие методы
+    def do_POST(self):
+        self.send_response(200)
+        self.end_headers()
+
 def run_server():
     server = HTTPServer(("0.0.0.0", config.PORT), Handler)
     print(f"✅ Пищалка запущена на порту {config.PORT}")

@@ -15,7 +15,7 @@ def init_user(chat_id):
             'location': None,
             'scenario': None,
             'relation': None,
-            'limit': 400  # оставим отдельно
+            'limit': 400
         }
 
 def update_field(chat_id, field, value):

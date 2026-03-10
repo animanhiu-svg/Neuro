@@ -1,7 +1,8 @@
+import os  # <-- добавил os
 import telebot
 from openai import OpenAI
-from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo  # все импорты в одном месте
+
 import config
 import utils
 import keyboards as kb
@@ -18,7 +19,6 @@ client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
 # -------------------- Вспомогательные словари --------------------
-# Храним message_id последнего запроса на ввод для каждого чата
 last_query_message = {}
 
 # -------------------- Утилиты --------------------
@@ -43,7 +43,6 @@ def get_instruction(field):
     }
     return instructions.get(field, f"✏️ Введите значение для поля '{field}':")
 
-# -------------------- Обработчик текстового ввода (поля) --------------------
 def process_field_input(message, field_name):
     cid = message.chat.id
     text = message.text.strip()
@@ -55,7 +54,6 @@ def process_field_input(message, field_name):
     else:
         bot.send_message(cid, "❌ Пустое значение не принимается.", reply_markup=kb.reply_main_keyboard())
 
-    # Удаляем сообщение с запросом, если оно сохранено
     if cid in last_query_message:
         try:
             bot.delete_message(cid, last_query_message[cid])
@@ -63,12 +61,10 @@ def process_field_input(message, field_name):
             pass
         del last_query_message[cid]
 
-    # Возвращаем меню карточки
     markup, txt = kb.character_menu_keyboard(cid)
     sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
     menu_message_id[cid] = sent.message_id
 
-# -------------------- Обработчик отмены ввода --------------------
 def cancel_input(call):
     cid = call.message.chat.id
     if cid in last_query_message:
@@ -77,7 +73,6 @@ def cancel_input(call):
         except:
             pass
         del last_query_message[cid]
-    # Возвращаем меню карточки
     markup, txt = kb.character_menu_keyboard(cid)
     sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
     menu_message_id[cid] = sent.message_id
@@ -108,6 +103,23 @@ def start(message):
     )
     bot.send_message(cid, welcome_text, parse_mode="Markdown", reply_markup=kb.reply_start_keyboard())
 
+@bot.message_handler(commands=['app'])
+def open_mini_app(message):
+    if message.chat.id != config.ALLOWED_USER_ID:
+        return
+    if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+        base_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"
+    else:
+        base_url = f"http://localhost:{config.PORT}"
+    webapp_url = f"{base_url}/app"
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🚀 Открыть конструктор", web_app=WebAppInfo(url=webapp_url)))
+    bot.send_message(
+        message.chat.id,
+        "Нажми кнопку ниже, чтобы открыть конструктор персонажа:",
+        reply_markup=markup
+    )
+
 # -------------------- Обработчик Reply-кнопок --------------------
 @bot.message_handler(func=lambda m: m.text in ["🎮 НАЧАТЬ", "👤 Создать персонажа", "⚙️ Лимит", "❓ Помощь", "ℹ️ О боте", "🚀 Запустить"])
 def handle_reply_buttons(message):
@@ -115,7 +127,7 @@ def handle_reply_buttons(message):
         return
     cid, text = message.chat.id, message.text
     try:
-        bot.delete_message(cid, message.message_id)  # удаляем сообщение с текстом кнопки
+        bot.delete_message(cid, message.message_id)
     except:
         pass
 
@@ -181,14 +193,12 @@ def run_metamorphosis(cid):
     greeting = get_field(cid, 'greeting')
     subtitles = get_field(cid, 'subtitles', '')
 
-    # Меняем имя бота
     try:
         bot.set_my_name(name)
         bot.send_message(cid, f"✅ Имя бота изменено на {name}", reply_markup=kb.reply_main_keyboard())
     except Exception as e:
         bot.send_message(cid, f"❌ Ошибка смены имени: {e}", reply_markup=kb.reply_main_keyboard())
 
-    # Меняем описание
     if subtitles:
         try:
             bot.set_my_description(subtitles)
@@ -196,7 +206,6 @@ def run_metamorphosis(cid):
         except Exception as e:
             bot.send_message(cid, f"❌ Ошибка описания: {e}", reply_markup=kb.reply_main_keyboard())
 
-    # Отправляем фото персонажа (один раз)
     photo_file_id = get_field(cid, 'char_photo')
     if photo_file_id:
         try:
@@ -209,7 +218,6 @@ def run_metamorphosis(cid):
     clear_history(cid)
     bot.send_message(cid, "🧹 История диалога очищена.", reply_markup=kb.reply_main_keyboard())
 
-    # Отправляем приветствие
     bot.send_message(cid, f"**{greeting}**", parse_mode="Markdown", reply_markup=kb.reply_main_keyboard())
 
     sent = bot.send_message(cid, "🎮 Главное меню", reply_markup=kb.main_menu_keyboard())
@@ -250,7 +258,6 @@ def callback_handler(call):
     elif data == "main_about":
         bot.answer_callback_query(call.id, "ℹ️ Подробная инструкция в разделе «О боте».", show_alert=True)
 
-    # --- Редактирование полей ---
     elif data.startswith("edit_"):
         field = data[5:]
         if field == "gender":
@@ -270,10 +277,8 @@ def callback_handler(call):
             return
         else:
             instruction = get_instruction(field)
-            # Создаём клавиатуру с кнопкой "Отмена"
             cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Отмена", callback_data="cancel_input"))
             msg = bot.send_message(cid, instruction, reply_markup=cancel_markup)
-            # Сохраняем message_id этого сообщения
             last_query_message[cid] = msg.message_id
             bot.register_next_step_handler(msg, process_field_input, field)
             bot.answer_callback_query(call.id)
@@ -317,7 +322,6 @@ def callback_handler(call):
         bot.register_next_step_handler(msg, process_custom_limit, call.message.message_id)
         bot.answer_callback_query(call.id)
 
-# -------------------- Обработка ввода своего лимита --------------------
 def process_custom_limit(message, menu_msg_id):
     cid = message.chat.id
     try:
@@ -333,31 +337,26 @@ def process_custom_limit(message, menu_msg_id):
         sent = bot.send_message(cid, "📏 Лимит", reply_markup=markup)
         menu_message_id[cid] = sent.message_id
 
-# -------------------- Обработка загрузки фото --------------------
 def process_photo_input(message):
     cid = message.chat.id
     if message.content_type == 'photo':
         file_id = message.photo[-1].file_id
         update_field(cid, 'char_photo', file_id)
         bot.send_message(cid, "✅ Фото сохранено!", reply_markup=kb.reply_main_keyboard())
-        # Удаляем сообщение с запросом, если оно есть
         if cid in last_query_message:
             try:
                 bot.delete_message(cid, last_query_message[cid])
             except:
                 pass
             del last_query_message[cid]
-        # Возвращаем меню карточки
         markup, txt = kb.character_menu_keyboard(cid)
         sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
         menu_message_id[cid] = sent.message_id
     else:
         bot.send_message(cid, "❌ Бро, пришли именно картинку, а не текст!", reply_markup=kb.reply_main_keyboard())
-        # Снова запрашиваем фото
         msg = bot.send_message(cid, "🖼 Отправь фотографию персонажа (только картинка).", reply_markup=ReplyKeyboardRemove())
         bot.register_next_step_handler(msg, process_photo_input)
 
-# -------------------- Основной обработчик RP-сообщений --------------------
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/') and m.text not in ["🎮 НАЧАТЬ", "👤 Создать персонажа", "⚙️ Лимит", "❓ Помощь", "ℹ️ О боте", "🚀 Запустить"])
 def handle_rp(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -371,28 +370,7 @@ def handle_rp(message):
     bot.send_chat_action(cid, 'typing')
     reply = query_dolphin(message.text, cid, client)
     bot.send_message(cid, reply, reply_markup=kb.reply_main_keyboard())
-from telebot.types import WebAppInfo
 
-@bot.message_handler(commands=['app'])
-def open_mini_app(message):
-    if message.chat.id != config.ALLOWED_USER_ID:
-        return
-    # URL для Mini App: используем домен Render или localhost для теста
-    if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
-        base_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"
-    else:
-        base_url = f"http://localhost:{config.PORT}"  # для локального теста
-    webapp_url = f"{base_url}/app"
-    
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("🚀 Открыть конструктор", web_app=WebAppInfo(url=webapp_url)))
-    
-    bot.send_message(
-        message.chat.id,
-        "Нажми кнопку ниже, чтобы открыть конструктор персонажа:",
-        reply_markup=markup
-    )
-# -------------------- Запуск --------------------
 if __name__ == "__main__":
     print("🚀 Бот с улучшенным интерфейсом запущен!")
     bot.polling(none_stop=True)

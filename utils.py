@@ -1,4 +1,3 @@
-# utils.py
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import config
@@ -11,12 +10,10 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write("I am alive!".encode('utf-8'))
 
     def do_HEAD(self):
-        # Render использует HEAD для проверки здоровья
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
-    # На всякий случай обработаем и другие методы
     def do_POST(self):
         self.send_response(200)
         self.end_headers()

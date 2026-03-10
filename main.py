@@ -371,7 +371,27 @@ def handle_rp(message):
     bot.send_chat_action(cid, 'typing')
     reply = query_dolphin(message.text, cid, client)
     bot.send_message(cid, reply, reply_markup=kb.reply_main_keyboard())
+from telebot.types import WebAppInfo
 
+@bot.message_handler(commands=['app'])
+def open_mini_app(message):
+    if message.chat.id != config.ALLOWED_USER_ID:
+        return
+    # URL для Mini App: используем домен Render или localhost для теста
+    if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+        base_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"
+    else:
+        base_url = f"http://localhost:{config.PORT}"  # для локального теста
+    webapp_url = f"{base_url}/app"
+    
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🚀 Открыть конструктор", web_app=WebAppInfo(url=webapp_url)))
+    
+    bot.send_message(
+        message.chat.id,
+        "Нажми кнопку ниже, чтобы открыть конструктор персонажа:",
+        reply_markup=markup
+    )
 # -------------------- Запуск --------------------
 if __name__ == "__main__":
     print("🚀 Бот с улучшенным интерфейсом запущен!")

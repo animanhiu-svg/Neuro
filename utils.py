@@ -15,4 +15,4 @@ def run_server():
     server.serve_forever()
 
 def start_pinger():
-    threading.Thread(target=run_server, daemon=True).start().
+    threading.Thread(target=run_server, daemon=True).start()

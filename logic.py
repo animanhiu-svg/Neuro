@@ -1,8 +1,8 @@
 # logic.py
 import config
-from database import get_user_setting, get_history, add_to_history, user_settings
+from database import user_settings, get_history, add_to_history
 
-# Системные промпты
+# Системные промпты для характеров (если нет кастомного)
 def get_system_prompt(personality):
     base = (
         "Ты — мастер ролевых игр 18+. Пиши на русском языке. "
@@ -31,22 +31,29 @@ def contains_forbidden(text):
 
 # Основная функция запроса к модели
 def query_dolphin(prompt, chat_id, client):
+    # Получаем настройки пользователя
     settings = user_settings.get(chat_id, {})
     limit = settings.get('limit', 400)
     personality = settings.get('personality', 'neutral')
-    custom_prompt = settings.get('custom_prompt')
+    custom_prompt = settings.get('custom_prompt')  # Вот он, твой кастомный промпт!
 
-    # Определяем system content
+    # Определяем system content: если есть кастомный промпт — используем его, иначе — стандартный от характера
     if custom_prompt:
         system_content = custom_prompt
     else:
         system_content = get_system_prompt(personality)
 
+    # Берём историю (последние 20 сообщений)
     history = get_history(chat_id)
+    
+    # Формируем сообщения для модели: сначала system (роль), потом история, потом текущий запрос
     messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
 
-    # Температура в зависимости от характера
-    temp = 0.7 if personality == 'soft' else 1.1 if personality == 'hot' else 0.9
+    # Температура в зависимости от характера (для кастомного промпта берём среднюю)
+    if custom_prompt:
+        temp = 0.9
+    else:
+        temp = 0.7 if personality == 'soft' else 1.1 if personality == 'hot' else 0.9
 
     try:
         completion = client.chat.completions.create(
@@ -64,6 +71,7 @@ def query_dolphin(prompt, chat_id, client):
             print(f"⚠️ Запрещёнка в ответе для {chat_id}, отправляю заглушку")
             return "⛔ Бот обнаружил потенциальное нарушение. Попробуй изменить запрос."
 
+        # Сохраняем в историю
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:

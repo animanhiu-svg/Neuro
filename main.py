@@ -41,7 +41,7 @@ def get_instruction(field):
     }
     return instructions.get(field, f"✏️ Введите значение для поля '{field}':")
 
-def process_field_input(message, field_name, query_msg_id=None):
+def process_field_input(message, field_name, query_msg_id):
     cid = message.chat.id
     text = message.text.strip()
     if text:
@@ -51,12 +51,11 @@ def process_field_input(message, field_name, query_msg_id=None):
         bot.send_message(cid, f"✅ Поле '{field_name}' обновлено.", reply_markup=kb.reply_main_keyboard())
     else:
         bot.send_message(cid, "❌ Пустое значение не принимается.", reply_markup=kb.reply_main_keyboard())
-    # Удаляем сообщение с запросом, если оно ещё существует
-    if query_msg_id:
-        try:
-            bot.delete_message(cid, query_msg_id)
-        except:
-            pass
+    # Удаляем сообщение с запросом
+    try:
+        bot.delete_message(cid, query_msg_id)
+    except:
+        pass
     # Возвращаем меню карточки
     markup, txt = kb.character_menu_keyboard(cid)
     sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
@@ -175,11 +174,11 @@ def run_metamorphosis(cid):
         except Exception as e:
             bot.send_message(cid, f"❌ Ошибка описания: {e}", reply_markup=kb.reply_main_keyboard())
 
-    # Отправляем фото персонажа (вместо смены аватарки)
+    # Отправляем фото персонажа (один раз)
     photo_file_id = get_field(cid, 'char_photo')
     if photo_file_id:
         try:
-            bot.send_photo(cid, photo_file_id, caption="📸 **Фото персонажа**", parse_mode="Markdown")
+            bot.send_photo(cid, photo_file_id, caption=f"📸 **{name}**", parse_mode="Markdown")
         except Exception as e:
             bot.send_message(cid, f"❌ Не удалось отправить фото: {e}", reply_markup=kb.reply_main_keyboard())
     else:
@@ -249,20 +248,21 @@ def callback_handler(call):
             return
         else:
             instruction = get_instruction(field)
-            # Создаём клавиатуру с кнопкой "Отмена"
-            cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Отмена", callback_data="cancel_input"))
+            # Отправляем сообщение с инструкцией и прикрепляем inline-кнопку "Отмена"
             msg = bot.send_message(cid, instruction, reply_markup=ReplyKeyboardRemove())
-            # Прикрепляем к сообщению inline-кнопку "Отмена"
+            cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Отмена", callback_data=f"cancel_input_{msg.message_id}"))
             bot.edit_message_reply_markup(cid, msg.message_id, reply_markup=cancel_markup)
             bot.register_next_step_handler(msg, process_field_input, field, msg.message_id)
             bot.answer_callback_query(call.id)
 
-    elif data == "cancel_input":
-        # Удаляем последнее сообщение с запросом и возвращаемся в меню карточки
+    elif data.startswith("cancel_input_"):
+        # Извлекаем message_id сообщения с запросом
+        msg_id = int(data.split("_")[2])
         try:
-            bot.delete_message(cid, call.message.message_id)
+            bot.delete_message(cid, msg_id)
         except:
             pass
+        # Возвращаемся в меню карточки
         markup, txt = kb.character_menu_keyboard(cid)
         sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
         menu_message_id[cid] = sent.message_id

@@ -1,4 +1,3 @@
-# database.py
 # Хранилища данных пользователей (в памяти)
 user_settings = {}      # {chat_id: {'limit': 400, 'personality': 'neutral', 'custom_prompt': None}}
 user_history = {}       # {chat_id: [messages]}

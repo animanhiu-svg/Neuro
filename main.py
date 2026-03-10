@@ -1,3 +1,4 @@
+# main.py
 import telebot
 from openai import OpenAI
 from telebot.types import ReplyKeyboardRemove

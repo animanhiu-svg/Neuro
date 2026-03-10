@@ -1,6 +1,6 @@
 import telebot
 from openai import OpenAI
-from telebot.types import ReplyKeyboardRemove
+from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 import requests
 
 import config
@@ -20,7 +20,6 @@ bot = telebot.TeleBot(config.TG_TOKEN)
 
 # -------------------- Утилиты --------------------
 def replace_pronouns(text):
-    """Заменяет 'Я' на 'Ты' в тексте."""
     if not text:
         return text
     text = text.replace("Я ", "Ты ").replace(" я ", " ты ")
@@ -29,7 +28,6 @@ def replace_pronouns(text):
     return text
 
 def get_instruction(field):
-    """Возвращает инструкцию для конкретного поля."""
     instructions = {
         'name': "👤 Имя: Как зовут твоего персонажа?",
         'gender': "👫 Пол: Выбери пол персонажа (кнопками ниже).",
@@ -43,17 +41,15 @@ def get_instruction(field):
     return instructions.get(field, f"✏️ Введите значение для поля '{field}':")
 
 def process_field_input(message, field_name):
-    """Обработчик текстовых полей (кроме фото и пола)."""
     cid = message.chat.id
     text = message.text.strip()
     if text:
-        if field_name != 'gender':  # gender не обрабатываем текстом
+        if field_name != 'gender':
             text = replace_pronouns(text)
         update_field(cid, field_name, text)
         bot.send_message(cid, f"✅ Поле '{field_name}' обновлено.", reply_markup=kb.reply_main_keyboard())
     else:
         bot.send_message(cid, "❌ Пустое значение не принимается.", reply_markup=kb.reply_main_keyboard())
-    # Возвращаемся в меню карточки
     markup, txt = kb.character_menu_keyboard(cid)
     sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
     menu_message_id[cid] = sent.message_id
@@ -90,7 +86,7 @@ def handle_reply_buttons(message):
         return
     cid, text = message.chat.id, message.text
     try:
-        bot.delete_message(cid, message.message_id)
+        bot.delete_message(cid, message.message_id)  # удаляем сообщение с текстом кнопки
     except:
         pass
 
@@ -114,32 +110,31 @@ def handle_reply_buttons(message):
             cid,
             "❓ **Помощь**\n\n"
             "• «👤 Создать персонажа» – заполни карточку своего героя.\n"
-            "• «⚙️ Лимит» – настрой длину ответов (количество токенов).\n"
+            "• «⚙️ Лимит» – настрой длину ответов.\n"
             "• «ℹ️ О боте» – подробная инструкция.\n"
-            "• «🚀 Запустить» – применить карточку: сменить имя, описание и аватарку бота.",
+            "• «🚀 Запустить» – применить карточку.",
             parse_mode="Markdown",
-            reply_markup=kb.InlineKeyboardMarkup().add(kb.InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
         menu_message_id[cid] = sent.message_id
 
     elif text == "ℹ️ О боте":
         about_text = (
             "ℹ️ **О боте**\n\n"
-            "Этот бот – твой личный конструктор персонажей (клон Character.AI).\n\n"
+            "Этот бот – твой личный конструктор персонажей.\n\n"
             "**Инструкция:**\n"
             "1. Нажми «👤 Создать персонажа».\n"
-            "2. Заполни все поля (можно не все, но имя, пол и приветствие обязательны для запуска).\n"
-            "3. Для выбора пола нажми на кнопку «👫 Пол» – появятся кнопки с выбором.\n"
-            "4. Для фото нажми «🖼 Фото» и отправь картинку – бот запомнит её.\n"
-            "5. После заполнения нажми «🚀 Запустить» – бот сменит имя, описание и аватарку, очистит историю и начнёт диалог с приветствия.\n"
-            "6. Теперь просто общайся – персонаж будет вести себя согласно роли.\n\n"
-            "**Важно:** Во всех полях, если ты пишешь от первого лица (Я актриса), бот автоматически заменит на «Ты актриса», чтобы нейросеть правильно поняла роль."
+            "2. Заполни поля (имя, пол и приветствие обязательны).\n"
+            "3. Для фото нажми «🖼 Фото» и отправь картинку.\n"
+            "4. После заполнения нажми «🚀 Запустить» – бот сменит имя, описание и аватарку.\n"
+            "5. Теперь просто общайся – персонаж будет вести себя согласно роли.\n\n"
+            "**Важно:** Во всех полях «Я» автоматически заменяется на «Ты»."
         )
         sent = bot.send_message(
             cid,
             about_text,
             parse_mode="Markdown",
-            reply_markup=kb.InlineKeyboardMarkup().add(kb.InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
         menu_message_id[cid] = sent.message_id
 
@@ -228,11 +223,10 @@ def callback_handler(call):
     elif data == "main_about":
         bot.answer_callback_query(call.id, "ℹ️ Подробная инструкция в разделе «О боте».", show_alert=True)
 
-    # --- Обработка редактирования полей ---
+    # --- Редактирование полей ---
     elif data.startswith("edit_"):
-        field = data[5:]  # убираем "edit_"
+        field = data[5:]
         if field == "gender":
-            # Выбор пола через Inline-кнопки
             gender_markup = InlineKeyboardMarkup(row_width=2)
             gender_markup.add(
                 InlineKeyboardButton("👨 Мужской", callback_data="set_gender_male"),
@@ -243,13 +237,11 @@ def callback_handler(call):
             bot.answer_callback_query(call.id)
             return
         elif field == "photo":
-            # Запрос фото
             msg = bot.send_message(cid, "🖼 Отправь фотографию персонажа (только картинка).", reply_markup=ReplyKeyboardRemove())
             bot.register_next_step_handler(msg, process_photo_input, call.message.message_id)
             bot.answer_callback_query(call.id)
             return
         else:
-            # Текстовые поля – отправляем инструкцию и запрашиваем ввод
             instruction = get_instruction(field)
             msg = bot.send_message(cid, instruction, reply_markup=ReplyKeyboardRemove())
             bot.register_next_step_handler(msg, process_field_input, field)
@@ -260,7 +252,6 @@ def callback_handler(call):
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
         bot.answer_callback_query(call.id)
 
-    # Выбор пола
     elif data == "set_gender_male":
         update_field(cid, 'gender', 'male')
         bot.answer_callback_query(call.id, "✅ Пол: Мужской")
@@ -273,14 +264,12 @@ def callback_handler(call):
         markup, txt = kb.character_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # Сброс карточки
     elif data == "reset_card":
         reset_all(cid)
         bot.answer_callback_query(call.id, "♻️ Карточка сброшена")
         markup, txt = kb.character_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # Установка лимита (предустановки)
     elif data.startswith("set_limit_"):
         limits = {"set_limit_150":150, "set_limit_500":500, "set_limit_900":900}
         limit = limits.get(data, 400)
@@ -317,7 +306,6 @@ def process_photo_input(message, menu_msg_id):
         file_id = message.photo[-1].file_id
         update_field(cid, 'char_photo', file_id)
         bot.send_message(cid, "✅ Фото сохранено!", reply_markup=kb.reply_main_keyboard())
-        # Возвращаемся в меню карточки
         try:
             markup, txt = kb.character_menu_keyboard(cid)
             bot.edit_message_text(txt, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
@@ -326,7 +314,6 @@ def process_photo_input(message, menu_msg_id):
             menu_message_id[cid] = sent.message_id
     else:
         bot.send_message(cid, "❌ Бро, пришли именно картинку, а не текст!", reply_markup=kb.reply_main_keyboard())
-        # Снова запрашиваем фото
         msg = bot.send_message(cid, "🖼 Отправь фотографию персонажа (только картинка).", reply_markup=ReplyKeyboardRemove())
         bot.register_next_step_handler(msg, process_photo_input, menu_msg_id)
 

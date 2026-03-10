@@ -1,4 +1,6 @@
+# keyboards.py
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+import config
 from database import get_user_setting, user_history
 from logic import get_personality_name
 
@@ -85,6 +87,7 @@ def history_menu_keyboard(chat_id):
     )
     text = f"📊 **История**\n\nВсего диалогов: {history_count}"
     return markup, text
+
 def scenarios_menu_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     for key, value in config.SCENARIOS.items():

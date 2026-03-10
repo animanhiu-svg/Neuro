@@ -8,10 +8,8 @@ import keyboards as kb
 from database import user_settings, user_history, menu_message_id, reset_all, update_user_setting, clear_history
 from logic import contains_forbidden, query_dolphin, get_personality_name
 
-# Запуск пищалки
 utils.start_pinger()
 
-# Инициализация клиента OpenAI и бота
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
@@ -22,7 +20,7 @@ def start(message):
         bot.reply_to(message, "⛔ Этот бот только для владельца.")
         return
     cid = message.chat.id
-    reset_all(cid)  # сбрасываем настройки при старте
+    reset_all(cid)
     if cid in menu_message_id:
         try:
             bot.delete_message(cid, menu_message_id.pop(cid))
@@ -37,8 +35,8 @@ def start(message):
 # -------------------- ОБРАБОТЧИК REPLY-КНОПОК --------------------
 @bot.message_handler(func=lambda m: m.text in [
     "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ",
-    "📜 Сценарии",
     "⚙️ Настройки",
+    "🎴 Мой персонаж",
     "❓ Помощь",
     "ℹ️ О боте",
     "🎮 Меню"
@@ -55,11 +53,6 @@ def handle_reply_buttons(message):
     if text == "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ":
         bot.send_message(cid, "🚀 Погнали! Пиши с чего начнём.", reply_markup=kb.reply_main_keyboard())
 
-    elif text == "📜 Сценарии":
-        markup = kb.scenarios_menu_keyboard()
-        sent = bot.send_message(cid, "📜 **Выбери роль**", parse_mode="Markdown", reply_markup=markup)
-        menu_message_id[cid] = sent.message_id
-
     elif text == "❓ Помощь":
         sent = bot.send_message(
             cid,
@@ -72,7 +65,7 @@ def handle_reply_buttons(message):
     elif text == "ℹ️ О боте":
         sent = bot.send_message(
             cid,
-            "ℹ️ Версия 7.0, Dolphin-Mistral-24B, защита от запрещённых тем.",
+            "ℹ️ Версия 8.0 (Character AI style). Dolphin-Mistral-24B, защита от запрещённых тем.",
             parse_mode="Markdown",
             reply_markup=kb.InlineKeyboardMarkup().add(kb.InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
@@ -80,6 +73,11 @@ def handle_reply_buttons(message):
 
     elif text == "⚙️ Настройки":
         markup, txt = kb.settings_main_keyboard(cid)
+        sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
+        menu_message_id[cid] = sent.message_id
+
+    elif text == "🎴 Мой персонаж":
+        markup, txt = kb.character_card_keyboard(cid)
         sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
         menu_message_id[cid] = sent.message_id
 
@@ -121,11 +119,10 @@ def callback_handler(call):
         bot.answer_callback_query(call.id)
 
     # Информационные разделы (alert)
-    elif data in ["main_scenarios", "main_help", "main_about"]:
+    elif data in ["main_help", "main_about"]:
         texts = {
-            "main_scenarios": "📜 Скоро будут сценарии.",
             "main_help": "❓ Используй кнопки внизу.",
-            "main_about": "ℹ️ Бот на базе Dolphin-Mistral-24B."
+            "main_about": "ℹ️ Бот на базе Dolphin-Mistral-24B с карточкой персонажа."
         }
         bot.answer_callback_query(call.id, texts[data], show_alert=True)
 
@@ -135,7 +132,13 @@ def callback_handler(call):
         bot.edit_message_text(text, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
         bot.answer_callback_query(call.id)
 
-    # Вход в подменю
+    # Вход в меню персонажа
+    elif data == "main_character":
+        markup, text = kb.character_card_keyboard(cid)
+        bot.edit_message_text(text, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+        bot.answer_callback_query(call.id)
+
+    # Вход в подменю настроек
     elif data in ["settings_character", "settings_limit", "settings_history"]:
         funcs = {
             "settings_character": kb.character_menu_keyboard,
@@ -155,7 +158,7 @@ def callback_handler(call):
         markup, text = kb.character_menu_keyboard(cid)
         bot.edit_message_text(text, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # Выбор лимита (предустановки)
+    # Выбор лимита
     elif data.startswith("set_limit_"):
         limits = {"set_limit_150":150, "set_limit_500":500, "set_limit_900":900}
         limit = limits.get(data, 400)
@@ -189,21 +192,81 @@ def callback_handler(call):
         markup, text = kb.settings_main_keyboard(cid)
         bot.edit_message_text(text, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # --- ОБРАБОТЧИКИ ДЛЯ СЦЕНАРИЕВ ---
-    elif data.startswith("set_scenario_"):
-        key = data.split("_")[2]
-        scenario = config.SCENARIOS.get(key)
-        if scenario:
-            user_settings[cid]['custom_prompt'] = scenario['prompt']
-            bot.answer_callback_query(call.id, f"✅ Роль '{scenario['name']}' установлена")
-            bot.edit_message_text("🎮 Главное меню", cid, call.message.message_id, reply_markup=kb.main_menu_keyboard())
-        else:
-            bot.answer_callback_query(call.id, "❌ Ошибка")
+    # --- ОБРАБОТЧИКИ ДЛЯ КАРТОЧКИ ПЕРСОНАЖА ---
+    elif data == "char_edit_name":
+        msg = bot.send_message(cid, "✏️ Введи **имя** персонажа:", parse_mode="Markdown", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(msg, process_char_name, call.message.message_id)
 
-    elif data == "custom_scenario":
-        msg = bot.send_message(cid, "✏️ Пришли мне описание персонажа (промпт):", reply_markup=ReplyKeyboardRemove())
-        bot.register_next_step_handler(msg, process_custom_prompt, call.message.message_id)
-        bot.answer_callback_query(call.id)
+    elif data == "char_edit_desc":
+        msg = bot.send_message(cid, "📝 Введи **описание** персонажа (характер, внешность, манера речи):", parse_mode="Markdown", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(msg, process_char_desc, call.message.message_id)
+
+    elif data == "char_edit_scene":
+        msg = bot.send_message(cid, "🎬 Введи **начальную ситуацию** (где мы находимся, что происходит):", parse_mode="Markdown", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(msg, process_char_scene, call.message.message_id)
+
+    elif data == "char_reset":
+        update_user_setting(cid, 'char_name', None)
+        update_user_setting(cid, 'char_description', None)
+        update_user_setting(cid, 'char_scenario', None)
+        clear_history(cid)
+        bot.answer_callback_query(call.id, "♻️ Карточка персонажа очищена")
+        markup, text = kb.character_card_keyboard(cid)
+        bot.edit_message_text(text, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
+
+# -------------------- ОБРАБОТЧИКИ ШАГОВ (ВВОД ПОЛЕЙ КАРТОЧКИ) --------------------
+def process_char_name(message, menu_msg_id):
+    cid = message.chat.id
+    name = message.text.strip()
+    if name:
+        update_user_setting(cid, 'char_name', name)
+        clear_history(cid)  # очищаем историю при смене персонажа
+        bot.send_message(cid, f"✅ Имя сохранено: {name}")
+    else:
+        bot.send_message(cid, "❌ Имя не может быть пустым.")
+    # Возвращаем меню персонажа
+    try:
+        markup, text = kb.character_card_keyboard(cid)
+        bot.edit_message_text(text, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
+    except:
+        sent = bot.send_message(cid, "🎴 Мой персонаж", reply_markup=kb.character_card_keyboard(cid)[0])
+        menu_message_id[cid] = sent.message_id
+
+def process_char_desc(message, menu_msg_id):
+    cid = message.chat.id
+    desc = message.text.strip()
+    if desc:
+        # Автоматическая замена "Я" на "Ты"
+        desc = desc.replace("Я ", "Ты ").replace("я ", "ты ")
+        update_user_setting(cid, 'char_description', desc)
+        clear_history(cid)
+        bot.send_message(cid, f"✅ Описание сохранено: {desc[:50]}...")
+    else:
+        bot.send_message(cid, "❌ Описание не может быть пустым.")
+    try:
+        markup, text = kb.character_card_keyboard(cid)
+        bot.edit_message_text(text, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
+    except:
+        sent = bot.send_message(cid, "🎴 Мой персонаж", reply_markup=kb.character_card_keyboard(cid)[0])
+        menu_message_id[cid] = sent.message_id
+
+def process_char_scene(message, menu_msg_id):
+    cid = message.chat.id
+    scene = message.text.strip()
+    if scene:
+        # Автозамена "Я" на "Ты" (на всякий случай)
+        scene = scene.replace("Я ", "Ты ").replace("я ", "ты ")
+        update_user_setting(cid, 'char_scenario', scene)
+        clear_history(cid)
+        bot.send_message(cid, f"✅ Ситуация сохранена: {scene[:50]}...")
+    else:
+        bot.send_message(cid, "❌ Ситуация не может быть пустой.")
+    try:
+        markup, text = kb.character_card_keyboard(cid)
+        bot.edit_message_text(text, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
+    except:
+        sent = bot.send_message(cid, "🎴 Мой персонаж", reply_markup=kb.character_card_keyboard(cid)[0])
+        menu_message_id[cid] = sent.message_id
 
 # -------------------- ОБРАБОТКА ВВОДА СВОЕГО ЛИМИТА --------------------
 def process_custom_limit(message, menu_msg_id):
@@ -221,27 +284,11 @@ def process_custom_limit(message, menu_msg_id):
         sent = bot.send_message(cid, "📏 Лимит", reply_markup=kb.limit_menu_keyboard(cid)[0])
         menu_message_id[cid] = sent.message_id
 
-# -------------------- ОБРАБОТКА ВВОДА СВОЕГО ПРОМПТА --------------------
-def process_custom_prompt(message, menu_msg_id):
-    cid = message.chat.id
-    prompt_text = message.text.strip()
-    if prompt_text:
-        user_settings[cid]['custom_prompt'] = prompt_text
-        bot.send_message(cid, f"✅ Промпт сохранён: «{prompt_text[:50]}…»")
-    else:
-        bot.send_message(cid, "❌ Пустой промпт не принимается.")
-    # Возвращаем главное меню
-    try:
-        bot.edit_message_text("🎮 Главное меню", cid, menu_msg_id, reply_markup=kb.main_menu_keyboard())
-    except:
-        sent = bot.send_message(cid, "🎮 Главное меню", reply_markup=kb.main_menu_keyboard())
-        menu_message_id[cid] = sent.message_id
-
 # -------------------- ОСНОВНОЙ ОБРАБОТЧИК RP-СООБЩЕНИЙ --------------------
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/') and m.text not in [
     "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ",
-    "📜 Сценарии",
     "⚙️ Настройки",
+    "🎴 Мой персонаж",
     "❓ Помощь",
     "ℹ️ О боте",
     "🎮 Меню"
@@ -264,5 +311,5 @@ def handle_rp(message):
 
 # -------------------- ЗАПУСК --------------------
 if __name__ == "__main__":
-    print("🚀 Бот с модульной структурой и сценариями запущен!")
+    print("🚀 Бот с карточкой персонажа (Character AI) запущен!")
     bot.polling(none_stop=True)

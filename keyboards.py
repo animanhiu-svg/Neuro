@@ -1,7 +1,6 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from database import get_field
 
-# ---------- Reply-клавиатура после старта ----------
 def reply_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -18,11 +17,9 @@ def reply_start_keyboard():
     markup.add(KeyboardButton("🎮 НАЧАТЬ"))
     return markup
 
-# ---------- Inline-меню конструктора ----------
 def constructor_menu_keyboard(chat_id):
     markup = InlineKeyboardMarkup(row_width=2)
 
-    # Функция для отображения статуса поля
     def status(field):
         return "✅" if get_field(chat_id, field) else "❌"
 

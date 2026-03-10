@@ -1,6 +1,5 @@
 import telebot
 from openai import OpenAI
-from telebot.types import ReplyKeyboardRemove
 import requests
 
 import config
@@ -23,25 +22,22 @@ def replace_pronouns(text):
     """Заменяет 'Я' на 'Ты' в начале предложений и отдельно стоящее."""
     if not text:
         return text
-    # Заменяем "Я " на "Ты " и " я " на " ты "
     text = text.replace("Я ", "Ты ").replace(" я ", " ты ")
-    # Если текст начинается с "Я", заменяем
     if text.startswith("Я"):
         text = "Ты" + text[1:]
     return text
 
-def process_field_input(message, field_name, next_step=None):
+def process_field_input(message, field_name):
     """Общий обработчик для ввода любого поля."""
     cid = message.chat.id
     text = message.text.strip()
     if text:
-        # Автозамена
-        if field_name not in ['gender']:  # пол не заменяем
+        if field_name not in ['gender']:
             text = replace_pronouns(text)
         update_field(cid, field_name, text)
-        bot.send_message(cid, f"✅ Поле '{field_name}' обновлено.")
+        bot.send_message(cid, f"✅ Поле '{field_name}' обновлено.", reply_markup=kb.reply_main_keyboard())
     else:
-        bot.send_message(cid, "❌ Пустое значение не принимается.")
+        bot.send_message(cid, "❌ Пустое значение не принимается.", reply_markup=kb.reply_main_keyboard())
     # Возвращаемся в меню конструктора
     markup, txt = kb.constructor_menu_keyboard(cid)
     sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
@@ -79,7 +75,6 @@ def handle_reply_buttons(message):
 
     if text == "🎮 НАЧАТЬ":
         bot.send_message(cid, "🚀 Погнали!", reply_markup=kb.reply_main_keyboard())
-        # Показываем главное Inline-меню
         sent = bot.send_message(cid, "🎮 Главное меню", reply_markup=kb.main_menu_keyboard())
         menu_message_id[cid] = sent.message_id
 
@@ -115,13 +110,11 @@ def handle_reply_buttons(message):
         menu_message_id[cid] = sent.message_id
 
     elif text == "🚀 Запустить":
-        # Проверка заполненности обязательных полей
         required = ['name', 'gender', 'greeting']
         missing = [f for f in required if not get_field(cid, f)]
         if missing:
-            bot.send_message(cid, f"❌ Сначала заполни: {', '.join(missing)}")
+            bot.send_message(cid, f"❌ Сначала заполни: {', '.join(missing)}", reply_markup=kb.reply_main_keyboard())
             return
-        # Запуск перевоплощения
         run_metamorphosis(cid)
 
 def run_metamorphosis(cid):
@@ -130,22 +123,19 @@ def run_metamorphosis(cid):
     greeting = get_field(cid, 'greeting')
     subtitles = get_field(cid, 'subtitles', '')
 
-    # 1. Меняем имя бота
     try:
         bot.set_my_name(name)
-        bot.send_message(cid, f"✅ Имя бота изменено на {name}")
+        bot.send_message(cid, f"✅ Имя бота изменено на {name}", reply_markup=kb.reply_main_keyboard())
     except Exception as e:
-        bot.send_message(cid, f"❌ Ошибка смены имени: {e}")
+        bot.send_message(cid, f"❌ Ошибка смены имени: {e}", reply_markup=kb.reply_main_keyboard())
 
-    # 2. Меняем описание (subtitles) — "о боте"
     if subtitles:
         try:
             bot.set_my_description(subtitles)
-            bot.send_message(cid, "✅ Описание бота обновлено")
+            bot.send_message(cid, "✅ Описание бота обновлено", reply_markup=kb.reply_main_keyboard())
         except Exception as e:
-            bot.send_message(cid, f"❌ Ошибка описания: {e}")
+            bot.send_message(cid, f"❌ Ошибка описания: {e}", reply_markup=kb.reply_main_keyboard())
 
-    # 3. Меняем аватарку
     photo_file_id = get_field(cid, 'char_photo')
     if photo_file_id:
         try:
@@ -155,20 +145,17 @@ def run_metamorphosis(cid):
                 f.write(downloaded_file)
             with open('temp_avatar.jpg', 'rb') as f:
                 bot.set_my_profile_photo(f)
-            bot.send_message(cid, "✅ Аватарка обновлена")
+            bot.send_message(cid, "✅ Аватарка обновлена", reply_markup=kb.reply_main_keyboard())
         except Exception as e:
-            bot.send_message(cid, f"❌ Ошибка смены фото: {e}")
+            bot.send_message(cid, f"❌ Ошибка смены фото: {e}", reply_markup=kb.reply_main_keyboard())
     else:
-        bot.send_message(cid, "⚠️ Фото не задано, пропускаю.")
+        bot.send_message(cid, "⚠️ Фото не задано, пропускаю.", reply_markup=kb.reply_main_keyboard())
 
-    # 4. Очищаем историю диалога
     clear_history(cid)
-    bot.send_message(cid, "🧹 История диалога очищена.")
+    bot.send_message(cid, "🧹 История диалога очищена.", reply_markup=kb.reply_main_keyboard())
 
-    # 5. Отправляем приветствие от лица персонажа
-    bot.send_message(cid, f"**{greeting}**", parse_mode="Markdown")
+    bot.send_message(cid, f"**{greeting}**", parse_mode="Markdown", reply_markup=kb.reply_main_keyboard())
 
-    # Возвращаем главное меню
     sent = bot.send_message(cid, "🎮 Главное меню", reply_markup=kb.main_menu_keyboard())
     menu_message_id[cid] = sent.message_id
 
@@ -180,7 +167,6 @@ def callback_handler(call):
         return
     cid, data = call.message.chat.id, call.data
 
-    # Закрыть меню
     if data == "close_menu":
         try:
             bot.delete_message(cid, call.message.message_id)
@@ -189,30 +175,25 @@ def callback_handler(call):
         menu_message_id.pop(cid, None)
         bot.answer_callback_query(call.id)
 
-    # Назад в главное меню
     elif data == "back_to_main":
         bot.edit_message_text("🎮 Главное меню", cid, call.message.message_id, reply_markup=kb.main_menu_keyboard())
         bot.answer_callback_query(call.id)
 
-    # Главное меню: конструктор
     elif data == "main_constructor":
         markup, txt = kb.constructor_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
         bot.answer_callback_query(call.id)
 
-    # Главное меню: лимит
     elif data == "main_limit":
         markup, txt = kb.limit_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
         bot.answer_callback_query(call.id)
 
-    # Главное меню: помощь/о боте (alert)
     elif data == "main_help":
         bot.answer_callback_query(call.id, "❓ Используй конструктор для создания персонажа", show_alert=True)
     elif data == "main_about":
         bot.answer_callback_query(call.id, "ℹ️ Версия 8.0 — Конструктор клонов", show_alert=True)
 
-    # Обработчики редактирования полей конструктора
     elif data.startswith("edit_"):
         field_map = {
             "edit_name": "name", "edit_gender": "gender", "edit_subtitles": "subtitles",
@@ -221,18 +202,17 @@ def callback_handler(call):
         }
         field = field_map.get(data)
         if field:
-            msg = bot.send_message(cid, f"✏️ Введите новое значение для поля '{field}':", reply_markup=ReplyKeyboardRemove())
-            bot.register_next_step_handler(msg, process_field_input, field, call.message.message_id)
+            # Убираем клавиатуру только на время ввода
+            msg = bot.send_message(cid, f"✏️ Введите новое значение для поля '{field}':", reply_markup=telebot.types.ReplyKeyboardRemove())
+            bot.register_next_step_handler(msg, process_field_input, field)
             bot.answer_callback_query(call.id)
 
-    # Сброс карточки
     elif data == "reset_card":
         reset_all(cid)
         bot.answer_callback_query(call.id, "♻️ Карточка сброшена")
         markup, txt = kb.constructor_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
-    # Установка лимита
     elif data.startswith("set_limit_"):
         limits = {"set_limit_150":150, "set_limit_500":500, "set_limit_900":900}
         limit = limits.get(data, 400)
@@ -242,7 +222,7 @@ def callback_handler(call):
         bot.edit_message_text(txt, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
     elif data == "custom_limit":
-        msg = bot.send_message(cid, "✏️ Введи число токенов (10-1500):", reply_markup=ReplyKeyboardRemove())
+        msg = bot.send_message(cid, "✏️ Введи число токенов (10-1500):", reply_markup=telebot.types.ReplyKeyboardRemove())
         bot.register_next_step_handler(msg, process_custom_limit, call.message.message_id)
         bot.answer_callback_query(call.id)
 
@@ -252,14 +232,14 @@ def process_custom_limit(message, menu_msg_id):
     try:
         limit = max(10, min(1500, int(message.text)))
         update_field(cid, 'limit', limit)
-        bot.send_message(cid, f"✅ Лимит: {limit}")
+        bot.send_message(cid, f"✅ Лимит: {limit}", reply_markup=kb.reply_main_keyboard())
     except:
-        bot.send_message(cid, "❌ Нужно число от 10 до 1500.")
+        bot.send_message(cid, "❌ Нужно число от 10 до 1500.", reply_markup=kb.reply_main_keyboard())
     try:
         markup, txt = kb.limit_menu_keyboard(cid)
         bot.edit_message_text(txt, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
     except:
-        sent = bot.send_message(cid, "📏 Лимит", reply_markup=kb.limit_menu_keyboard(cid)[0])
+        sent = bot.send_message(cid, "📏 Лимит", reply_markup=markup)  # markup уже есть
         menu_message_id[cid] = sent.message_id
 
 # -------------------- Основной обработчик RP-сообщений --------------------
@@ -269,13 +249,13 @@ def handle_rp(message):
         return
     cid = message.chat.id
     if contains_forbidden(message.text):
-        bot.reply_to(message, "⛔ Запрещённая тема.")
+        bot.reply_to(message, "⛔ Запрещённая тема.", reply_markup=kb.reply_main_keyboard())
         return
     if cid not in user_settings:
         init_user(cid)
     bot.send_chat_action(cid, 'typing')
     reply = query_dolphin(message.text, cid, client)
-    bot.send_message(cid, reply)
+    bot.send_message(cid, reply, reply_markup=kb.reply_main_keyboard())
 
 # -------------------- Запуск --------------------
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ from database import get_field
 def reply_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        KeyboardButton("👤 Создать персонажа"),  # ← исправлено
+        KeyboardButton("👤 Создать персонажа"),
         KeyboardButton("⚙️ Лимит"),
         KeyboardButton("❓ Помощь"),
         KeyboardButton("ℹ️ О боте"),
@@ -34,7 +34,7 @@ def character_menu_keyboard(chat_id):
         InlineKeyboardButton(f"🎬 Сюжет {status('scenario')}", callback_data="edit_scenario"),
         InlineKeyboardButton(f"👥 Твоя роль {status('relation')}", callback_data="edit_relation"),
         InlineKeyboardButton("♻️ Сбросить всё", callback_data="reset_card"),
-        InlineKeyboardButton("❌ Закрыть", callback_data="close_menu")
+        InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")   # ← теперь только Назад
     )
     return markup, "👤 **Создать персонажа**\nЗаполни поля ниже:"
 

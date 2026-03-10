@@ -85,3 +85,10 @@ def history_menu_keyboard(chat_id):
     )
     text = f"📊 **История**\n\nВсего диалогов: {history_count}"
     return markup, text
+def scenarios_menu_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
+    for key, value in config.SCENARIOS.items():
+        markup.add(InlineKeyboardButton(value['name'], callback_data=f"set_scenario_{key}"))
+    markup.add(InlineKeyboardButton("✏️ Свой сценарий", callback_data="custom_scenario"))
+    markup.add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
+    return markup

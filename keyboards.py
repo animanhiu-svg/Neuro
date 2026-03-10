@@ -34,7 +34,7 @@ def character_menu_keyboard(chat_id):
         InlineKeyboardButton(f"🎬 Сюжет {status('scenario')}", callback_data="edit_scenario"),
         InlineKeyboardButton(f"👥 Твоя роль {status('relation')}", callback_data="edit_relation"),
         InlineKeyboardButton("♻️ Сбросить всё", callback_data="reset_card"),
-        InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")   # ← теперь только Назад
+        InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")
     )
     return markup, "👤 **Создать персонажа**\nЗаполни поля ниже:"
 

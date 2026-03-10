@@ -41,26 +41,6 @@ def get_instruction(field):
     }
     return instructions.get(field, f"✏️ Введите значение для поля '{field}':")
 
-def process_field_input(message, field_name, query_msg_id):
-    cid = message.chat.id
-    text = message.text.strip()
-    if text:
-        if field_name != 'gender':
-            text = replace_pronouns(text)
-        update_field(cid, field_name, text)
-        bot.send_message(cid, f"✅ Поле '{field_name}' обновлено.", reply_markup=kb.reply_main_keyboard())
-    else:
-        bot.send_message(cid, "❌ Пустое значение не принимается.", reply_markup=kb.reply_main_keyboard())
-    # Удаляем сообщение с запросом
-    try:
-        bot.delete_message(cid, query_msg_id)
-    except:
-        pass
-    # Возвращаем меню карточки
-    markup, txt = kb.character_menu_keyboard(cid)
-    sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
-    menu_message_id[cid] = sent.message_id
-
 # -------------------- Команды --------------------
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -159,14 +139,14 @@ def run_metamorphosis(cid):
     greeting = get_field(cid, 'greeting')
     subtitles = get_field(cid, 'subtitles', '')
 
-    # Меняем имя бота (работает)
+    # Меняем имя бота
     try:
         bot.set_my_name(name)
         bot.send_message(cid, f"✅ Имя бота изменено на {name}", reply_markup=kb.reply_main_keyboard())
     except Exception as e:
         bot.send_message(cid, f"❌ Ошибка смены имени: {e}", reply_markup=kb.reply_main_keyboard())
 
-    # Меняем описание (работает)
+    # Меняем описание
     if subtitles:
         try:
             bot.set_my_description(subtitles)
@@ -248,11 +228,12 @@ def callback_handler(call):
             return
         else:
             instruction = get_instruction(field)
-            # Отправляем сообщение с инструкцией и прикрепляем inline-кнопку "Отмена"
+            # Отправляем сообщение с инструкцией и прикрепляем кнопку "Отмена"
             msg = bot.send_message(cid, instruction, reply_markup=ReplyKeyboardRemove())
             cancel_markup = InlineKeyboardMarkup().add(InlineKeyboardButton("◀️ Отмена", callback_data=f"cancel_input_{msg.message_id}"))
             bot.edit_message_reply_markup(cid, msg.message_id, reply_markup=cancel_markup)
-            bot.register_next_step_handler(msg, process_field_input, field, msg.message_id)
+            # Регистрируем следующий шаг, передавая message_id сообщения с запросом
+            bot.register_next_step_handler(msg, lambda m: process_field_input(m, field, msg.message_id))
             bot.answer_callback_query(call.id)
 
     elif data.startswith("cancel_input_"):
@@ -303,6 +284,27 @@ def callback_handler(call):
         msg = bot.send_message(cid, "✏️ Введи число токенов (10-1500):", reply_markup=ReplyKeyboardRemove())
         bot.register_next_step_handler(msg, process_custom_limit, call.message.message_id)
         bot.answer_callback_query(call.id)
+
+# -------------------- Обработка ввода полей --------------------
+def process_field_input(message, field_name, query_msg_id):
+    cid = message.chat.id
+    text = message.text.strip()
+    if text:
+        if field_name != 'gender':
+            text = replace_pronouns(text)
+        update_field(cid, field_name, text)
+        bot.send_message(cid, f"✅ Поле '{field_name}' обновлено.", reply_markup=kb.reply_main_keyboard())
+    else:
+        bot.send_message(cid, "❌ Пустое значение не принимается.", reply_markup=kb.reply_main_keyboard())
+    # Удаляем сообщение с запросом
+    try:
+        bot.delete_message(cid, query_msg_id)
+    except:
+        pass
+    # Возвращаемся в меню карточки
+    markup, txt = kb.character_menu_keyboard(cid)
+    sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
+    menu_message_id[cid] = sent.message_id
 
 # -------------------- Обработка ввода своего лимита --------------------
 def process_custom_limit(message, menu_msg_id):

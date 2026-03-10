@@ -1,7 +1,7 @@
 import telebot
 from openai import OpenAI
 from telebot.types import ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 import config
 import utils
 import keyboards as kb

@@ -4,7 +4,7 @@ from database import get_field
 def reply_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        KeyboardButton("🎴 Конструктор"),
+        KeyboardButton("👤 Создать персонажа"),  # ← исправлено
         KeyboardButton("⚙️ Лимит"),
         KeyboardButton("❓ Помощь"),
         KeyboardButton("ℹ️ О боте"),
@@ -17,7 +17,7 @@ def reply_start_keyboard():
     markup.add(KeyboardButton("🎮 НАЧАТЬ"))
     return markup
 
-def constructor_menu_keyboard(chat_id):
+def character_menu_keyboard(chat_id):
     markup = InlineKeyboardMarkup(row_width=2)
 
     def status(field):
@@ -26,7 +26,7 @@ def constructor_menu_keyboard(chat_id):
     markup.add(
         InlineKeyboardButton(f"👤 Имя {status('name')}", callback_data="edit_name"),
         InlineKeyboardButton(f"👫 Пол {status('gender')}", callback_data="edit_gender"),
-        InlineKeyboardButton(f"📝 Субтитры {status('subtitles')}", callback_data="edit_subtitles"),
+        InlineKeyboardButton(f"📝 Описание {status('subtitles')}", callback_data="edit_subtitles"),
         InlineKeyboardButton(f"👋 Приветствие {status('greeting')}", callback_data="edit_greeting"),
         InlineKeyboardButton(f"🧠 Память {status('memory_cards')}", callback_data="edit_memory"),
         InlineKeyboardButton(f"🖼 Фото {status('char_photo')}", callback_data="edit_photo"),
@@ -36,7 +36,7 @@ def constructor_menu_keyboard(chat_id):
         InlineKeyboardButton("♻️ Сбросить всё", callback_data="reset_card"),
         InlineKeyboardButton("❌ Закрыть", callback_data="close_menu")
     )
-    return markup, "🎴 **Конструктор персонажа**\nЗаполни поля ниже:"
+    return markup, "👤 **Создать персонажа**\nЗаполни поля ниже:"
 
 def limit_menu_keyboard(chat_id):
     current = get_field(chat_id, 'limit', 400)
@@ -54,7 +54,7 @@ def limit_menu_keyboard(chat_id):
 def main_menu_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("🎴 Конструктор", callback_data="main_constructor"),
+        InlineKeyboardButton("👤 Создать персонажа", callback_data="main_character"),
         InlineKeyboardButton("⚙️ Лимит", callback_data="main_limit"),
         InlineKeyboardButton("❓ Помощь", callback_data="main_help"),
         InlineKeyboardButton("ℹ️ О боте", callback_data="main_about"),

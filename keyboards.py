@@ -1,106 +1,66 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
-from database import get_user_setting, user_history
-from logic import get_personality_name
+from database import get_field
 
-# -------------------- Reply-клавиатуры --------------------
+# ---------- Reply-клавиатура после старта ----------
 def reply_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        KeyboardButton("⚙️ Настройки"),
-        KeyboardButton("🎴 Мой персонаж"),
+        KeyboardButton("🎴 Конструктор"),
+        KeyboardButton("⚙️ Лимит"),
         KeyboardButton("❓ Помощь"),
         KeyboardButton("ℹ️ О боте"),
-        KeyboardButton("🎮 Меню")
+        KeyboardButton("🚀 Запустить")
     )
     return markup
 
 def reply_start_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.add(KeyboardButton("🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ"))
+    markup.add(KeyboardButton("🎮 НАЧАТЬ"))
     return markup
 
-# -------------------- Inline-меню --------------------
-def main_menu_keyboard():
+# ---------- Inline-меню конструктора ----------
+def constructor_menu_keyboard(chat_id):
     markup = InlineKeyboardMarkup(row_width=2)
+
+    # Функция для отображения статуса поля
+    def status(field):
+        return "✅" if get_field(chat_id, field) else "❌"
+
     markup.add(
-        InlineKeyboardButton("⚙️ Настройки", callback_data="main_settings"),
-        InlineKeyboardButton("🎴 Мой персонаж", callback_data="main_character"),
-        InlineKeyboardButton("❓ Помощь", callback_data="main_help"),
-        InlineKeyboardButton("ℹ️ О боте", callback_data="main_about"),
+        InlineKeyboardButton(f"👤 Имя {status('name')}", callback_data="edit_name"),
+        InlineKeyboardButton(f"👫 Пол {status('gender')}", callback_data="edit_gender"),
+        InlineKeyboardButton(f"📝 Субтитры {status('subtitles')}", callback_data="edit_subtitles"),
+        InlineKeyboardButton(f"👋 Приветствие {status('greeting')}", callback_data="edit_greeting"),
+        InlineKeyboardButton(f"🧠 Память {status('memory_cards')}", callback_data="edit_memory"),
+        InlineKeyboardButton(f"🖼 Фото {status('char_photo')}", callback_data="edit_photo"),
+        InlineKeyboardButton(f"📍 Локация {status('location')}", callback_data="edit_location"),
+        InlineKeyboardButton(f"🎬 Сюжет {status('scenario')}", callback_data="edit_scenario"),
+        InlineKeyboardButton(f"👥 Твоя роль {status('relation')}", callback_data="edit_relation"),
+        InlineKeyboardButton("♻️ Сбросить всё", callback_data="reset_card"),
         InlineKeyboardButton("❌ Закрыть", callback_data="close_menu")
     )
-    return markup
-
-def settings_main_keyboard(chat_id):
-    limit = get_user_setting(chat_id, 'limit', 400)
-    personality = get_user_setting(chat_id, 'personality', 'neutral')
-    history_count = len(user_history.get(chat_id, [])) // 2
-    markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        InlineKeyboardButton("🎭 Характер", callback_data="settings_character"),
-        InlineKeyboardButton("📏 Лимит", callback_data="settings_limit"),
-        InlineKeyboardButton("📊 История", callback_data="settings_history"),
-        InlineKeyboardButton("🔄 Сбросить всё", callback_data="reset_all"),
-        InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"),
-        InlineKeyboardButton("❌ Закрыть", callback_data="close_menu")
-    )
-    text = (f"⚙️ **Настройки**\n\n"
-            f"• Характер: {get_personality_name(personality)}\n"
-            f"• Лимит: {limit} токенов\n"
-            f"• История: {history_count} диалогов")
-    return markup, text
-
-def character_menu_keyboard(chat_id):
-    current = get_user_setting(chat_id, 'personality', 'neutral')
-    markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        InlineKeyboardButton("🌸 Милая" + (" ✅" if current=='soft' else ""), callback_data="set_pers_soft"),
-        InlineKeyboardButton("😐 Нейтральная" + (" ✅" if current=='neutral' else ""), callback_data="set_pers_neutral"),
-        InlineKeyboardButton("🔥 Горячая" + (" ✅" if current=='hot' else ""), callback_data="set_pers_hot"),
-        InlineKeyboardButton("◀️ Назад", callback_data="back_to_settings")
-    )
-    text = f"🎭 **Выбор характера**\n\nТекущий: {get_personality_name(current)}"
-    return markup, text
+    return markup, "🎴 **Конструктор персонажа**\nЗаполни поля ниже:"
 
 def limit_menu_keyboard(chat_id):
-    current = get_user_setting(chat_id, 'limit', 400)
+    current = get_field(chat_id, 'limit', 400)
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
         InlineKeyboardButton("🔹 100-200", callback_data="set_limit_150"),
         InlineKeyboardButton("🔸 400-600", callback_data="set_limit_500"),
         InlineKeyboardButton("🔹 800-1000", callback_data="set_limit_900"),
         InlineKeyboardButton("✏️ Свой", callback_data="custom_limit"),
-        InlineKeyboardButton("◀️ Назад", callback_data="back_to_settings")
-    )
-    text = f"📏 **Лимит токенов**\n\nТекущий: {limit}"
-    return markup, text
-
-def history_menu_keyboard(chat_id):
-    history_count = len(user_history.get(chat_id, [])) // 2
-    markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        InlineKeyboardButton("📄 Показать историю", callback_data="show_history"),
-        InlineKeyboardButton("🗑️ Очистить историю", callback_data="clear_history"),
-        InlineKeyboardButton("◀️ Назад", callback_data="back_to_settings")
-    )
-    text = f"📊 **История**\n\nВсего диалогов: {history_count}"
-    return markup, text
-
-# -------------------- Меню персонажа --------------------
-def character_card_keyboard(chat_id):
-    name = get_user_setting(chat_id, 'char_name', 'не задано')
-    desc = get_user_setting(chat_id, 'char_description', 'не задано')
-    scene = get_user_setting(chat_id, 'char_scenario', 'не задано')
-    markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        InlineKeyboardButton("✏️ Имя", callback_data="char_edit_name"),
-        InlineKeyboardButton("📝 Описание", callback_data="char_edit_desc"),
-        InlineKeyboardButton("🎬 Ситуация", callback_data="char_edit_scene"),
-        InlineKeyboardButton("♻️ Сбросить карточку", callback_data="char_reset"),
         InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")
     )
-    text = (f"🎴 **Мой персонаж**\n\n"
-            f"• Имя: {name}\n"
-            f"• Описание: {desc}\n"
-            f"• Ситуация: {scene}")
+    text = f"📏 **Лимит токенов**\nТекущий: {current}"
     return markup, text
+
+def main_menu_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("🎴 Конструктор", callback_data="main_constructor"),
+        InlineKeyboardButton("⚙️ Лимит", callback_data="main_limit"),
+        InlineKeyboardButton("❓ Помощь", callback_data="main_help"),
+        InlineKeyboardButton("ℹ️ О боте", callback_data="main_about"),
+        InlineKeyboardButton("❌ Закрыть", callback_data="close_menu")
+    )
+    return markup

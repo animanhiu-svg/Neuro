@@ -1,10 +1,11 @@
 import telebot
 from openai import OpenAI
+from telebot.types import ReplyKeyboardRemove
 
 import config
 import utils
 import keyboards as kb
-from database import user_settings, user_history, menu_message_id, update_user_setting, clear_history, reset_all
+from database import user_settings, user_history, menu_message_id, reset_all, update_user_setting, clear_history
 from logic import contains_forbidden, query_dolphin, get_personality_name
 
 # Запуск пищалки
@@ -21,7 +22,7 @@ def start(message):
         bot.reply_to(message, "⛔ Этот бот только для владельца.")
         return
     cid = message.chat.id
-    reset_all(cid)  # сбрасываем настройки при старте (опционально)
+    reset_all(cid)  # сбрасываем настройки при старте
     if cid in menu_message_id:
         try:
             bot.delete_message(cid, menu_message_id.pop(cid))
@@ -53,13 +54,12 @@ def handle_reply_buttons(message):
 
     if text == "🎮 НАЧАТЬ РОЛЕВУЮ ИГРУ":
         bot.send_message(cid, "🚀 Погнали! Пиши с чего начнём.", reply_markup=kb.reply_main_keyboard())
+
     elif text == "📜 Сценарии":
-        sent = bot.send_message(
-            cid,
-            "📜 Раздел в разработке.",
-            reply_markup=kb.InlineKeyboardMarkup().add(kb.InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
-        )
+        markup = kb.scenarios_menu_keyboard()
+        sent = bot.send_message(cid, "📜 **Выбери роль**", parse_mode="Markdown", reply_markup=markup)
         menu_message_id[cid] = sent.message_id
+
     elif text == "❓ Помощь":
         sent = bot.send_message(
             cid,
@@ -68,6 +68,7 @@ def handle_reply_buttons(message):
             reply_markup=kb.InlineKeyboardMarkup().add(kb.InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
         menu_message_id[cid] = sent.message_id
+
     elif text == "ℹ️ О боте":
         sent = bot.send_message(
             cid,
@@ -76,10 +77,12 @@ def handle_reply_buttons(message):
             reply_markup=kb.InlineKeyboardMarkup().add(kb.InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
         )
         menu_message_id[cid] = sent.message_id
+
     elif text == "⚙️ Настройки":
         markup, txt = kb.settings_main_keyboard(cid)
         sent = bot.send_message(cid, txt, parse_mode="Markdown", reply_markup=markup)
         menu_message_id[cid] = sent.message_id
+
     elif text == "🎮 Меню":
         if cid in menu_message_id:
             try:
@@ -163,7 +166,7 @@ def callback_handler(call):
 
     # Свой лимит
     elif data == "custom_limit":
-        msg = bot.send_message(cid, "✏️ Введи число токенов (10-1500):", reply_markup=kb.ReplyKeyboardRemove())
+        msg = bot.send_message(cid, "✏️ Введи число токенов (10-1500):", reply_markup=ReplyKeyboardRemove())
         bot.register_next_step_handler(msg, process_custom_limit, call.message.message_id)
         bot.answer_callback_query(call.id)
 
@@ -186,6 +189,22 @@ def callback_handler(call):
         markup, text = kb.settings_main_keyboard(cid)
         bot.edit_message_text(text, cid, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
 
+    # --- НОВЫЕ ОБРАБОТЧИКИ ДЛЯ СЦЕНАРИЕВ ---
+    elif data.startswith("set_scenario_"):
+        key = data.split("_")[2]
+        scenario = config.SCENARIOS.get(key)
+        if scenario:
+            user_settings[cid]['custom_prompt'] = scenario['prompt']
+            bot.answer_callback_query(call.id, f"✅ Роль '{scenario['name']}' установлена")
+            bot.edit_message_text("🎮 Главное меню", cid, call.message.message_id, reply_markup=kb.main_menu_keyboard())
+        else:
+            bot.answer_callback_query(call.id, "❌ Ошибка")
+
+    elif data == "custom_scenario":
+        msg = bot.send_message(cid, "✏️ Пришли мне описание персонажа (промпт):", reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(msg, process_custom_prompt, call.message.message_id)
+        bot.answer_callback_query(call.id)
+
 # -------------------- ОБРАБОТКА ВВОДА СВОЕГО ЛИМИТА --------------------
 def process_custom_limit(message, menu_msg_id):
     cid = message.chat.id
@@ -200,6 +219,22 @@ def process_custom_limit(message, menu_msg_id):
         bot.edit_message_text(text, cid, menu_msg_id, parse_mode="Markdown", reply_markup=markup)
     except:
         sent = bot.send_message(cid, "📏 Лимит", reply_markup=kb.limit_menu_keyboard(cid)[0])
+        menu_message_id[cid] = sent.message_id
+
+# -------------------- ОБРАБОТКА ВВОДА СВОЕГО ПРОМПТА --------------------
+def process_custom_prompt(message, menu_msg_id):
+    cid = message.chat.id
+    prompt_text = message.text.strip()
+    if prompt_text:
+        user_settings[cid]['custom_prompt'] = prompt_text
+        bot.send_message(cid, f"✅ Промпт сохранён: «{prompt_text[:50]}…»")
+    else:
+        bot.send_message(cid, "❌ Пустой промпт не принимается.")
+    # Возвращаем главное меню
+    try:
+        bot.edit_message_text("🎮 Главное меню", cid, menu_msg_id, reply_markup=kb.main_menu_keyboard())
+    except:
+        sent = bot.send_message(cid, "🎮 Главное меню", reply_markup=kb.main_menu_keyboard())
         menu_message_id[cid] = sent.message_id
 
 # -------------------- ОСНОВНОЙ ОБРАБОТЧИК RP-СООБЩЕНИЙ --------------------
@@ -231,5 +266,5 @@ def handle_rp(message):
 
 # -------------------- ЗАПУСК --------------------
 if __name__ == "__main__":
-    print("🚀 Бот с модульной структурой запущен!")
+    print("🚀 Бот с модульной структурой и сценариями запущен!")
     bot.polling(none_stop=True)

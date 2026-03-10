@@ -2,7 +2,7 @@
 import config
 from database import user_settings, get_history, add_to_history
 
-# Системные промпты для характеров (если нет кастомного)
+# Системные промпты для характеров
 def get_system_prompt(personality):
     base = (
         "Ты — мастер ролевых игр 18+. Пиши на русском языке. "
@@ -31,29 +31,28 @@ def contains_forbidden(text):
 
 # Основная функция запроса к модели
 def query_dolphin(prompt, chat_id, client):
-    # Получаем настройки пользователя
     settings = user_settings.get(chat_id, {})
     limit = settings.get('limit', 400)
     personality = settings.get('personality', 'neutral')
-    custom_prompt = settings.get('custom_prompt')  # Вот он, твой кастомный промпт!
+    custom_prompt = settings.get('custom_prompt')
 
-    # Определяем system content: если есть кастомный промпт — используем его, иначе — стандартный от характера
+    # Логируем, что пришло
+    print(f"🔍 [DEBUG] chat_id={chat_id}, custom_prompt={custom_prompt}")
+
+    # Определяем system content
     if custom_prompt:
         system_content = custom_prompt
+        print("✅ Использую кастомный промпт")
     else:
         system_content = get_system_prompt(personality)
+        print("⚠️ Использую стандартный промпт (характер)")
 
-    # Берём историю (последние 20 сообщений)
     history = get_history(chat_id)
-    
-    # Формируем сообщения для модели: сначала system (роль), потом история, потом текущий запрос
     messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
 
-    # Температура в зависимости от характера (для кастомного промпта берём среднюю)
+    temp = 0.7 if personality == 'soft' else 1.1 if personality == 'hot' else 0.9
     if custom_prompt:
-        temp = 0.9
-    else:
-        temp = 0.7 if personality == 'soft' else 1.1 if personality == 'hot' else 0.9
+        temp = 0.9  # для кастомного промпта средняя температура
 
     try:
         completion = client.chat.completions.create(
@@ -66,14 +65,13 @@ def query_dolphin(prompt, chat_id, client):
         )
         reply = completion.choices[0].message.content
 
-        # Проверка на запрещёнку в ответе
+        # Проверка на запрещёнку
         if contains_forbidden(reply):
-            print(f"⚠️ Запрещёнка в ответе для {chat_id}, отправляю заглушку")
-            return "⛔ Бот обнаружил потенциальное нарушение. Попробуй изменить запрос."
+            print(f"⚠️ Запрещёнка в ответе для {chat_id}")
+            return "⛔ Обнаружено нарушение. Попробуй иначе."
 
-        # Сохраняем в историю
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:
-        print(f"Ошибка API: {e}")
+        print(f"❌ Ошибка API: {e}")
         return f"⏳ Ошибка: {str(e)[:50]}"

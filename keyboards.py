@@ -1,5 +1,4 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
-import config
 from database import get_user_setting, user_history
 from logic import get_personality_name
 
@@ -7,8 +6,8 @@ from logic import get_personality_name
 def reply_main_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
-        KeyboardButton("📜 Сценарии"),
         KeyboardButton("⚙️ Настройки"),
+        KeyboardButton("🎴 Мой персонаж"),
         KeyboardButton("❓ Помощь"),
         KeyboardButton("ℹ️ О боте"),
         KeyboardButton("🎮 Меню")
@@ -24,8 +23,8 @@ def reply_start_keyboard():
 def main_menu_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("📜 Сценарии", callback_data="main_scenarios"),
         InlineKeyboardButton("⚙️ Настройки", callback_data="main_settings"),
+        InlineKeyboardButton("🎴 Мой персонаж", callback_data="main_character"),
         InlineKeyboardButton("❓ Помощь", callback_data="main_help"),
         InlineKeyboardButton("ℹ️ О боте", callback_data="main_about"),
         InlineKeyboardButton("❌ Закрыть", callback_data="close_menu")
@@ -73,7 +72,7 @@ def limit_menu_keyboard(chat_id):
         InlineKeyboardButton("✏️ Свой", callback_data="custom_limit"),
         InlineKeyboardButton("◀️ Назад", callback_data="back_to_settings")
     )
-    text = f"📏 **Лимит токенов**\n\nТекущий: {current}"
+    text = f"📏 **Лимит токенов**\n\nТекущий: {limit}"
     return markup, text
 
 def history_menu_keyboard(chat_id):
@@ -87,10 +86,21 @@ def history_menu_keyboard(chat_id):
     text = f"📊 **История**\n\nВсего диалогов: {history_count}"
     return markup, text
 
-def scenarios_menu_keyboard():
+# -------------------- Меню персонажа --------------------
+def character_card_keyboard(chat_id):
+    name = get_user_setting(chat_id, 'char_name', 'не задано')
+    desc = get_user_setting(chat_id, 'char_description', 'не задано')
+    scene = get_user_setting(chat_id, 'char_scenario', 'не задано')
     markup = InlineKeyboardMarkup(row_width=2)
-    for key, value in config.SCENARIOS.items():
-        markup.add(InlineKeyboardButton(value['name'], callback_data=f"set_scenario_{key}"))
-    markup.add(InlineKeyboardButton("✏️ Свой сценарий", callback_data="custom_scenario"))
-    markup.add(InlineKeyboardButton("◀️ Назад", callback_data="back_to_main"))
-    return markup
+    markup.add(
+        InlineKeyboardButton("✏️ Имя", callback_data="char_edit_name"),
+        InlineKeyboardButton("📝 Описание", callback_data="char_edit_desc"),
+        InlineKeyboardButton("🎬 Ситуация", callback_data="char_edit_scene"),
+        InlineKeyboardButton("♻️ Сбросить карточку", callback_data="char_reset"),
+        InlineKeyboardButton("◀️ Назад", callback_data="back_to_main")
+    )
+    text = (f"🎴 **Мой персонаж**\n\n"
+            f"• Имя: {name}\n"
+            f"• Описание: {desc}\n"
+            f"• Ситуация: {scene}")
+    return markup, text

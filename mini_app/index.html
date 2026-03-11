@@ -5,24 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Нейро Тян · конструктор</title>
     <style>
-        /* ========== ОБЩИЕ СТИЛИ ========== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #000000; /* глубокий чёрный */
+            font-family: 'Inter', sans-serif;
+            background: #000000;
             color: #fff;
             min-height: 100vh;
             overflow-x: hidden;
         }
-
-        /* ========== СПЛЭШ-ЭКРАН ========== */
+        /* сплэш */
         #splash-screen {
             position: fixed;
             top: 0;
@@ -39,45 +35,41 @@
             transition: opacity 0.5s ease-out;
             pointer-events: all;
         }
-
         #splash-screen.hidden {
             opacity: 0;
             pointer-events: none;
         }
-
-        /* аватар */
         .splash-avatar {
             width: 120px;
             height: 120px;
             border-radius: 50%;
             background: #111111;
             border: 3px solid #9c27b0;
-            box-shadow: 0 0 30px #9c27b0, 0 0 60px rgba(156, 39, 176, 0.4);
+            box-shadow: 0 0 30px #9c27b0;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 24px;
-            animation: fadeInUp 0.8s ease-out;
+            overflow: hidden;
         }
-
+        .splash-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
         .splash-avatar span {
             font-size: 56px;
             filter: drop-shadow(0 0 10px #ce93ff);
         }
-
-        /* имя */
         .splash-name {
             font-size: 36px;
             font-weight: 800;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #ffffff, #e0b0ff);
+            background: linear-gradient(135deg, #fff, #e0b0ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 16px;
-            animation: fadeInUp 0.8s ease-out 0.1s both;
         }
-
-        /* пацанская цитата */
         .splash-quote {
             font-size: 14px;
             font-weight: 500;
@@ -85,42 +77,23 @@
             letter-spacing: 3px;
             color: #b388ff;
             margin-bottom: 30px;
-            animation: fadeInUp 0.8s ease-out 0.2s both;
             text-shadow: 0 0 8px #9c27b0;
         }
-
-        /* прогресс-бар */
         .progress-container {
             width: 200px;
             height: 3px;
             background: rgba(255,255,255,0.1);
             border-radius: 30px;
             overflow: hidden;
-            animation: fadeInUp 0.8s ease-out 0.3s both;
         }
-
         .progress-fill {
             height: 100%;
             width: 0%;
             background: linear-gradient(90deg, #9c27b0, #ce93ff);
             box-shadow: 0 0 15px #9c27b0;
-            border-radius: 30px;
             transition: width 3s linear;
         }
-
-        /* анимация появления */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ========== ОСНОВНОЙ ИНТЕРФЕЙС (скрыт сначала) ========== */
+        /* основной контент */
         #main-content {
             opacity: 0;
             transition: opacity 0.5s ease-in;
@@ -128,12 +101,9 @@
             max-width: 420px;
             margin: 0 auto;
         }
-
         #main-content.visible {
             opacity: 1;
         }
-
-        /* здесь стили конструктора (можно оставить как есть, они не мешают) */
         .container {
             display: flex;
             flex-direction: column;
@@ -162,13 +132,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            animation: pulse 2s infinite;
+            overflow: hidden;
             cursor: pointer;
+            position: relative;
         }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 10px #9c27b0; }
-            50% { box-shadow: 0 0 25px #aa00ff; }
-            100% { box-shadow: 0 0 10px #9c27b0; }
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
         .avatar-placeholder {
             font-size: 36px;
@@ -183,6 +155,7 @@
             padding: 6px 16px;
             border-radius: 30px;
             border: 1px solid rgba(156, 39, 176, 0.3);
+            cursor: pointer;
         }
         .row-fields {
             display: flex;
@@ -284,13 +257,37 @@
             opacity: 1;
             pointer-events: all;
         }
+        .loader-content {
+            background: #1a1a2a;
+            border-radius: 40px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 0 60px #9c27b0;
+        }
+        .loader-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #e0b0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .loader-sub {
+            color: #b388ff;
+            margin-top: 12px;
+        }
+        /* скрытый input для выбора файла */
+        #file-input {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <!-- СПЛЭШ ЭКРАН -->
+    <input type="file" id="file-input" accept="image/*">
+
     <div id="splash-screen">
-        <div class="splash-avatar">
-            <span>🧬</span>  <!-- потом заменишь на реальное изображение -->
+        <div class="splash-avatar" id="splash-avatar">
+            <span id="splash-placeholder">🧬</span>
+            <img id="splash-image" src="#" alt="" style="display: none;">
         </div>
         <div class="splash-name">НЕЙРО ТЯН</div>
         <div class="splash-quote">СИНХРОНИЗАЦИЯ С СОЗНАНИЕМ...</div>
@@ -299,19 +296,17 @@
         </div>
     </div>
 
-    <!-- ОСНОВНОЙ КОНТЕНТ (КОНСТРУКТОР) -->
     <div id="main-content">
         <div class="container">
             <div class="title">⛓️ СОЗДАЙ ДНК</div>
-            <!-- аватар блок -->
             <div class="avatar-section">
-                <div class="avatar-circle" id="avatarCircle">
-                    <span class="avatar-placeholder">🧬</span>
+                <div class="avatar-circle" id="avatar-circle">
+                    <span class="avatar-placeholder" id="avatar-placeholder">🧬</span>
+                    <img id="avatar-image" src="#" alt="" style="display: none;">
                 </div>
-                <div class="avatar-label">ЗАГРУЗИТЬ ДНК ПЕРСОНАЖА</div>
+                <div class="avatar-label" id="upload-label">ЗАГРУЗИТЬ ДНК ПЕРСОНАЖА</div>
             </div>
 
-            <!-- имя и пол -->
             <div class="row-fields">
                 <div class="card">
                     <div class="card-label">ИМЯ</div>
@@ -327,21 +322,18 @@
                 </div>
             </div>
 
-            <!-- приветствие -->
             <div class="card">
                 <div class="card-label">🧠 ПРОШИВКА ЛИЧНОСТИ <span style="background:#9c27b0; color:#000; padding:2px 8px; border-radius:30px; font-size:10px;">приветствие</span></div>
                 <input type="text" id="greetingInput" placeholder="Первая фраза твоего героя..." maxlength="100">
                 <div class="char-counter" id="greetingCounter">0/100</div>
             </div>
 
-            <!-- легенда -->
             <div class="card legend">
                 <div class="card-label">📜 ЛЕГЕНДА</div>
                 <textarea id="legendInput" placeholder="Глубокая история, характер, мотивы..." rows="4" maxlength="500"></textarea>
                 <div class="char-counter" id="legendCounter">0/500</div>
             </div>
 
-            <!-- кнопки -->
             <div class="action-buttons">
                 <button class="btn btn-outline" id="resetBtn">СБРОС</button>
                 <button class="btn btn-gradient" id="activateBtn">АКТИВИРОВАТЬ</button>
@@ -349,11 +341,10 @@
         </div>
     </div>
 
-    <!-- лоадер (для кнопки Активировать) -->
     <div class="loader-overlay" id="loader">
-        <div class="loader-content" style="background:#1a1a2a; border-radius:40px; padding:30px; text-align:center; box-shadow:0 0 60px #9c27b0;">
-            <div class="loader-text" style="font-size:20px; font-weight:700; background:linear-gradient(135deg,#fff,#e0b0ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">СИНХРОНИЗАЦИЯ</div>
-            <div class="loader-sub" style="color:#b388ff; margin-top:12px;">с нейросетью Dolphin 24B ...</div>
+        <div class="loader-content">
+            <div class="loader-text">СИНХРОНИЗАЦИЯ</div>
+            <div class="loader-sub">с нейросетью Dolphin 24B ...</div>
         </div>
     </div>
 
@@ -364,24 +355,20 @@
             tg.ready();
             tg.expand();
 
-            // --- СПЛЭШ ЭКРАН ---
+            // Элементы
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
+            const fileInput = document.getElementById('file-input');
+            const avatarCircle = document.getElementById('avatar-circle');
+            const avatarPlaceholder = document.getElementById('avatar-placeholder');
+            const avatarImage = document.getElementById('avatar-image');
+            const splashAvatar = document.getElementById('splash-avatar');
+            const splashPlaceholder = document.getElementById('splash-placeholder');
+            const splashImage = document.getElementById('splash-image');
+            const uploadLabel = document.getElementById('upload-label');
 
-            // запускаем анимацию прогресс-бара
-            setTimeout(() => {
-                progressFill.style.width = '100%';
-            }, 100);
-
-            // через 3.2 сек (чтобы дозаполнился) скрываем сплэш и показываем основной интерфейс
-            setTimeout(() => {
-                splash.classList.add('hidden');
-                mainContent.classList.add('visible');
-                tg.HapticFeedback?.impactOccurred('medium'); // виброотклик
-            }, 3200);
-
-            // --- КОНСТРУКТОР (логика из предыдущей версии) ---
+            // Поля
             const nameInput = document.getElementById('nameInput');
             const greetingInput = document.getElementById('greetingInput');
             const legendInput = document.getElementById('legendInput');
@@ -391,9 +378,10 @@
             const resetBtn = document.getElementById('resetBtn');
             const activateBtn = document.getElementById('activateBtn');
             const loader = document.getElementById('loader');
-            const avatarCircle = document.getElementById('avatarCircle');
 
             let activeGender = 'male';
+
+            // Инициализация пола
             genderChips.forEach(chip => {
                 chip.addEventListener('click', function() {
                     genderChips.forEach(c => c.classList.remove('active'));
@@ -403,6 +391,7 @@
             });
             document.querySelector('.chip[data-gender="male"]').classList.add('active');
 
+            // Счётчики
             function updateCounters() {
                 greetingCounter.textContent = `${greetingInput.value.length}/100`;
                 legendCounter.textContent = `${legendInput.value.length}/500`;
@@ -411,6 +400,47 @@
             legendInput.addEventListener('input', updateCounters);
             updateCounters();
 
+            // Загрузка фото
+            function handleImage(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    // Показываем в конструкторе
+                    avatarPlaceholder.style.display = 'none';
+                    avatarImage.src = dataUrl;
+                    avatarImage.style.display = 'block';
+                    // Показываем в сплэше
+                    splashPlaceholder.style.display = 'none';
+                    splashImage.src = dataUrl;
+                    splashImage.style.display = 'block';
+                    // Сохраняем в localStorage (или tg, но пока так)
+                    localStorage.setItem('characterPhoto', dataUrl);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // Клик по аватарке или надписи
+            avatarCircle.addEventListener('click', () => fileInput.click());
+            uploadLabel.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) handleImage(file);
+            });
+
+            // Восстановление фото из localStorage (если есть)
+            const savedPhoto = localStorage.getItem('characterPhoto');
+            if (savedPhoto) {
+                avatarPlaceholder.style.display = 'none';
+                avatarImage.src = savedPhoto;
+                avatarImage.style.display = 'block';
+                splashPlaceholder.style.display = 'none';
+                splashImage.src = savedPhoto;
+                splashImage.style.display = 'block';
+            }
+
+            // Сброс
             resetBtn.addEventListener('click', function() {
                 nameInput.value = '';
                 greetingInput.value = '';
@@ -419,34 +449,45 @@
                 document.querySelector('.chip[data-gender="male"]').classList.add('active');
                 activeGender = 'male';
                 updateCounters();
+                // Сброс фото
+                localStorage.removeItem('characterPhoto');
+                avatarImage.style.display = 'none';
+                avatarPlaceholder.style.display = 'block';
+                splashImage.style.display = 'none';
+                splashPlaceholder.style.display = 'block';
+                fileInput.value = '';
                 tg.HapticFeedback?.impactOccurred('light');
             });
 
+            // Активация (имитация)
             activateBtn.addEventListener('click', function() {
                 const characterData = {
                     name: nameInput.value.trim() || 'Безымянный',
                     gender: activeGender,
-                    greeting: greetingInput.value.trim() || 'Привет, мир...',
-                    legend: legendInput.value.trim() || 'Нет легенды'
+                    greeting: greetingInput.value.trim() || 'Привет...',
+                    legend: legendInput.value.trim() || 'Нет легенды',
+                    photo: localStorage.getItem('characterPhoto') || null
                 };
-
                 loader.classList.add('show');
                 tg.HapticFeedback?.impactOccurred('medium');
-
                 setTimeout(() => {
                     loader.classList.remove('show');
                     console.log('Активирован:', characterData);
-                    // tg.sendData(JSON.stringify(characterData)); // сюда потом вставишь отправку
+                    // tg.sendData(JSON.stringify(characterData));
                     tg.HapticFeedback?.notificationOccurred('success');
-                    tg.showAlert(`Персонаж "${characterData.name}" создан. (данные в консоли)`);
+                    tg.showAlert(`Персонаж "${characterData.name}" готов. Фото сохранилось локально.`);
                 }, 2000);
             });
 
-            avatarCircle.addEventListener('click', function() {
-                tg.HapticFeedback?.impactOccurred('light');
-                tg.showAlert('Загрузка фото будет позже');
-            });
-
+            // Сплэш анимация
+            setTimeout(() => {
+                progressFill.style.width = '100%';
+            }, 100);
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                mainContent.classList.add('visible');
+                tg.HapticFeedback?.impactOccurred('medium');
+            }, 3200);
         })();
     </script>
 </body>

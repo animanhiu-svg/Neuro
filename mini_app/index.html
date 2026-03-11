@@ -3,58 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Конструктор персонажа · CyberDNA</title>
+    <title>Нейро Тян · конструктор</title>
     <style>
+        /* ========== ОБЩИЕ СТИЛИ ========== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            background-color: #0F0F0F;
-            background-image: radial-gradient(circle at 30% 10%, rgba(100, 0, 255, 0.05) 0%, transparent 50%);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #fff;
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            line-height: 1.4;
-            font-weight: 400;
-        }
-
-        /* шрифт Inter */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-        .container {
-            max-width: 420px;
-            margin: 0 auto;
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000000; /* глубокий чёрный */
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ========== СПЛЭШ-ЭКРАН ========== */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        /* заголовок */
-        .title {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #fff 0%, #d4b0ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-        }
-
-        /* аватар-блок */
-        .avatar-section {
+            height: 100%;
+            background: #000000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+            pointer-events: all;
+        }
+
+        #splash-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* аватар */
+        .splash-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #111111;
+            border: 3px solid #9c27b0;
+            box-shadow: 0 0 30px #9c27b0, 0 0 60px rgba(156, 39, 176, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .splash-avatar span {
+            font-size: 56px;
+            filter: drop-shadow(0 0 10px #ce93ff);
+        }
+
+        /* имя */
+        .splash-name {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff, #e0b0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            animation: fadeInUp 0.8s ease-out 0.1s both;
+        }
+
+        /* пацанская цитата */
+        .splash-quote {
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #b388ff;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+            text-shadow: 0 0 8px #9c27b0;
+        }
+
+        /* прогресс-бар */
+        .progress-container {
+            width: 200px;
+            height: 3px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #9c27b0, #ce93ff);
+            box-shadow: 0 0 15px #9c27b0;
+            border-radius: 30px;
+            transition: width 3s linear;
+        }
+
+        /* анимация появления */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ========== ОСНОВНОЙ ИНТЕРФЕЙС (скрыт сначала) ========== */
+        #main-content {
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+            padding: 20px;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        #main-content.visible {
+            opacity: 1;
+        }
+
+        /* здесь стили конструктора (можно оставить как есть, они не мешают) */
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #d4b0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             margin: 10px 0;
         }
         .avatar-circle {
@@ -67,13 +162,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
             animation: pulse 2s infinite;
             cursor: pointer;
-        }
-        .avatar-circle:hover {
-            border-color: #aa00ff;
-            box-shadow: 0 0 30px #9c27b0;
         }
         @keyframes pulse {
             0% { box-shadow: 0 0 10px #9c27b0; }
@@ -82,82 +172,44 @@
         }
         .avatar-placeholder {
             font-size: 36px;
-            filter: drop-shadow(0 0 8px #9c27b0);
         }
         .avatar-label {
             margin-top: 12px;
             font-size: 14px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
             color: #b388ff;
             background: rgba(156, 39, 176, 0.15);
             padding: 6px 16px;
             border-radius: 30px;
             border: 1px solid rgba(156, 39, 176, 0.3);
-            backdrop-filter: blur(4px);
         }
-
-        /* блоки карточек */
-        .card {
-            background: rgba(20, 20, 30, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(156, 39, 176, 0.3);
-            border-radius: 24px;
-            padding: 18px 16px;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .card:focus-within {
-            border-color: #9c27b0;
-            box-shadow: 0 0 20px rgba(156, 39, 176, 0.4);
-        }
-
-        .card-label {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #b388ff;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .card-label span {
-            background: #9c27b0;
-            color: #0F0F0F;
-            padding: 2px 8px;
-            border-radius: 30px;
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        /* поле ввода */
-        input, textarea {
-            width: 100%;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-family: 'Inter', sans-serif;
-            font-size: 16px;
-            color: #fff;
-            resize: vertical;
-        }
-        input::placeholder, textarea::placeholder {
-            color: rgba(255,255,255,0.25);
-            font-weight: 400;
-        }
-
-        /* имя и пол в ряд */
         .row-fields {
             display: flex;
             gap: 12px;
         }
         .row-fields .card {
             flex: 1;
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(156, 39, 176, 0.3);
+            border-radius: 24px;
+            padding: 18px 16px;
         }
-
-        /* переключатели пола (чипсы) */
+        .card-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #b388ff;
+            margin-bottom: 12px;
+        }
+        input, textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: #fff;
+        }
         .gender-chips {
             display: flex;
             gap: 10px;
@@ -171,38 +223,28 @@
             font-size: 15px;
             font-weight: 600;
             color: rgba(255,255,255,0.6);
-            transition: all 0.2s;
             cursor: pointer;
-            text-align: center;
             flex: 1;
+            text-align: center;
         }
         .chip.active {
             background: #9c27b0;
-            border-color: #ce93ff;
             color: #fff;
             box-shadow: 0 0 15px #9c27b0;
         }
-
-        /* счетчик символов */
         .char-counter {
             text-align: right;
             font-size: 11px;
             color: #b388ff;
             margin-top: 6px;
-            letter-spacing: 0.5px;
         }
-
-        /* легенда - большой блок */
         .legend textarea {
             min-height: 90px;
         }
-
-        /* нижние кнопки */
         .action-buttons {
             display: flex;
             gap: 12px;
-            margin-top: 16px;
-            margin-bottom: 20px;
+            margin: 20px 0;
         }
         .btn {
             flex: 1;
@@ -211,10 +253,8 @@
             font-weight: 700;
             font-size: 16px;
             text-transform: uppercase;
-            letter-spacing: 1px;
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
             font-family: 'Inter', sans-serif;
         }
         .btn-outline {
@@ -222,28 +262,11 @@
             border: 2px solid #9c27b0;
             color: #b388ff;
         }
-        .btn-outline:hover {
-            background: rgba(156, 39, 176, 0.2);
-            box-shadow: 0 0 15px #9c27b0;
-        }
         .btn-gradient {
             background: linear-gradient(135deg, #8e2de2, #4a00e0);
             color: white;
             box-shadow: 0 4px 20px rgba(156, 39, 176, 0.5);
-            border: none;
         }
-        .btn-gradient:hover {
-            transform: scale(1.02);
-            box-shadow: 0 6px 25px #9c27b0;
-        }
-        .btn-gradient:disabled {
-            opacity: 0.6;
-            transform: none;
-            box-shadow: none;
-            cursor: not-allowed;
-        }
-
-        /* лоадер */
         .loader-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -261,110 +284,104 @@
             opacity: 1;
             pointer-events: all;
         }
-        .loader-content {
-            background: #1a1a2a;
-            border: 1px solid #9c27b0;
-            border-radius: 40px;
-            padding: 30px 40px;
-            text-align: center;
-            box-shadow: 0 0 60px #9c27b0;
-            animation: glow 1.5s infinite alternate;
-        }
-        @keyframes glow {
-            from { box-shadow: 0 0 30px #9c27b0; }
-            to { box-shadow: 0 0 60px #aa00ff; }
-        }
-        .loader-text {
-            font-size: 20px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fff, #e0b0ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .loader-sub {
-            margin-top: 12px;
-            font-size: 14px;
-            color: #b388ff;
-        }
-
-        /* прочая мелочь */
-        .glass-icon {
-            font-size: 18px;
-            margin-right: 6px;
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="title">⛓️ СОЗДАЙ ДНК</div>
-
-        <!-- Аватар блок -->
-        <div class="avatar-section">
-            <div class="avatar-circle" id="avatarCircle">
-                <span class="avatar-placeholder">🧬</span>
-            </div>
-            <div class="avatar-label">ЗАГРУЗИТЬ ДНК ПЕРСОНАЖА</div>
+    <!-- СПЛЭШ ЭКРАН -->
+    <div id="splash-screen">
+        <div class="splash-avatar">
+            <span>🧬</span>  <!-- потом заменишь на реальное изображение -->
         </div>
-
-        <!-- Имя и пол в ряд -->
-        <div class="row-fields">
-            <div class="card" style="padding: 12px 16px;">
-                <div class="card-label">ИМЯ</div>
-                <input type="text" id="nameInput" placeholder="например: Нейромант" maxlength="30">
-            </div>
-            <div class="card" style="padding: 12px 16px;">
-                <div class="card-label">ПОЛ</div>
-                <div class="gender-chips" id="genderChips">
-                    <div class="chip" data-gender="male">♂ М</div>
-                    <div class="chip" data-gender="female">♀ Ж</div>
-                    <div class="chip" data-gender="other">⚥</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Прошивка личности (приветствие) -->
-        <div class="card">
-            <div class="card-label">
-                <span class="glass-icon">🧠</span> ПРОШИВКА ЛИЧНОСТИ <span>приветствие</span>
-            </div>
-            <input type="text" id="greetingInput" placeholder="Первая фраза твоего героя..." maxlength="100">
-            <div class="char-counter" id="greetingCounter">0/100</div>
-        </div>
-
-        <!-- Легенда (описание) -->
-        <div class="card legend">
-            <div class="card-label">
-                <span class="glass-icon">📜</span> ЛЕГЕНДА
-            </div>
-            <textarea id="legendInput" placeholder="Глубокая история, характер, мотивы..." rows="4" maxlength="500"></textarea>
-            <div class="char-counter" id="legendCounter">0/500</div>
-        </div>
-
-        <!-- Нижние кнопки -->
-        <div class="action-buttons">
-            <button class="btn btn-outline" id="resetBtn">СБРОС</button>
-            <button class="btn btn-gradient" id="activateBtn">АКТИВИРОВАТЬ</button>
+        <div class="splash-name">НЕЙРО ТЯН</div>
+        <div class="splash-quote">СИНХРОНИЗАЦИЯ С СОЗНАНИЕМ...</div>
+        <div class="progress-container">
+            <div class="progress-fill" id="progress-fill"></div>
         </div>
     </div>
 
-    <!-- Оверлей загрузки -->
+    <!-- ОСНОВНОЙ КОНТЕНТ (КОНСТРУКТОР) -->
+    <div id="main-content">
+        <div class="container">
+            <div class="title">⛓️ СОЗДАЙ ДНК</div>
+            <!-- аватар блок -->
+            <div class="avatar-section">
+                <div class="avatar-circle" id="avatarCircle">
+                    <span class="avatar-placeholder">🧬</span>
+                </div>
+                <div class="avatar-label">ЗАГРУЗИТЬ ДНК ПЕРСОНАЖА</div>
+            </div>
+
+            <!-- имя и пол -->
+            <div class="row-fields">
+                <div class="card">
+                    <div class="card-label">ИМЯ</div>
+                    <input type="text" id="nameInput" placeholder="например: Нейромант" maxlength="30">
+                </div>
+                <div class="card">
+                    <div class="card-label">ПОЛ</div>
+                    <div class="gender-chips" id="genderChips">
+                        <div class="chip" data-gender="male">♂ М</div>
+                        <div class="chip" data-gender="female">♀ Ж</div>
+                        <div class="chip" data-gender="other">⚥</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- приветствие -->
+            <div class="card">
+                <div class="card-label">🧠 ПРОШИВКА ЛИЧНОСТИ <span style="background:#9c27b0; color:#000; padding:2px 8px; border-radius:30px; font-size:10px;">приветствие</span></div>
+                <input type="text" id="greetingInput" placeholder="Первая фраза твоего героя..." maxlength="100">
+                <div class="char-counter" id="greetingCounter">0/100</div>
+            </div>
+
+            <!-- легенда -->
+            <div class="card legend">
+                <div class="card-label">📜 ЛЕГЕНДА</div>
+                <textarea id="legendInput" placeholder="Глубокая история, характер, мотивы..." rows="4" maxlength="500"></textarea>
+                <div class="char-counter" id="legendCounter">0/500</div>
+            </div>
+
+            <!-- кнопки -->
+            <div class="action-buttons">
+                <button class="btn btn-outline" id="resetBtn">СБРОС</button>
+                <button class="btn btn-gradient" id="activateBtn">АКТИВИРОВАТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- лоадер (для кнопки Активировать) -->
     <div class="loader-overlay" id="loader">
-        <div class="loader-content">
-            <div class="loader-text">СИНХРОНИЗАЦИЯ</div>
-            <div class="loader-sub">с нейросетью Dolphin 24B ...</div>
+        <div class="loader-content" style="background:#1a1a2a; border-radius:40px; padding:30px; text-align:center; box-shadow:0 0 60px #9c27b0;">
+            <div class="loader-text" style="font-size:20px; font-weight:700; background:linear-gradient(135deg,#fff,#e0b0ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">СИНХРОНИЗАЦИЯ</div>
+            <div class="loader-sub" style="color:#b388ff; margin-top:12px;">с нейросетью Dolphin 24B ...</div>
         </div>
     </div>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function() {
-            // Инициализация Telegram
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
 
-            // Элементы
-            const avatarCircle = document.getElementById('avatarCircle');
+            // --- СПЛЭШ ЭКРАН ---
+            const splash = document.getElementById('splash-screen');
+            const progressFill = document.getElementById('progress-fill');
+            const mainContent = document.getElementById('main-content');
+
+            // запускаем анимацию прогресс-бара
+            setTimeout(() => {
+                progressFill.style.width = '100%';
+            }, 100);
+
+            // через 3.2 сек (чтобы дозаполнился) скрываем сплэш и показываем основной интерфейс
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                mainContent.classList.add('visible');
+                tg.HapticFeedback?.impactOccurred('medium'); // виброотклик
+            }, 3200);
+
+            // --- КОНСТРУКТОР (логика из предыдущей версии) ---
             const nameInput = document.getElementById('nameInput');
             const greetingInput = document.getElementById('greetingInput');
             const legendInput = document.getElementById('legendInput');
@@ -374,9 +391,9 @@
             const resetBtn = document.getElementById('resetBtn');
             const activateBtn = document.getElementById('activateBtn');
             const loader = document.getElementById('loader');
+            const avatarCircle = document.getElementById('avatarCircle');
 
-            // Активный пол
-            let activeGender = 'male'; // по умолчанию
+            let activeGender = 'male';
             genderChips.forEach(chip => {
                 chip.addEventListener('click', function() {
                     genderChips.forEach(c => c.classList.remove('active'));
@@ -384,10 +401,8 @@
                     activeGender = this.dataset.gender;
                 });
             });
-            // установить начальный active
             document.querySelector('.chip[data-gender="male"]').classList.add('active');
 
-            // Счётчики
             function updateCounters() {
                 greetingCounter.textContent = `${greetingInput.value.length}/100`;
                 legendCounter.textContent = `${legendInput.value.length}/500`;
@@ -396,7 +411,6 @@
             legendInput.addEventListener('input', updateCounters);
             updateCounters();
 
-            // Сброс
             resetBtn.addEventListener('click', function() {
                 nameInput.value = '';
                 greetingInput.value = '';
@@ -405,13 +419,10 @@
                 document.querySelector('.chip[data-gender="male"]').classList.add('active');
                 activeGender = 'male';
                 updateCounters();
-                // лёгкая вспышка (опционально)
                 tg.HapticFeedback?.impactOccurred('light');
             });
 
-            // Активация (анимация + вывод в консоль)
             activateBtn.addEventListener('click', function() {
-                // Собираем данные
                 const characterData = {
                     name: nameInput.value.trim() || 'Безымянный',
                     gender: activeGender,
@@ -419,26 +430,21 @@
                     legend: legendInput.value.trim() || 'Нет легенды'
                 };
 
-                // Показываем лоадер
                 loader.classList.add('show');
                 tg.HapticFeedback?.impactOccurred('medium');
 
-                // Имитация синхронизации
                 setTimeout(() => {
                     loader.classList.remove('show');
-                    // Вывод в консоль (для отладки)
-                    console.log('Персонаж активирован:', characterData);
-                    // Здесь потом будет tg.sendData(JSON.stringify(characterData))
+                    console.log('Активирован:', characterData);
+                    // tg.sendData(JSON.stringify(characterData)); // сюда потом вставишь отправку
                     tg.HapticFeedback?.notificationOccurred('success');
-                    // Покажем алерт (можно убрать)
-                    tg.showAlert(`Персонаж "${characterData.name}" готов. (Данные в консоли)`);
+                    tg.showAlert(`Персонаж "${characterData.name}" создан. (данные в консоли)`);
                 }, 2000);
             });
 
-            // Доп. опции: аватар клик — имитация загрузки
             avatarCircle.addEventListener('click', function() {
                 tg.HapticFeedback?.impactOccurred('light');
-                tg.showAlert('Функция загрузки изображения будет добавлена позже.');
+                tg.showAlert('Загрузка фото будет позже');
             });
 
         })();

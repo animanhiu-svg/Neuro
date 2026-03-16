@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · конструктор</title>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -112,8 +111,13 @@
             width: 120px; height: 120px; border-radius: 50%;
             background: #1e1e1e; border: 2px solid #fff;
             overflow: hidden; cursor: pointer; margin-bottom: 12px;
-            /* Фон для изображения, если нет img */
-            background-size: cover; background-position: center; background-repeat: no-repeat;
+        }
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
         }
         .avatar-placeholder {
             width: 100%; height: 100%; display: flex;
@@ -165,33 +169,6 @@
         .loader-text { font-size: 18px; font-weight: 500; color: #fff; }
         .loader-sub { margin-top: 10px; font-size: 12px; color: #aaa; }
 
-        /* Оверлей кадрирования */
-        .crop-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 2000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .crop-overlay.show { opacity: 1; pointer-events: all; }
-        .crop-container {
-            width: 280px; height: 280px; border-radius: 50%;
-            overflow: hidden; border: 2px solid #fff; margin-bottom: 30px;
-            position: relative;
-        }
-        .crop-image {
-            width: 100%; height: 100%;
-            background-size: cover; background-position: center; background-repeat: no-repeat;
-            transition: transform 0.1s ease;
-        }
-        .crop-controls { display: flex; gap: 20px; }
-        .crop-btn {
-            background: transparent; border: 1px solid #fff; color: #fff;
-            padding: 12px 30px; border-radius: 40px; font-size: 16px; font-weight: 500;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
-        .crop-btn.primary { background: #fff; color: #000; }
-
         #file-input { display: none; }
     </style>
 </head>
@@ -229,17 +206,6 @@
         </div>
     </div>
 
-    <!-- ОВЕРЛЕЙ КАДРИРОВАНИЯ -->
-    <div class="crop-overlay" id="crop-overlay">
-        <div class="crop-container" id="crop-container">
-            <div class="crop-image" id="crop-image"></div>
-        </div>
-        <div class="crop-controls">
-            <button class="crop-btn" id="crop-cancel">Отмена</button>
-            <button class="crop-btn primary" id="crop-apply">Применить</button>
-        </div>
-    </div>
-
     <!-- Лоадер -->
     <div class="loader-overlay" id="loader">
         <div class="loader-content"><div class="loader-text">ПРОБУЖДЕНИЕ</div><div class="loader-sub">связь с нейросетью...</div></div>
@@ -265,13 +231,6 @@
             const createGroupBtn = document.getElementById('create-group');
             const barItems = document.querySelectorAll('.bar-item');
 
-            // Элементы кадрирования
-            const cropOverlay = document.getElementById('crop-overlay');
-            const cropContainer = document.getElementById('crop-container');
-            const cropImageDiv = document.getElementById('crop-image');
-            const cropCancel = document.getElementById('crop-cancel');
-            const cropApply = document.getElementById('crop-apply');
-
             // Данные персонажа
             let character = {
                 name: '',
@@ -285,17 +244,11 @@
                 if (saved) Object.assign(character, JSON.parse(saved));
             } catch (e) {}
 
-            // Переменные для кадрирования
-            let originalImage = null; // объект Image для canvas
-            let currentTransform = { scale: 1, x: 0, y: 0 }; // текущие параметры трансформации в пикселях (относительно контейнера)
-            let lastTransform = { scale: 1, x: 0, y: 0 };
-            let hammer = null;
-
             function saveCharacter() {
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Сохраняем фото (обновляем и в сплэше)
+            // Обновление фото
             function updatePhoto(dataUrl) {
                 character.photo = dataUrl;
                 localStorage.setItem('characterPhoto', dataUrl);
@@ -303,12 +256,11 @@
                 splashImage.src = dataUrl;
                 splashImage.style.display = 'block';
                 saveCharacter();
-                // Если открыт конструктор, обновляем аватар
-                if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
-                    const avatarCircle = document.querySelector('.avatar-circle');
-                    if (avatarCircle) {
-                        avatarCircle.style.backgroundImage = `url('${dataUrl}')`;
-                    }
+
+                // Мгновенное обновление аватара в конструкторе, если он открыт
+                const avatarImg = document.querySelector('.avatar-circle img');
+                if (avatarImg) {
+                    avatarImg.src = dataUrl + '?t=' + Date.now(); // принудительное обновление
                 }
             }
 
@@ -317,143 +269,22 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    const dataUrl = event.target.result;
-                    // Загружаем изображение в объект для canvas
-                    const img = new Image();
-                    img.onload = () => {
-                        originalImage = img;
-                        // Открываем оверлей с этим изображением
-                        cropImageDiv.style.backgroundImage = `url('${dataUrl}')`;
-                        // Сброс трансформации
-                        currentTransform = { scale: 1, x: 0, y: 0 };
-                        lastTransform = { scale: 1, x: 0, y: 0 };
-                        updateCropTransform();
-                        cropOverlay.classList.add('show');
-                        initHammer();
-                    };
-                    img.src = dataUrl;
-                };
+                reader.onload = (event) => updatePhoto(event.target.result);
                 reader.readAsDataURL(file);
                 fileInput.value = ''; // сброс
             });
 
-            // Инициализация Hammer.js
-            function initHammer() {
-                if (hammer) hammer.destroy();
-                hammer = new Hammer(cropContainer);
-                hammer.get('pinch').set({ enable: true });
-                hammer.on('pinch', (ev) => {
-                    currentTransform.scale = Math.max(0.5, Math.min(3, lastTransform.scale * ev.scale));
-                    updateCropTransform();
-                });
-                hammer.on('pinchend', () => {
-                    lastTransform.scale = currentTransform.scale;
-                });
-                hammer.on('pan', (ev) => {
-                    currentTransform.x = lastTransform.x + ev.deltaX;
-                    currentTransform.y = lastTransform.y + ev.deltaY;
-                    updateCropTransform();
-                });
-                hammer.on('panend', () => {
-                    lastTransform.x = currentTransform.x;
-                    lastTransform.y = currentTransform.y;
-                });
-            }
-
-            function updateCropTransform() {
-                cropImageDiv.style.transform = `translate(${currentTransform.x}px, ${currentTransform.y}px) scale(${currentTransform.scale})`;
-            }
-
-            // Обрезка изображения через canvas
-            function cropAndSave() {
-                if (!originalImage) return;
-
-                const size = 280; // размер круга
-                const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-
-                // Вычисляем параметры отображения
-                // Изображение должно заполнять круг по принципу cover (как background-size: cover)
-                // Плюс применяем transform: translate и scale
-                const imgW = originalImage.width;
-                const imgH = originalImage.height;
-
-                // Масштаб cover, чтобы изображение полностью покрывало круг
-                const coverScale = Math.max(size / imgW, size / imgH);
-                // Итоговый масштаб с учётом пользовательского zoom
-                const totalScale = coverScale * currentTransform.scale;
-
-                // Размеры изображения на холсте
-                const drawWidth = imgW * totalScale;
-                const drawHeight = imgH * totalScale;
-
-                // Смещение: хотим, чтобы видимая область соответствовала transform в пикселях контейнера.
-                // Начальное положение (при scale=1, x=0, y=0) — изображение центрировано.
-                // То есть левый верхний угол изображения на холсте:
-                // startX = (size - drawWidth) / 2 + currentTransform.x / currentTransform.scale * coverScale??
-                // Проще: мы знаем, что в оверлее мы двигаем изображение внутри круга.
-                // Для canvas мы должны нарисовать изображение так, чтобы область, которая была видна в круге, попала в центр.
-                // Используем следующий подход: берём координаты центра круга в системе координат изображения.
-                // Центр круга в контейнере соответствует определённой точке на изображении.
-                // При нулевых смещениях центр изображения совпадает с центром круга.
-                // Смещение currentTransform.x, currentTransform.y в пикселях контейнера означает, что изображение сдвинуто.
-                // Чтобы узнать, какая точка изображения находится в центре круга, нужно перевести смещение в координаты изображения.
-                // Сначала найдём, какая точка исходного изображения отображается в центре круга.
-                // Применяем обратное преобразование: смещение в пикселях контейнера соответствует смещению в пикселях изображения, делённому на coverScale.
-                // Но поскольку мы ещё и масштабируем, то смещение в пикселях контейнера соответствует смещению в пикселях изображения, равному -currentTransform.x / (coverScale * currentTransform.scale) по X и аналогично Y.
-                // Точка исходного изображения в центре круга:
-                const centerImgX = (imgW / 2) - currentTransform.x / (coverScale * currentTransform.scale);
-                const centerImgY = (imgH / 2) - currentTransform.y / (coverScale * currentTransform.scale);
-
-                // Левый верхний угол области, которую нужно нарисовать, чтобы центр изображения попал в центр холста:
-                const srcX = centerImgX - (size / 2) / (coverScale * currentTransform.scale);
-                const srcY = centerImgY - (size / 2) / (coverScale * currentTransform.scale);
-                const srcWidth = size / (coverScale * currentTransform.scale);
-                const srcHeight = size / (coverScale * currentTransform.scale);
-
-                ctx.clearRect(0, 0, size, size);
-                ctx.drawImage(
-                    originalImage,
-                    srcX, srcY, srcWidth, srcHeight,
-                    0, 0, size, size
-                );
-
-                // Обрезаем по кругу (создаём альфа-маску)
-                ctx.globalCompositeOperation = 'destination-in';
-                ctx.beginPath();
-                ctx.arc(size/2, size/2, size/2, 0, 2*Math.PI);
-                ctx.fillStyle = '#fff';
-                ctx.fill();
-
-                const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                updatePhoto(croppedDataUrl);
-            }
-
-            cropApply.addEventListener('click', () => {
-                cropAndSave();
-                cropOverlay.classList.remove('show');
-                if (hammer) hammer.destroy();
-                tg.HapticFeedback?.impactOccurred('medium');
-            });
-
-            cropCancel.addEventListener('click', () => {
-                cropOverlay.classList.remove('show');
-                if (hammer) hammer.destroy();
-            });
-
             // Рендер главной (конструктор)
             function renderHome() {
-                const photoUrl = character.photo ? `url('${character.photo}')` : 'none';
-                const placeholderHtml = !character.photo ? '<span class="avatar-placeholder">🧬</span>' : '';
+                const photoHtml = character.photo 
+                    ? `<img src="${character.photo}" alt="" class="avatar-image">` 
+                    : '<span class="avatar-placeholder">🧬</span>';
 
                 const html = `
                     <div class="neuro-header"><h1>NEURO BRO</h1></div>
                     <div class="avatar-block">
-                        <div class="avatar-circle" id="avatar-circle" style="background-image: ${photoUrl}; background-size: cover; background-position: center; background-repeat: no-repeat;">
-                            ${placeholderHtml}
+                        <div class="avatar-circle" id="avatar-circle">
+                            ${photoHtml}
                         </div>
                         <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
                     </div>
@@ -576,7 +407,7 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
 
-            // Инициализация ленты
+            // Стартовая страница — лента
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
 

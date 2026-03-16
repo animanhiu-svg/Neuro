@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · конструктор</title>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Hammer.js для жестов -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
         * {
@@ -19,12 +17,10 @@
         body {
             font-family: 'Inter', sans-serif;
             background: #121212;
-            color: #ffffff;
+            color: #fff;
             min-height: 100vh;
             overflow-x: hidden;
         }
-
-        /* ===== СПЛЭШ ===== */
         #splash-screen {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -47,7 +43,7 @@
             height: 100px;
             border-radius: 50%;
             background: #1e1e1e;
-            border: 2px solid #ffffff;
+            border: 2px solid #fff;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -61,7 +57,6 @@
         .splash-name {
             font-size: 32px;
             font-weight: 600;
-            letter-spacing: -0.5px;
             color: #fff;
             margin-bottom: 16px;
         }
@@ -84,8 +79,6 @@
             background: #fff;
             transition: width 3s linear;
         }
-
-        /* ===== ОСНОВНОЙ КОНТЕНТ ===== */
         #main-content {
             opacity: 0;
             transition: opacity 0.5s ease-in;
@@ -96,7 +89,6 @@
         #main-content.visible {
             opacity: 1;
         }
-
         .content-area {
             flex: 1;
             overflow-y: auto;
@@ -105,18 +97,15 @@
             margin: 0 auto;
             width: 100%;
         }
-
-        /* ===== НИЖНЯЯ ПАНЕЛЬ ===== */
         .bottom-bar {
             display: flex;
             justify-content: space-around;
             align-items: center;
-            background: #000000;
+            background: #000;
             padding: 8px 0 12px;
             position: relative;
             border-top: none;
         }
-
         .bottom-bar::before {
             content: "";
             position: absolute;
@@ -125,15 +114,14 @@
             transform: translateX(-50%);
             width: 70%;
             height: 1px;
-            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent);
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
             pointer-events: none;
         }
-
         .bar-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            color: #ffffff;
+            color: #fff;
             font-size: 10px;
             font-weight: 500;
             transition: opacity 0.2s, transform 0.1s ease;
@@ -145,13 +133,13 @@
             opacity: 1;
         }
         .bar-item.active i {
-            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
+            filter: drop-shadow(0 0 6px rgba(255,255,255,0.6));
         }
         .bar-item:active {
             transform: scale(0.92);
         }
         .bar-item:active i {
-            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
         }
         .bar-item i {
             width: 24px;
@@ -160,8 +148,6 @@
             stroke-width: 1.5;
             transition: filter 0.1s ease;
         }
-
-        /* ===== BOTTOM SHEET ===== */
         .sheet-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -213,16 +199,12 @@
             height: 24px;
             stroke-width: 1.5;
         }
-
         .placeholder-page {
             text-align: center;
             padding: 60px 20px;
             color: #aaa;
             font-size: 16px;
-            line-height: 1.8;
         }
-
-        /* ===== КОНСТРУКТОР ===== */
         .neuro-header {
             text-align: center;
             margin-bottom: 24px;
@@ -230,10 +212,8 @@
         .neuro-header h1 {
             font-size: 28px;
             font-weight: 600;
-            letter-spacing: -0.5px;
             color: #fff;
         }
-
         .avatar-block {
             display: flex;
             flex-direction: column;
@@ -249,15 +229,12 @@
             overflow: hidden;
             cursor: pointer;
             margin-bottom: 12px;
-            position: relative;
         }
         .avatar-image {
             width: 100%;
             height: 100%;
-            display: block;
-            object-fit: cover; /* по умолчанию cover, но будет переопределено transform если есть */
+            object-fit: cover;
             object-position: center;
-            transition: transform 0.1s ease;
         }
         .avatar-placeholder {
             width: 100%;
@@ -270,7 +247,6 @@
         }
         .avatar-label {
             font-size: 14px;
-            font-weight: 400;
             color: #aaa;
             text-decoration: underline;
             text-underline-offset: 4px;
@@ -280,8 +256,6 @@
         .avatar-label:active {
             transform: scale(0.95);
         }
-
-        /* Оверлей кадрирования */
         .crop-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -306,7 +280,6 @@
             overflow: hidden;
             border: 2px solid #fff;
             margin-bottom: 30px;
-            position: relative;
         }
         .crop-image {
             width: 100%;
@@ -339,14 +312,11 @@
             background: #fff;
             color: #000;
         }
-
-        /* Поля ввода */
         .input-group {
             margin-bottom: 20px;
         }
         .input-label {
             font-size: 12px;
-            font-weight: 400;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #aaa;
@@ -380,7 +350,6 @@
             color: #aaa;
             cursor: pointer;
             transition: all 0.2s, transform 0.1s ease;
-            text-align: center;
             flex: 0 1 auto;
         }
         .chip.active {
@@ -408,7 +377,6 @@
             font-weight: 600;
             font-size: 15px;
             text-transform: uppercase;
-            letter-spacing: 1px;
             border: none;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
@@ -456,7 +424,6 @@
         }
         .loader-sub {
             margin-top: 10px;
-            font-size: 12px;
             color: #aaa;
         }
         #file-input {
@@ -467,7 +434,6 @@
 <body>
     <input type="file" id="file-input" accept="image/*">
 
-    <!-- СПЛЭШ -->
     <div id="splash-screen">
         <div class="splash-avatar" id="splash-avatar">
             <span id="splash-placeholder">🧬</span>
@@ -480,11 +446,8 @@
         </div>
     </div>
 
-    <!-- ОСНОВНОЙ КОНТЕНТ -->
     <div id="main-content">
         <div class="content-area" id="content-area"></div>
-
-        <!-- НИЖНЯЯ ПАНЕЛЬ -->
         <div class="bottom-bar">
             <div class="bar-item" data-tab="feed"><i data-lucide="globe"></i><span>Портал</span></div>
             <div class="bar-item" data-tab="chats"><i data-lucide="message-circle-more"></i><span>Чаты</span></div>
@@ -494,7 +457,6 @@
         </div>
     </div>
 
-    <!-- BOTTOM SHEET -->
     <div class="sheet-overlay" id="sheet-overlay">
         <div class="sheet">
             <div class="sheet-item" id="create-character"><i data-lucide="user-plus"></i> Создать персонажа</div>
@@ -502,7 +464,6 @@
         </div>
     </div>
 
-    <!-- ОВЕРЛЕЙ КАДРИРОВАНИЯ -->
     <div class="crop-overlay" id="crop-overlay">
         <div class="crop-container" id="crop-container">
             <div class="crop-image" id="crop-image"></div>
@@ -513,7 +474,6 @@
         </div>
     </div>
 
-    <!-- Лоадер -->
     <div class="loader-overlay" id="loader">
         <div class="loader-content">
             <div class="loader-text">ПРОБУЖДЕНИЕ</div>
@@ -530,7 +490,6 @@
 
             lucide.createIcons();
 
-            // ----- Элементы -----
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
@@ -542,15 +501,12 @@
             const sheetOverlay = document.getElementById('sheet-overlay');
             const createCharacterBtn = document.getElementById('create-character');
             const createGroupBtn = document.getElementById('create-group');
-            const centerButton = document.getElementById('center-button');
-
             const cropOverlay = document.getElementById('crop-overlay');
             const cropContainer = document.getElementById('crop-container');
             const cropImageDiv = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
             const cropApply = document.getElementById('crop-apply');
 
-            // ----- Данные персонажа -----
             let character = {
                 name: '',
                 gender: 'male',
@@ -558,71 +514,56 @@
                 story: '',
                 photo: localStorage.getItem('characterPhoto') || null
             };
-            // Загружаем трансформацию фото, если есть
-            let photoTransform = null;
-            const savedTransform = localStorage.getItem('photoTransform');
-            if (savedTransform) {
+            const saved = localStorage.getItem('neuroCharacter');
+            if (saved) {
                 try {
-                    photoTransform = JSON.parse(savedTransform);
-                } catch (e) {}
-            }
-
-            const savedCharacter = localStorage.getItem('neuroCharacter');
-            if (savedCharacter) {
-                try {
-                    const parsed = JSON.parse(savedCharacter);
+                    const parsed = JSON.parse(saved);
                     character = { ...character, ...parsed };
                 } catch (e) {}
             }
+
+            let currentImageSrc = null;
+            let originalImage = null;
+            let scale = 1, posX = 0, posY = 0;
+            let lastScale = 1, lastPosX = 0, lastPosY = 0;
+            let hammer = null;
 
             function saveCharacter() {
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Обновление фото (сохраняем dataURL)
             function updatePhoto(dataUrl) {
                 character.photo = dataUrl;
                 localStorage.setItem('characterPhoto', dataUrl);
-                // обновляем сплэш
                 splashPlaceholder.style.display = 'none';
                 splashImage.src = dataUrl;
                 splashImage.style.display = 'block';
                 saveCharacter();
-                // перерисовываем главную, если активна
-                if (getCurrentTab() === 'center' || document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
-                    renderHome();
-                }
+                if (getCurrentTab() === 'center') renderHome();
             }
 
-            // Загрузка файла
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     currentImageSrc = event.target.result;
-                    // Сброс трансформации
-                    scale = 1;
-                    posX = 0;
-                    posY = 0;
-                    lastScale = 1;
-                    lastPosX = 0;
-                    lastPosY = 0;
-                    openCrop(currentImageSrc);
+                    const img = new Image();
+                    img.onload = () => {
+                        originalImage = img;
+                        openCrop();
+                    };
+                    img.src = currentImageSrc;
                 };
                 reader.readAsDataURL(file);
                 fileInput.value = '';
             });
 
-            // Переменные для кадрирования
-            let currentImageSrc = null;
-            let scale = 1;
-            let posX = 0, posY = 0;
-            let lastScale = 1, lastPosX = 0, lastPosY = 0;
-            let hammer = null;
-
-            function openCrop(src) {
-                cropImageDiv.style.backgroundImage = `url('${src}')`;
+            function openCrop() {
+                cropImageDiv.style.backgroundImage = `url('${currentImageSrc}')`;
+                scale = 1; posX = 0; posY = 0;
+                lastScale = 1; lastPosX = 0; lastPosY = 0;
+                updateCropTransform();
                 cropOverlay.classList.add('show');
 
                 if (hammer) hammer.destroy();
@@ -632,9 +573,7 @@
                     scale = Math.max(0.5, Math.min(3, lastScale * ev.scale));
                     updateCropTransform();
                 });
-                hammer.on('pinchend', () => {
-                    lastScale = scale;
-                });
+                hammer.on('pinchend', () => { lastScale = scale; });
                 hammer.on('pan', (ev) => {
                     posX = lastPosX + ev.deltaX;
                     posY = lastPosY + ev.deltaY;
@@ -650,22 +589,48 @@
                 cropImageDiv.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
             }
 
-            // Применить трансформацию и сохранить
+            function cropImageAndSave() {
+                if (!originalImage) return;
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const size = 280;
+                canvas.width = size;
+                canvas.height = size;
+
+                const imgW = originalImage.width;
+                const imgH = originalImage.height;
+
+                // Рассчитываем параметры для background-size: cover
+                const coverScale = Math.max(size / imgW, size / imgH);
+                const drawW = imgW * coverScale * scale;
+                const drawH = imgH * coverScale * scale;
+
+                // Смещение: изначально изображение центрировано (по умолчанию для cover)
+                const initOffsetX = (size - drawW) / 2;
+                const initOffsetY = (size - drawH) / 2;
+
+                // Добавляем смещение от пользователя
+                const finalX = initOffsetX + posX;
+                const finalY = initOffsetY + posY;
+
+                ctx.drawImage(originalImage, 0, 0, imgW, imgH, finalX, finalY, drawW, drawH);
+
+                // Вырезаем круг
+                ctx.globalCompositeOperation = 'destination-in';
+                ctx.beginPath();
+                ctx.arc(size/2, size/2, size/2, 0, 2*Math.PI);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+
+                const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                updatePhoto(croppedDataUrl);
+            }
+
             cropApply.addEventListener('click', () => {
-                // Сохраняем текущие параметры трансформации
-                const transform = { scale, posX, posY };
-                localStorage.setItem('photoTransform', JSON.stringify(transform));
-                // Обновляем photoTransform в памяти
-                photoTransform = transform;
-                // Закрываем оверлей
+                cropImageAndSave();
                 cropOverlay.classList.remove('show');
                 if (hammer) hammer.destroy();
-                // Перерисовываем главную, чтобы применить трансформацию к аватарке
-                if (getCurrentTab() === 'center' || document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
-                    renderHome();
-                }
-                // Сохраняем фото (оригинал) – но не обрезаем
-                updatePhoto(currentImageSrc);
                 tg.HapticFeedback?.impactOccurred('medium');
             });
 
@@ -674,19 +639,10 @@
                 if (hammer) hammer.destroy();
             });
 
-            // Рендер главной (конструктор)
             function renderHome() {
-                let photoHtml = '';
-                if (character.photo) {
-                    // Применяем сохранённую трансформацию, если есть
-                    let transformStyle = '';
-                    if (photoTransform) {
-                        transformStyle = `style="transform: translate(${photoTransform.posX}px, ${photoTransform.posY}px) scale(${photoTransform.scale}); object-fit: initial; width: 100%; height: 100%;"`;
-                    }
-                    photoHtml = `<img src="${character.photo}" class="avatar-image" ${transformStyle} alt="">`;
-                } else {
-                    photoHtml = '<span class="avatar-placeholder">🧬</span>';
-                }
+                let photoHtml = character.photo
+                    ? `<img src="${character.photo}" class="avatar-image" alt="">`
+                    : '<span class="avatar-placeholder">🧬</span>';
 
                 const html = `
                     <div class="neuro-header"><h1>NEURO BRO</h1></div>
@@ -723,9 +679,8 @@
                 `;
                 contentArea.innerHTML = html;
 
-                // Привязка событий
-                document.getElementById('avatar-circle')?.addEventListener('click', () => fileInput.click());
-                document.getElementById('upload-label')?.addEventListener('click', () => fileInput.click());
+                document.getElementById('avatar-circle').addEventListener('click', () => fileInput.click());
+                document.getElementById('upload-label').addEventListener('click', () => fileInput.click());
 
                 const nameInput = document.getElementById('nameInput');
                 const greetingInput = document.getElementById('greetingInput');
@@ -734,9 +689,9 @@
                 const resetBtn = document.getElementById('resetBtn');
                 const activateBtn = document.getElementById('activateBtn');
 
-                nameInput?.addEventListener('input', (e) => { character.name = e.target.value; saveCharacter(); });
-                greetingInput?.addEventListener('input', (e) => { character.greeting = e.target.value; saveCharacter(); updateCounters(); });
-                storyInput?.addEventListener('input', (e) => { character.story = e.target.value; saveCharacter(); updateCounters(); });
+                nameInput.addEventListener('input', (e) => { character.name = e.target.value; saveCharacter(); });
+                greetingInput.addEventListener('input', (e) => { character.greeting = e.target.value; saveCharacter(); updateCounters(); });
+                storyInput.addEventListener('input', (e) => { character.story = e.target.value; saveCharacter(); updateCounters(); });
 
                 function updateCounters() {
                     const gc = document.getElementById('greetingCounter');
@@ -754,51 +709,41 @@
                     });
                 });
 
-                resetBtn?.addEventListener('click', () => {
-                    character = {
-                        name: '', gender: 'male', greeting: '', story: '',
-                        photo: character.photo // фото оставляем
-                    };
-                    // Сбрасываем трансформацию
-                    photoTransform = null;
-                    localStorage.removeItem('photoTransform');
+                resetBtn.addEventListener('click', () => {
+                    character.name = ''; character.greeting = ''; character.story = ''; character.gender = 'male';
                     saveCharacter();
                     renderHome();
                     tg.HapticFeedback?.impactOccurred('light');
                 });
 
-                activateBtn?.addEventListener('click', () => {
+                activateBtn.addEventListener('click', () => {
                     loader.classList.add('show');
                     tg.HapticFeedback?.impactOccurred('medium');
                     setTimeout(() => {
                         loader.classList.remove('show');
                         console.log('Персонаж:', character);
-                        // Здесь будет отправка в бота
-                        // tg.sendData(JSON.stringify(character));
-                        tg.showAlert('Данные готовы к отправке (консоль)');
+                        tg.showAlert('Данные готовы (консоль)');
                     }, 1500);
                 });
             }
 
-            // Рендер других страниц (заглушки)
             function renderFeed() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px; height:48px; margin-bottom:20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ<br>скоро здесь будут карточки других игроков</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px; height:48px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ<br>скоро</div>';
                 lucide.createIcons();
             }
             function renderChats() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="message-circle-more" style="width:48px; height:48px; margin-bottom:20px;"></i><br>ДИАЛОГИ<br>список активных чатов с персонажами</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="message-circle-more" style="width:48px; height:48px;"></i><br>ДИАЛОГИ<br>скоро</div>';
                 lucide.createIcons();
             }
             function renderGames() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px; height:48px; margin-bottom:20px;"></i><br>МИНИ-ИГРЫ<br>скоро здесь появятся активности</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px; height:48px;"></i><br>ИГРЫ<br>скоро</div>';
                 lucide.createIcons();
             }
             function renderSettings() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px; height:48px; margin-bottom:20px;"></i><br>НАСТРОЙКИ<br>профиль, уведомления, тема</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px; height:48px;"></i><br>НАСТРОЙКИ<br>скоро</div>';
                 lucide.createIcons();
             }
 
-            // Обработка нижнего меню
             const barItems = document.querySelectorAll('.bar-item');
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
@@ -821,7 +766,6 @@
                 });
             });
 
-            // Bottom Sheet
             createCharacterBtn.addEventListener('click', () => {
                 sheetOverlay.classList.remove('show');
                 barItems.forEach(i => i.classList.remove('active'));
@@ -830,16 +774,13 @@
             });
             createGroupBtn.addEventListener('click', () => {
                 sheetOverlay.classList.remove('show');
-                alert('Создание группы — будет позже');
+                alert('Группы позже');
                 tg.HapticFeedback?.impactOccurred('medium');
             });
             sheetOverlay.addEventListener('click', (e) => {
-                if (e.target === sheetOverlay) {
-                    sheetOverlay.classList.remove('show');
-                }
+                if (e.target === sheetOverlay) sheetOverlay.classList.remove('show');
             });
 
-            // Сплэш анимация
             setTimeout(() => progressFill.style.width = '100%', 100);
             setTimeout(() => {
                 splash.classList.add('hidden');
@@ -847,18 +788,15 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
 
-            // Стартовая страница — лента
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
 
-            // Восстановление фото в сплэше
             if (character.photo) {
                 splashPlaceholder.style.display = 'none';
                 splashImage.src = character.photo;
                 splashImage.style.display = 'block';
             }
 
-            // Функция для получения текущей вкладки (используется в updatePhoto)
             function getCurrentTab() {
                 const active = document.querySelector('.bar-item.active');
                 return active ? active.dataset.tab : 'feed';

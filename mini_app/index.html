@@ -103,7 +103,7 @@
             width: 100%;
         }
 
-        /* ===== НОВАЯ НИЖНЯЯ ПАНЕЛЬ ===== */
+        /* ===== НИЖНЯЯ ПАНЕЛЬ ===== */
         .bottom-bar {
             display: flex;
             justify-content: space-around;
@@ -114,7 +114,7 @@
             border-top: none;
         }
 
-        /* Градиентная линия с затуханием по краям (70% ширины, центрированная) */
+        /* Градиентная линия с затуханием по краям (70% ширины) */
         .bottom-bar::before {
             content: "";
             position: absolute;
@@ -127,21 +127,21 @@
             pointer-events: none;
         }
 
-        ./* Анимация нажатия для всех кликабельных элементов */
-.bar-item:active,
-.sheet-item:active,
-.action-btn:active,
-.btn:active,
-.avatar-circle:active,
-.avatar-label:active {
-    transform: scale(0.95);
-    transition: transform 0.1s ease;
-}
-
-/* Для иконок внутри панели (чтобы не прыгали) */
-.bar-item {
-    transition: opacity 0.2s, transform 0.1s ease;
-}
+        .bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 500;
+            transition: opacity 0.2s, transform 0.1s ease;
+            cursor: pointer;
+            flex: 1;
+            opacity: 0.7;
+        }
+        .bar-item.active {
+            opacity: 1;
+        }
         .bar-item i {
             width: 24px;
             height: 24px;
@@ -198,6 +198,17 @@
             stroke-width: 1.5;
         }
 
+        /* ===== АНИМАЦИЯ НАЖАТИЯ ===== */
+        .bar-item:active,
+        .sheet-item:active,
+        .action-btn:active,
+        .btn:active,
+        .avatar-circle:active,
+        .avatar-label:active {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+
         .placeholder-page {
             text-align: center;
             padding: 60px 20px;
@@ -206,7 +217,7 @@
             line-height: 1.8;
         }
 
-        /* ===== СТИЛИ ДЛЯ КОНСТРУКТОРА (ГЛАВНАЯ) ===== */
+        /* ===== КОНСТРУКТОР ===== */
         .neuro-header {
             text-align: center;
             margin-bottom: 24px;
@@ -235,6 +246,7 @@
             overflow: hidden;
             cursor: pointer;
             margin-bottom: 8px;
+            transition: transform 0.1s ease;
         }
         .avatar-circle img {
             width: 100%;
@@ -252,6 +264,7 @@
             text-decoration: underline;
             text-underline-offset: 4px;
             cursor: pointer;
+            transition: transform 0.1s ease;
         }
         .stats {
             width: 100%;
@@ -358,7 +371,7 @@
             align-items: center;
             gap: 8px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s ease;
             flex: 1 0 auto;
             max-width: 160px;
             justify-content: center;
@@ -379,7 +392,7 @@
             border: none;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
-            transition: 0.2s;
+            transition: 0.2s, transform 0.1s ease;
         }
         .btn-outline {
             background: transparent;
@@ -451,7 +464,7 @@
     <div id="main-content">
         <div class="content-area" id="content-area"></div>
 
-        <!-- НИЖНЯЯ ПАНЕЛЬ С LUCIDE ICONS (облако для чатов) -->
+        <!-- НИЖНЯЯ ПАНЕЛЬ (иконки Lucide) -->
         <div class="bottom-bar">
             <div class="bar-item" data-tab="feed"><i data-lucide="globe"></i><span>Портал</span></div>
             <div class="bar-item" data-tab="chats"><i data-lucide="message-circle-more"></i><span>Чаты</span></div>
@@ -484,8 +497,10 @@
             tg.ready();
             tg.expand();
 
+            // Инициализация иконок Lucide
             lucide.createIcons();
 
+            // Элементы
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
@@ -499,6 +514,7 @@
             const createGroupBtn = document.getElementById('create-group');
             const centerButton = document.getElementById('center-button');
 
+            // Анимация сплэша
             setTimeout(() => progressFill.style.width = '100%', 100);
             setTimeout(() => {
                 splash.classList.add('hidden');
@@ -506,6 +522,7 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
 
+            // Данные персонажа
             let character = {
                 name: '',
                 gender: 'male',
@@ -527,6 +544,7 @@
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
+            // Загрузка фото
             function updatePhoto(dataUrl) {
                 character.photo = dataUrl;
                 localStorage.setItem('characterPhoto', dataUrl);
@@ -543,6 +561,7 @@
                 reader.readAsDataURL(file);
             });
 
+            // Рендер главной (конструктор)
             function renderHome() {
                 let photoHtml = character.photo
                     ? `<img src="${character.photo}" alt="">`
@@ -594,6 +613,7 @@
                 `;
                 contentArea.innerHTML = html;
 
+                // Привязка событий
                 document.getElementById('avatar-circle')?.addEventListener('click', () => fileInput.click());
                 document.getElementById('upload-label')?.addEventListener('click', () => fileInput.click());
 
@@ -663,6 +683,7 @@
                 });
             }
 
+            // Рендер страниц-заглушек
             function renderFeed() {
                 contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px; height:48px; margin-bottom:20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ<br>скоро здесь будут карточки других игроков</div>';
                 lucide.createIcons();
@@ -680,6 +701,7 @@
                 lucide.createIcons();
             }
 
+            // Переключение вкладок
             const barItems = document.querySelectorAll('.bar-item');
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
@@ -702,6 +724,7 @@
                 });
             });
 
+            // Обработка Bottom Sheet
             createCharacterBtn.addEventListener('click', () => {
                 sheetOverlay.classList.remove('show');
                 barItems.forEach(i => i.classList.remove('active'));
@@ -719,9 +742,11 @@
                 }
             });
 
+            // Стартовая страница — лента
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
 
+            // Восстанавливаем фото в сплэше
             if (character.photo) {
                 splashPlaceholder.style.display = 'none';
                 splashImage.src = character.photo;

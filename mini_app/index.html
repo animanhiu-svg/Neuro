@@ -105,14 +105,27 @@
         }
 
         /* ===== НОВАЯ НИЖНЯЯ ПАНЕЛЬ ===== */
-        .bottom-bar {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            background: #000000;
-            border-top: 1px solid rgba(255, 255, 255, 0.9); /* чёткая белая линия */
-            padding: 8px 0 12px;
-        }
+        ..bottom-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: #000000;
+    padding: 8px 0 12px;
+    position: relative;
+    border-top: none;
+}
+
+.bottom-bar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+    pointer-events: none;
+}
         .bar-item {
             display: flex;
             flex-direction: column;

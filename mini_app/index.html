@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · портал</title>
-    <!-- Font Awesome 6 (бесплатный, линейные иконки) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Lucide Icons (линейные, outline) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         * {
             margin: 0;
@@ -109,8 +109,8 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            background: #000000;                /* чисто чёрный */
-            border-top: 1px solid rgba(255, 255, 255, 0.9); /* белая линия */
+            background: #000000;
+            border-top: 1px solid rgba(255, 255, 255, 0.9); /* чёткая белая линия */
             padding: 8px 0 12px;
         }
         .bar-item {
@@ -129,10 +129,11 @@
             opacity: 1;
         }
         .bar-item i {
-            font-size: 24px;
+            width: 24px;
+            height: 24px;
             margin-bottom: 4px;
+            stroke-width: 1.5; /* тонкие линии */
         }
-        /* центральная кнопка можно чуть акцентнее, но оставим пока как есть */
 
         /* ===== BOTTOM SHEET ===== */
         .sheet-overlay {
@@ -178,8 +179,9 @@
             border-bottom: none;
         }
         .sheet-item i {
-            width: 30px;
-            font-size: 24px;
+            width: 24px;
+            height: 24px;
+            stroke-width: 1.5;
         }
 
         /* заглушки для страниц */
@@ -436,21 +438,21 @@
     <div id="main-content">
         <div class="content-area" id="content-area"></div>
 
-        <!-- НОВАЯ НИЖНЯЯ ПАНЕЛЬ -->
+        <!-- НИЖНЯЯ ПАНЕЛЬ С LUCIDE ICONS -->
         <div class="bottom-bar">
-            <div class="bar-item" data-tab="feed"><i class="fa-regular fa-globe"></i><span>Портал</span></div>
-            <div class="bar-item" data-tab="chats"><i class="fa-regular fa-cloud"></i><span>Чаты</span></div>
-            <div class="bar-item" data-tab="center" id="center-button"><i class="fa-regular fa-circle-user"></i><span>Центр</span></div>
-            <div class="bar-item" data-tab="games"><i class="fa-regular fa-square"></i><span>Игры</span></div>
-            <div class="bar-item" data-tab="settings"><i class="fa-regular fa-bars"></i><span>Меню</span></div>
+            <div class="bar-item" data-tab="feed"><i data-lucide="globe"></i><span>Портал</span></div>
+            <div class="bar-item" data-tab="chats"><i data-lucide="message-square-more"></i><span>Чаты</span></div>
+            <div class="bar-item" data-tab="center" id="center-button"><i data-lucide="circle-user"></i><span>Центр</span></div>
+            <div class="bar-item" data-tab="games"><i data-lucide="layout-grid"></i><span>Игры</span></div>
+            <div class="bar-item" data-tab="settings"><i data-lucide="menu"></i><span>Меню</span></div>
         </div>
     </div>
 
     <!-- BOTTOM SHEET (для центральной кнопки) -->
     <div class="sheet-overlay" id="sheet-overlay">
         <div class="sheet">
-            <div class="sheet-item" id="create-character"><i class="fa-regular fa-user-plus"></i> Создать персонажа</div>
-            <div class="sheet-item" id="create-group"><i class="fa-regular fa-users"></i> Новая группа</div>
+            <div class="sheet-item" id="create-character"><i data-lucide="user-plus"></i> Создать персонажа</div>
+            <div class="sheet-item" id="create-group"><i data-lucide="users"></i> Новая группа</div>
         </div>
     </div>
 
@@ -468,6 +470,9 @@
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
+
+            // Инициализация Lucide (замена <i> на SVG)
+            lucide.createIcons();
 
             // ----- Элементы -----
             const splash = document.getElementById('splash-screen');
@@ -491,7 +496,7 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
 
-            // ----- Данные персонажа (как в предыдущей версии) -----
+            // ----- Данные персонажа -----
             let character = {
                 name: '',
                 gender: 'male',
@@ -521,7 +526,6 @@
                 splashImage.src = dataUrl;
                 splashImage.style.display = 'block';
                 saveCharacter();
-                if (getCurrentTab() === 'feed') renderFeed(); // если мы на ленте? не обязательно, но перерендерим главную если нужно
             }
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
@@ -537,7 +541,7 @@
                 return active ? active.dataset.tab : 'feed';
             }
 
-            // Главная (конструктор) – пока будем рендерить её для "Центра" через Bottom Sheet, но также можно вызвать напрямую
+            // Главная (конструктор)
             function renderHome() {
                 let photoHtml = character.photo
                     ? `<img src="${character.photo}" alt="">`
@@ -589,7 +593,7 @@
                 `;
                 contentArea.innerHTML = html;
 
-                // обработчики для главной (как раньше)
+                // Привязка событий
                 document.getElementById('avatar-circle')?.addEventListener('click', () => fileInput.click());
                 document.getElementById('upload-label')?.addEventListener('click', () => fileInput.click());
 
@@ -661,19 +665,23 @@
 
             // Лента (портал)
             function renderFeed() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i class="fa-regular fa-globe" style="font-size: 48px; margin-bottom: 20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ<br>скоро здесь будут карточки других игроков</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px; height:48px; margin-bottom:20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ<br>скоро здесь будут карточки других игроков</div>';
+                lucide.createIcons();
             }
             // Чаты
             function renderChats() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i class="fa-regular fa-cloud" style="font-size: 48px; margin-bottom: 20px;"></i><br>ДИАЛОГИ<br>список активных чатов с персонажами</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="message-square-more" style="width:48px; height:48px; margin-bottom:20px;"></i><br>ДИАЛОГИ<br>список активных чатов с персонажами</div>';
+                lucide.createIcons();
             }
             // Игры
             function renderGames() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i class="fa-regular fa-square" style="font-size: 48px; margin-bottom: 20px;"></i><br>МИНИ-ИГРЫ<br>скоро здесь появятся активности</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px; height:48px; margin-bottom:20px;"></i><br>МИНИ-ИГРЫ<br>скоро здесь появятся активности</div>';
+                lucide.createIcons();
             }
             // Настройки
             function renderSettings() {
-                contentArea.innerHTML = '<div class="placeholder-page"><i class="fa-regular fa-bars" style="font-size: 48px; margin-bottom: 20px;"></i><br>НАСТРОЙКИ<br>профиль, уведомления, тема</div>';
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px; height:48px; margin-bottom:20px;"></i><br>НАСТРОЙКИ<br>профиль, уведомления, тема</div>';
+                lucide.createIcons();
             }
 
             // ----- Обработка кликов по нижней панели -----
@@ -682,17 +690,13 @@
                 item.addEventListener('click', () => {
                     const tab = item.dataset.tab;
                     if (tab === 'center') {
-                        // Открываем Bottom Sheet
                         sheetOverlay.classList.add('show');
                         tg.HapticFeedback?.impactOccurred('medium');
                         return;
                     }
-                    // Скрываем Bottom Sheet если открыт
                     sheetOverlay.classList.remove('show');
-                    // Деактивируем все
                     barItems.forEach(i => i.classList.remove('active'));
                     item.classList.add('active');
-                    // Рендерим контент
                     switch(tab) {
                         case 'feed': renderFeed(); break;
                         case 'chats': renderChats(); break;
@@ -703,11 +707,9 @@
                 });
             });
 
-            // ----- Bottom Sheet: пункты меню -----
+            // ----- Bottom Sheet -----
             createCharacterBtn.addEventListener('click', () => {
                 sheetOverlay.classList.remove('show');
-                // Показываем конструктор (главная)
-                // Деактивируем все иконки, активируем центр? но центр не активируется как таб, просто показываем главную
                 barItems.forEach(i => i.classList.remove('active'));
                 renderHome();
                 tg.HapticFeedback?.impactOccurred('medium');
@@ -717,17 +719,14 @@
                 alert('Создание группы — будет позже');
                 tg.HapticFeedback?.impactOccurred('medium');
             });
-
-            // Закрытие Bottom Sheet по клику на оверлей
             sheetOverlay.addEventListener('click', (e) => {
                 if (e.target === sheetOverlay) {
                     sheetOverlay.classList.remove('show');
                 }
             });
 
-            // Инициализация: показываем ленту (портал) по умолчанию
+            // Инициализация: показываем ленту (портал)
             renderFeed();
-            // Активируем соответствующую иконку
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
 
             // Восстанавливаем фото в сплэше

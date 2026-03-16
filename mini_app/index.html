@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · конструктор</title>
-    <!-- Lucide Icons (линейные, outline) -->
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Hammer.js для жестов -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
@@ -13,7 +13,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent; /* убираем серый фон при тапе */
+            -webkit-tap-highlight-color: transparent;
         }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body {
@@ -117,7 +117,6 @@
             border-top: none;
         }
 
-        /* Градиентная линия с затуханием по краям */
         .bottom-bar::before {
             content: "";
             position: absolute;
@@ -223,7 +222,7 @@
             line-height: 1.8;
         }
 
-        /* ===== КОНСТРУКТОР (ТОЛЬКО СОЗДАНИЕ) ===== */
+        /* ===== КОНСТРУКТОР ===== */
         .neuro-header {
             text-align: center;
             margin-bottom: 24px;
@@ -235,7 +234,6 @@
             color: #fff;
         }
 
-        /* Аватар с кадрированием */
         .avatar-block {
             display: flex;
             flex-direction: column;
@@ -248,7 +246,7 @@
             border-radius: 50%;
             background: #1e1e1e;
             border: 2px solid #fff;
-            overflow: hidden; /* маска */
+            overflow: hidden;
             cursor: pointer;
             margin-bottom: 12px;
             position: relative;
@@ -258,7 +256,6 @@
             height: 100%;
             object-fit: cover;
             object-position: center;
-            transition: transform 0.2s ease;
         }
         .avatar-placeholder {
             width: 100%;
@@ -282,7 +279,7 @@
             transform: scale(0.95);
         }
 
-        /* Режим редактирования фото */
+        /* Оверлей кадрирования */
         .crop-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -301,8 +298,8 @@
             pointer-events: all;
         }
         .crop-container {
-            width: 300px;
-            height: 300px;
+            width: 280px;
+            height: 280px;
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid #fff;
@@ -315,7 +312,7 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            transition: transform 0.1s ease; /* для плавности */
+            transition: transform 0.1s ease;
         }
         .crop-controls {
             display: flex;
@@ -366,8 +363,6 @@
         .input-field:focus {
             border-bottom-color: #fff;
         }
-
-        /* Чипсы пола */
         .gender-chips {
             display: flex;
             gap: 16px;
@@ -393,16 +388,12 @@
         .chip:active {
             transform: scale(0.95);
         }
-
-        /* Счётчик символов */
         .char-counter {
             text-align: right;
             font-size: 10px;
             color: #666;
             margin-top: 4px;
         }
-
-        /* Кнопки */
         .main-buttons {
             display: flex;
             gap: 16px;
@@ -433,8 +424,6 @@
             background: #fff;
             color: #121212;
         }
-
-        /* Лоадер */
         .loader-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -537,7 +526,6 @@
             tg.ready();
             tg.expand();
 
-            // Инициализация Lucide
             lucide.createIcons();
 
             // Элементы
@@ -554,14 +542,13 @@
             const createGroupBtn = document.getElementById('create-group');
             const centerButton = document.getElementById('center-button');
 
-            // Элементы для кадрирования
             const cropOverlay = document.getElementById('crop-overlay');
             const cropContainer = document.getElementById('crop-container');
             const cropImageDiv = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
             const cropApply = document.getElementById('crop-apply');
 
-            // Данные персонажа (упрощённые)
+            // Данные персонажа
             let character = {
                 name: '',
                 gender: 'male',
@@ -579,6 +566,7 @@
 
             // Переменные для кадрирования
             let currentImageSrc = null;
+            let originalImage = null; // для canvas
             let scale = 1;
             let posX = 0, posY = 0;
             let lastScale = 1, lastPosX = 0, lastPosY = 0;
@@ -588,34 +576,43 @@
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Обновление фото в сплэше и сохранение
+            // Обновление фото (только dataURL, без трансформаций)
             function updatePhoto(dataUrl) {
                 character.photo = dataUrl;
                 localStorage.setItem('characterPhoto', dataUrl);
+                // обновляем сплэш
                 splashPlaceholder.style.display = 'none';
                 splashImage.src = dataUrl;
                 splashImage.style.display = 'block';
                 saveCharacter();
-                if (getCurrentTab() === 'center') renderHome();
+                // перерисовываем главную, если активна
+                if (getCurrentTab() === 'center' || document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
+                    renderHome();
+                }
             }
 
-            // Загрузка файла и открытие кадрирования
+            // Загрузка файла
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     currentImageSrc = event.target.result;
-                    openCrop(currentImageSrc);
+                    // загружаем изображение в объект для canvas
+                    const img = new Image();
+                    img.onload = () => {
+                        originalImage = img;
+                        openCrop();
+                    };
+                    img.src = currentImageSrc;
                 };
                 reader.readAsDataURL(file);
-                fileInput.value = ''; // сброс, чтобы можно было загрузить снова
+                fileInput.value = '';
             });
 
             // Открыть режим кадрирования
-            function openCrop(src) {
-                cropImageDiv.style.backgroundImage = `url('${src}')`;
-                // Сброс трансформации
+            function openCrop() {
+                cropImageDiv.style.backgroundImage = `url('${currentImageSrc}')`;
                 scale = 1;
                 posX = 0;
                 posY = 0;
@@ -625,7 +622,6 @@
                 updateCropTransform();
                 cropOverlay.classList.add('show');
 
-                // Инициализация Hammer.js для жестов
                 if (hammer) hammer.destroy();
                 hammer = new Hammer(cropContainer);
                 hammer.get('pinch').set({ enable: true });
@@ -651,45 +647,93 @@
                 cropImageDiv.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
             }
 
-            // Закрыть кадрирование без сохранения
+            // Обрезка изображения через canvas
+            function cropImageAndSave() {
+                if (!originalImage) return;
+
+                // Создаём canvas размером с круг (280x280)
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 280;
+                canvas.height = 280;
+
+                // Вычисляем параметры отображения: фон занимает весь контейнер с cover
+                // Но мы используем transform, поэтому нам нужно нарисовать часть изображения.
+                // Проще: берём текущие scale и translate, применяем к рисованию.
+                // Для этого сначала определим, как изображение масштабируется, чтобы вписаться в 280px.
+                // Исходные размеры изображения: originalImage.width, originalImage.height.
+                // Коэффициент масштабирования, чтобы изображение заполнило контейнер по cover:
+                const containerSize = 280;
+                const imgW = originalImage.width;
+                const imgH = originalImage.height;
+                const coverScale = Math.max(containerSize / imgW, containerSize / imgH);
+                const drawWidth = imgW * coverScale * scale;
+                const drawHeight = imgH * coverScale * scale;
+                // Смещение в пикселях холста: мы хотим, чтобы область, видимая в круге, соответствовала transform.
+                // Позиция на холсте: центр изображения сдвигается на posX, posY в пикселях экрана, но нам нужно пересчитать в координаты изображения.
+                // Проще всего нарисовать изображение с текущим трансформом, а затем обрезать по кругу.
+                // Для этого рисуем изображение с учётом scale и translate.
+                // Но translate задан в пикселях экрана, а не в пикселях исходного изображения.
+                // Поскольку мы используем background-size: cover, изначально изображение центрировано и масштабировано.
+                // Мы можем вычислить смещение в процентах от исходного изображения.
+
+                // Альтернатива: временно применить transform к canvas через context.translate/scale.
+                // Но тогда нужно правильно рассчитать центр.
+                // Для простоты я сделаю так: рисую изображение в масштабе, а затем вырезаю круг.
+                // Но чтобы учесть translate, нужно сместить начало координат.
+
+                // Поскольку мы используем background-image с cover, начальное состояние: изображение центрировано и масштабировано так, чтобы полностью покрыть круг.
+                // Это значит, что если scale=1 и posX=posY=0, мы видим центральную часть изображения.
+                // Чтобы нарисовать то же самое на canvas, нужно вычислить отступ.
+                // Координаты левого верхнего угла видимой области в исходном изображении:
+                // Для cover: отображаемая часть изображения имеет размеры containerSize / coverScale в пикселях исходного изображения.
+                // Центр изображения совпадает с центром холста.
+                // При transform: мы смещаем фон на posX, posY в пикселях холста. Это соответствует смещению исходного изображения на -posX / coverScale, -posY / coverScale.
+                // И масштабирование scale дополнительно увеличивает изображение.
+
+                // Реализация:
+                const srcX = (imgW / 2) - (containerSize / (2 * coverScale)) - (posX / coverScale);
+                const srcY = (imgH / 2) - (containerSize / (2 * coverScale)) - (posY / coverScale);
+                const srcWidth = containerSize / (coverScale * scale);
+                const srcHeight = containerSize / (coverScale * scale);
+
+                // Рисуем изображение на canvas с обрезкой
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(
+                    originalImage,
+                    srcX, srcY, srcWidth, srcHeight,
+                    0, 0, canvas.width, canvas.height
+                );
+
+                // Теперь обрезаем по кругу (создаём альфа-маску)
+                // Можно нарисовать круг и вырезать
+                ctx.globalCompositeOperation = 'destination-in';
+                ctx.beginPath();
+                ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2, 0, 2*Math.PI);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+
+                // Получаем dataURL
+                const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                updatePhoto(croppedDataUrl);
+            }
+
             cropCancel.addEventListener('click', () => {
                 cropOverlay.classList.remove('show');
                 if (hammer) hammer.destroy();
             });
 
-            // Применить кадрирование
             cropApply.addEventListener('click', () => {
-                // Получаем итоговое изображение с учётом трансформации
-                // Для простоты будем использовать оригинал + transform, но при сохранении в character.photo 
-                // нужно как-то сохранить трансформацию? Пока сохраняем просто оригинал, 
-                // а трансформацию будем хранить отдельно и применять при отображении.
-                // Для реального кадрирования нужно использовать canvas и обрезать изображение, 
-                // но пока для демо сохраним transform параметры.
-                const transform = { scale, posX, posY };
-                localStorage.setItem('photoTransform', JSON.stringify(transform));
-                // Обновляем аватар с учётом трансформации
-                updatePhoto(currentImageSrc);
+                cropImageAndSave();
                 cropOverlay.classList.remove('show');
                 if (hammer) hammer.destroy();
             });
 
-            // Рендер главной (конструктор)
+            // Рендер главной страницы (конструктор)
             function renderHome() {
-                let photoHtml = '';
-                if (character.photo) {
-                    // Применяем сохранённую трансформацию, если есть
-                    const savedTransform = localStorage.getItem('photoTransform');
-                    let transformStyle = '';
-                    if (savedTransform) {
-                        try {
-                            const t = JSON.parse(savedTransform);
-                            transformStyle = `transform: translate(${t.posX}px, ${t.posY}px) scale(${t.scale});`;
-                        } catch (e) {}
-                    }
-                    photoHtml = `<img src="${character.photo}" class="avatar-image" style="${transformStyle}" alt="">`;
-                } else {
-                    photoHtml = '<span class="avatar-placeholder">🧬</span>';
-                }
+                let photoHtml = character.photo
+                    ? `<img src="${character.photo}" class="avatar-image" alt="">`
+                    : '<span class="avatar-placeholder">🧬</span>';
 
                 const html = `
                     <div class="neuro-header"><h1>NEURO BRO</h1></div>
@@ -760,7 +804,7 @@
                 resetBtn?.addEventListener('click', () => {
                     character = {
                         name: '', gender: 'male', greeting: '', story: '',
-                        photo: character.photo // фото не сбрасываем
+                        photo: character.photo // фото оставляем
                     };
                     saveCharacter();
                     renderHome();
@@ -773,14 +817,12 @@
                     setTimeout(() => {
                         loader.classList.remove('show');
                         console.log('Персонаж:', character);
-                        // Здесь будет отправка в бота
-                        // tg.sendData(JSON.stringify(character));
                         tg.showAlert('Данные готовы к отправке (консоль)');
                     }, 1500);
                 });
             }
 
-            // Рендер других страниц (заглушки)
+            // Рендер других страниц
             function renderFeed() {
                 contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px; height:48px; margin-bottom:20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ<br>скоро здесь будут карточки других игроков</div>';
                 lucide.createIcons();

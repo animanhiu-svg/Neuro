@@ -254,8 +254,10 @@
         .avatar-image {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            display: block;
+            object-fit: cover; /* по умолчанию cover, но будет переопределено transform если есть */
             object-position: center;
+            transition: transform 0.1s ease;
         }
         .avatar-placeholder {
             width: 100%;
@@ -528,7 +530,7 @@
 
             lucide.createIcons();
 
-            // Элементы
+            // ----- Элементы -----
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
@@ -548,7 +550,7 @@
             const cropCancel = document.getElementById('crop-cancel');
             const cropApply = document.getElementById('crop-apply');
 
-            // Данные персонажа
+            // ----- Данные персонажа -----
             let character = {
                 name: '',
                 gender: 'male',
@@ -556,27 +558,28 @@
                 story: '',
                 photo: localStorage.getItem('characterPhoto') || null
             };
-            const saved = localStorage.getItem('neuroCharacter');
-            if (saved) {
+            // Загружаем трансформацию фото, если есть
+            let photoTransform = null;
+            const savedTransform = localStorage.getItem('photoTransform');
+            if (savedTransform) {
                 try {
-                    const parsed = JSON.parse(saved);
-                    character = { ...character, ...parsed };
+                    photoTransform = JSON.parse(savedTransform);
                 } catch (e) {}
             }
 
-            // Переменные для кадрирования
-            let currentImageSrc = null;
-            let originalImage = null; // для canvas
-            let scale = 1;
-            let posX = 0, posY = 0;
-            let lastScale = 1, lastPosX = 0, lastPosY = 0;
-            let hammer = null;
+            const savedCharacter = localStorage.getItem('neuroCharacter');
+            if (savedCharacter) {
+                try {
+                    const parsed = JSON.parse(savedCharacter);
+                    character = { ...character, ...parsed };
+                } catch (e) {}
+            }
 
             function saveCharacter() {
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Обновление фото (только dataURL, без трансформаций)
+            // Обновление фото (сохраняем dataURL)
             function updatePhoto(dataUrl) {
                 character.photo = dataUrl;
                 localStorage.setItem('characterPhoto', dataUrl);
@@ -598,28 +601,28 @@
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     currentImageSrc = event.target.result;
-                    // загружаем изображение в объект для canvas
-                    const img = new Image();
-                    img.onload = () => {
-                        originalImage = img;
-                        openCrop();
-                    };
-                    img.src = currentImageSrc;
+                    // Сброс трансформации
+                    scale = 1;
+                    posX = 0;
+                    posY = 0;
+                    lastScale = 1;
+                    lastPosX = 0;
+                    lastPosY = 0;
+                    openCrop(currentImageSrc);
                 };
                 reader.readAsDataURL(file);
                 fileInput.value = '';
             });
 
-            // Открыть режим кадрирования
-            function openCrop() {
-                cropImageDiv.style.backgroundImage = `url('${currentImageSrc}')`;
-                scale = 1;
-                posX = 0;
-                posY = 0;
-                lastScale = 1;
-                lastPosX = 0;
-                lastPosY = 0;
-                updateCropTransform();
+            // Переменные для кадрирования
+            let currentImageSrc = null;
+            let scale = 1;
+            let posX = 0, posY = 0;
+            let lastScale = 1, lastPosX = 0, lastPosY = 0;
+            let hammer = null;
+
+            function openCrop(src) {
+                cropImageDiv.style.backgroundImage = `url('${src}')`;
                 cropOverlay.classList.add('show');
 
                 if (hammer) hammer.destroy();
@@ -647,93 +650,43 @@
                 cropImageDiv.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
             }
 
-            // Обрезка изображения через canvas
-            function cropImageAndSave() {
-                if (!originalImage) return;
-
-                // Создаём canvas размером с круг (280x280)
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 280;
-                canvas.height = 280;
-
-                // Вычисляем параметры отображения: фон занимает весь контейнер с cover
-                // Но мы используем transform, поэтому нам нужно нарисовать часть изображения.
-                // Проще: берём текущие scale и translate, применяем к рисованию.
-                // Для этого сначала определим, как изображение масштабируется, чтобы вписаться в 280px.
-                // Исходные размеры изображения: originalImage.width, originalImage.height.
-                // Коэффициент масштабирования, чтобы изображение заполнило контейнер по cover:
-                const containerSize = 280;
-                const imgW = originalImage.width;
-                const imgH = originalImage.height;
-                const coverScale = Math.max(containerSize / imgW, containerSize / imgH);
-                const drawWidth = imgW * coverScale * scale;
-                const drawHeight = imgH * coverScale * scale;
-                // Смещение в пикселях холста: мы хотим, чтобы область, видимая в круге, соответствовала transform.
-                // Позиция на холсте: центр изображения сдвигается на posX, posY в пикселях экрана, но нам нужно пересчитать в координаты изображения.
-                // Проще всего нарисовать изображение с текущим трансформом, а затем обрезать по кругу.
-                // Для этого рисуем изображение с учётом scale и translate.
-                // Но translate задан в пикселях экрана, а не в пикселях исходного изображения.
-                // Поскольку мы используем background-size: cover, изначально изображение центрировано и масштабировано.
-                // Мы можем вычислить смещение в процентах от исходного изображения.
-
-                // Альтернатива: временно применить transform к canvas через context.translate/scale.
-                // Но тогда нужно правильно рассчитать центр.
-                // Для простоты я сделаю так: рисую изображение в масштабе, а затем вырезаю круг.
-                // Но чтобы учесть translate, нужно сместить начало координат.
-
-                // Поскольку мы используем background-image с cover, начальное состояние: изображение центрировано и масштабировано так, чтобы полностью покрыть круг.
-                // Это значит, что если scale=1 и posX=posY=0, мы видим центральную часть изображения.
-                // Чтобы нарисовать то же самое на canvas, нужно вычислить отступ.
-                // Координаты левого верхнего угла видимой области в исходном изображении:
-                // Для cover: отображаемая часть изображения имеет размеры containerSize / coverScale в пикселях исходного изображения.
-                // Центр изображения совпадает с центром холста.
-                // При transform: мы смещаем фон на posX, posY в пикселях холста. Это соответствует смещению исходного изображения на -posX / coverScale, -posY / coverScale.
-                // И масштабирование scale дополнительно увеличивает изображение.
-
-                // Реализация:
-                const srcX = (imgW / 2) - (containerSize / (2 * coverScale)) - (posX / coverScale);
-                const srcY = (imgH / 2) - (containerSize / (2 * coverScale)) - (posY / coverScale);
-                const srcWidth = containerSize / (coverScale * scale);
-                const srcHeight = containerSize / (coverScale * scale);
-
-                // Рисуем изображение на canvas с обрезкой
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(
-                    originalImage,
-                    srcX, srcY, srcWidth, srcHeight,
-                    0, 0, canvas.width, canvas.height
-                );
-
-                // Теперь обрезаем по кругу (создаём альфа-маску)
-                // Можно нарисовать круг и вырезать
-                ctx.globalCompositeOperation = 'destination-in';
-                ctx.beginPath();
-                ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2, 0, 2*Math.PI);
-                ctx.fillStyle = '#fff';
-                ctx.fill();
-
-                // Получаем dataURL
-                const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                updatePhoto(croppedDataUrl);
-            }
+            // Применить трансформацию и сохранить
+            cropApply.addEventListener('click', () => {
+                // Сохраняем текущие параметры трансформации
+                const transform = { scale, posX, posY };
+                localStorage.setItem('photoTransform', JSON.stringify(transform));
+                // Обновляем photoTransform в памяти
+                photoTransform = transform;
+                // Закрываем оверлей
+                cropOverlay.classList.remove('show');
+                if (hammer) hammer.destroy();
+                // Перерисовываем главную, чтобы применить трансформацию к аватарке
+                if (getCurrentTab() === 'center' || document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
+                    renderHome();
+                }
+                // Сохраняем фото (оригинал) – но не обрезаем
+                updatePhoto(currentImageSrc);
+                tg.HapticFeedback?.impactOccurred('medium');
+            });
 
             cropCancel.addEventListener('click', () => {
                 cropOverlay.classList.remove('show');
                 if (hammer) hammer.destroy();
             });
 
-            cropApply.addEventListener('click', () => {
-                cropImageAndSave();
-                cropOverlay.classList.remove('show');
-                if (hammer) hammer.destroy();
-            });
-
-            // Рендер главной страницы (конструктор)
+            // Рендер главной (конструктор)
             function renderHome() {
-                let photoHtml = character.photo
-                    ? `<img src="${character.photo}" class="avatar-image" alt="">`
-                    : '<span class="avatar-placeholder">🧬</span>';
+                let photoHtml = '';
+                if (character.photo) {
+                    // Применяем сохранённую трансформацию, если есть
+                    let transformStyle = '';
+                    if (photoTransform) {
+                        transformStyle = `style="transform: translate(${photoTransform.posX}px, ${photoTransform.posY}px) scale(${photoTransform.scale}); object-fit: initial; width: 100%; height: 100%;"`;
+                    }
+                    photoHtml = `<img src="${character.photo}" class="avatar-image" ${transformStyle} alt="">`;
+                } else {
+                    photoHtml = '<span class="avatar-placeholder">🧬</span>';
+                }
 
                 const html = `
                     <div class="neuro-header"><h1>NEURO BRO</h1></div>
@@ -806,6 +759,9 @@
                         name: '', gender: 'male', greeting: '', story: '',
                         photo: character.photo // фото оставляем
                     };
+                    // Сбрасываем трансформацию
+                    photoTransform = null;
+                    localStorage.removeItem('photoTransform');
                     saveCharacter();
                     renderHome();
                     tg.HapticFeedback?.impactOccurred('light');
@@ -817,12 +773,14 @@
                     setTimeout(() => {
                         loader.classList.remove('show');
                         console.log('Персонаж:', character);
+                        // Здесь будет отправка в бота
+                        // tg.sendData(JSON.stringify(character));
                         tg.showAlert('Данные готовы к отправке (консоль)');
                     }, 1500);
                 });
             }
 
-            // Рендер других страниц
+            // Рендер других страниц (заглушки)
             function renderFeed() {
                 contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px; height:48px; margin-bottom:20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ<br>скоро здесь будут карточки других игроков</div>';
                 lucide.createIcons();
@@ -898,6 +856,12 @@
                 splashPlaceholder.style.display = 'none';
                 splashImage.src = character.photo;
                 splashImage.style.display = 'block';
+            }
+
+            // Функция для получения текущей вкладки (используется в updatePhoto)
+            function getCurrentTab() {
+                const active = document.querySelector('.bar-item.active');
+                return active ? active.dataset.tab : 'feed';
             }
         })();
     </script>

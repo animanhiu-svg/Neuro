@@ -127,21 +127,21 @@
             pointer-events: none;
         }
 
-        .bar-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #ffffff;
-            font-size: 10px;
-            font-weight: 500;
-            transition: opacity 0.2s;
-            cursor: pointer;
-            flex: 1;
-            opacity: 0.7;
-        }
-        .bar-item.active {
-            opacity: 1;
-        }
+        ./* Анимация нажатия для всех кликабельных элементов */
+.bar-item:active,
+.sheet-item:active,
+.action-btn:active,
+.btn:active,
+.avatar-circle:active,
+.avatar-label:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+}
+
+/* Для иконок внутри панели (чтобы не прыгали) */
+.bar-item {
+    transition: opacity 0.2s, transform 0.1s ease;
+}
         .bar-item i {
             width: 24px;
             height: 24px;

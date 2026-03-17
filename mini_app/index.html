@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · финал</title>
+    <title>NeuroBro · просто</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         * {
@@ -113,7 +113,8 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            cursor: pointer; margin-bottom: 12px;
+            cursor: pointer;
+            margin-bottom: 12px;
         }
         .avatar-placeholder {
             width: 100%; height: 100%;
@@ -216,7 +217,7 @@
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
 
-            // Элементы
+            // ----- Элементы -----
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
@@ -230,47 +231,67 @@
             const createGroupBtn = document.getElementById('create-group');
             const barItems = document.querySelectorAll('.bar-item');
 
-            // Данные персонажа
+            // ----- Данные персонажа (только текст, фото отдельно) -----
             let character = {
                 name: '',
                 gender: 'male',
                 greeting: '',
-                story: '',
-                photo: localStorage.getItem('characterPhoto') || null
+                story: ''
             };
             try {
                 const saved = localStorage.getItem('neuroCharacter');
                 if (saved) Object.assign(character, JSON.parse(saved));
             } catch (e) {}
 
+            // Фото храним отдельно для простоты
+            let photo = localStorage.getItem('characterPhoto') || null;
+
             function saveCharacter() {
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Загрузка фото (точно как в тесте)
+            // Обновление фото (и сохранение, и отображение)
+            function setPhoto(dataUrl) {
+                photo = dataUrl;
+                if (dataUrl) {
+                    localStorage.setItem('characterPhoto', dataUrl);
+                } else {
+                    localStorage.removeItem('characterPhoto');
+                }
+                // Обновляем сплэш
+                if (dataUrl) {
+                    splashPlaceholder.style.display = 'none';
+                    splashImage.src = dataUrl;
+                    splashImage.style.display = 'block';
+                } else {
+                    splashPlaceholder.style.display = 'block';
+                    splashImage.style.display = 'none';
+                }
+                // Если открыт конструктор, обновляем аватар
+                const avatarCircle = document.querySelector('.avatar-circle');
+                if (avatarCircle) {
+                    if (dataUrl) {
+                        avatarCircle.style.backgroundImage = `url('${dataUrl}')`;
+                        // Убираем плейсхолдер, если он есть
+                        const placeholder = avatarCircle.querySelector('.avatar-placeholder');
+                        if (placeholder) placeholder.remove();
+                    } else {
+                        avatarCircle.style.backgroundImage = 'none';
+                        // Если нет фото, вставляем плейсхолдер
+                        if (!avatarCircle.querySelector('.avatar-placeholder')) {
+                            avatarCircle.innerHTML = '<div class="avatar-placeholder">🧬</div>';
+                        }
+                    }
+                }
+            }
+
+            // Загрузка файла
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    const dataUrl = event.target.result;
-                    // Сохраняем
-                    character.photo = dataUrl;
-                    localStorage.setItem('characterPhoto', dataUrl);
-                    saveCharacter();
-                    // Обновляем сплэш
-                    splashPlaceholder.style.display = 'none';
-                    splashImage.src = dataUrl;
-                    splashImage.style.display = 'block';
-                    // Обновляем аватар в конструкторе, если он открыт
-                    const avatarCircle = document.querySelector('.avatar-circle');
-                    if (avatarCircle) {
-                        // Добавляем timestamp, чтобы браузер перезагрузил фон
-                        avatarCircle.style.backgroundImage = `url('${dataUrl}?t=${Date.now()}')`;
-                        // Убираем плейсхолдер, если он был
-                        const placeholder = avatarCircle.querySelector('.avatar-placeholder');
-                        if (placeholder) placeholder.remove();
-                    }
+                    setPhoto(event.target.result);
                 };
                 reader.readAsDataURL(file);
                 fileInput.value = ''; // сброс
@@ -278,16 +299,17 @@
 
             // Рендер главной (конструктор)
             function renderHome() {
-                const hasPhoto = character.photo;
-                const photoUrl = hasPhoto ? `url('${character.photo}?t=${Date.now()}')` : '';
-                const placeholderHtml = !hasPhoto ? '<div class="avatar-placeholder">🧬</div>' : '';
+                let avatarHtml = '';
+                if (photo) {
+                    avatarHtml = `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${photo}');"></div>`;
+                } else {
+                    avatarHtml = `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
+                }
 
                 const html = `
                     <div class="neuro-header"><h1>NEURO BRO</h1></div>
                     <div class="avatar-block">
-                        <div class="avatar-circle" id="avatar-circle" style="background-image: ${photoUrl};">
-                            ${placeholderHtml}
-                        </div>
+                        ${avatarHtml}
                         <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
                     </div>
                     <div class="input-group">
@@ -344,8 +366,10 @@
                 });
 
                 resetBtn?.addEventListener('click', () => {
-                    character = { name: '', gender: 'male', greeting: '', story: '', photo: character.photo };
+                    character = { name: '', gender: 'male', greeting: '', story: '' };
                     saveCharacter();
+                    // Сброс фото
+                    setPhoto(null);
                     renderHome();
                     tg.HapticFeedback?.impactOccurred('light');
                 });
@@ -355,8 +379,8 @@
                     tg.HapticFeedback?.impactOccurred('medium');
                     setTimeout(() => {
                         loader.classList.remove('show');
-                        console.log('Персонаж:', character);
-                        tg.showAlert('Данные в консоли');
+                        console.log('Персонаж:', { ...character, photo: photo ? 'есть' : 'нет' });
+                        tg.showAlert('Данные готовы (консоль)');
                     }, 1500);
                 });
             }
@@ -413,10 +437,10 @@
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
 
-            // Восстановление фото в сплэше
-            if (character.photo) {
+            // Инициализация фото в сплэше
+            if (photo) {
                 splashPlaceholder.style.display = 'none';
-                splashImage.src = character.photo;
+                splashImage.src = photo;
                 splashImage.style.display = 'block';
             }
         })();

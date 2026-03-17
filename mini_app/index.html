@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · просто</title>
+    <title>NeuroBro · сплэш фикс</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         * {
@@ -39,8 +39,14 @@
             background: #1e1e1e; border: 2px solid #fff;
             display: flex; align-items: center; justify-content: center;
             margin-bottom: 24px; overflow: hidden;
+            /* СЮДА ВСТАВЬ СВОЁ ФОТО */
+            background-image: url(''); /* например: url('my-splash.jpg') */
+            background-size: cover;
+            background-position: center;
         }
-        .splash-avatar span { font-size: 48px; color: #fff; }
+        .splash-avatar span {
+            font-size: 48px; color: #fff;
+        }
         .splash-name { font-size: 32px; font-weight: 600; color: #fff; margin-bottom: 16px; }
         .splash-quote { font-size: 12px; color: #aaa; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
         .progress-container { width: 200px; height: 2px; background: #333; }
@@ -179,7 +185,6 @@
     <div id="splash-screen">
         <div class="splash-avatar" id="splash-avatar">
             <span id="splash-placeholder">🧬</span>
-            <img id="splash-image" src="#" alt="" style="display: none;">
         </div>
         <div class="splash-name">NEURO BRO</div>
         <div class="splash-quote">ТИШИНА В ЧЕРНО-БЕЛОМ</div>
@@ -217,7 +222,6 @@
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
 
-            // ----- Элементы -----
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
@@ -225,13 +229,11 @@
             const fileInput = document.getElementById('file-input');
             const loader = document.getElementById('loader');
             const splashPlaceholder = document.getElementById('splash-placeholder');
-            const splashImage = document.getElementById('splash-image');
             const sheetOverlay = document.getElementById('sheet-overlay');
             const createCharacterBtn = document.getElementById('create-character');
             const createGroupBtn = document.getElementById('create-group');
             const barItems = document.querySelectorAll('.bar-item');
 
-            // ----- Данные персонажа (только текст, фото отдельно) -----
             let character = {
                 name: '',
                 gender: 'male',
@@ -243,14 +245,12 @@
                 if (saved) Object.assign(character, JSON.parse(saved));
             } catch (e) {}
 
-            // Фото храним отдельно для простоты
             let photo = localStorage.getItem('characterPhoto') || null;
 
             function saveCharacter() {
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Обновление фото (и сохранение, и отображение)
             function setPhoto(dataUrl) {
                 photo = dataUrl;
                 if (dataUrl) {
@@ -258,26 +258,15 @@
                 } else {
                     localStorage.removeItem('characterPhoto');
                 }
-                // Обновляем сплэш
-                if (dataUrl) {
-                    splashPlaceholder.style.display = 'none';
-                    splashImage.src = dataUrl;
-                    splashImage.style.display = 'block';
-                } else {
-                    splashPlaceholder.style.display = 'block';
-                    splashImage.style.display = 'none';
-                }
-                // Если открыт конструктор, обновляем аватар
+                // Обновляем аватар в конструкторе, если он открыт
                 const avatarCircle = document.querySelector('.avatar-circle');
                 if (avatarCircle) {
                     if (dataUrl) {
                         avatarCircle.style.backgroundImage = `url('${dataUrl}')`;
-                        // Убираем плейсхолдер, если он есть
                         const placeholder = avatarCircle.querySelector('.avatar-placeholder');
                         if (placeholder) placeholder.remove();
                     } else {
                         avatarCircle.style.backgroundImage = 'none';
-                        // Если нет фото, вставляем плейсхолдер
                         if (!avatarCircle.querySelector('.avatar-placeholder')) {
                             avatarCircle.innerHTML = '<div class="avatar-placeholder">🧬</div>';
                         }
@@ -285,7 +274,6 @@
                 }
             }
 
-            // Загрузка файла
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -294,10 +282,9 @@
                     setPhoto(event.target.result);
                 };
                 reader.readAsDataURL(file);
-                fileInput.value = ''; // сброс
+                fileInput.value = '';
             });
 
-            // Рендер главной (конструктор)
             function renderHome() {
                 let avatarHtml = '';
                 if (photo) {
@@ -341,7 +328,6 @@
                 `;
                 contentArea.innerHTML = html;
 
-                // Привязка событий
                 document.getElementById('avatar-circle')?.addEventListener('click', () => fileInput.click());
                 document.getElementById('upload-label')?.addEventListener('click', () => fileInput.click());
 
@@ -368,7 +354,6 @@
                 resetBtn?.addEventListener('click', () => {
                     character = { name: '', gender: 'male', greeting: '', story: '' };
                     saveCharacter();
-                    // Сброс фото
                     setPhoto(null);
                     renderHome();
                     tg.HapticFeedback?.impactOccurred('light');
@@ -385,13 +370,11 @@
                 });
             }
 
-            // Рендер других страниц
             function renderFeed() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px;height:48px;margin-bottom:20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ</div>'; lucide.createIcons(); }
             function renderChats() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="message-circle-more" style="width:48px;height:48px;margin-bottom:20px;"></i><br>ДИАЛОГИ</div>'; lucide.createIcons(); }
             function renderGames() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px;height:48px;margin-bottom:20px;"></i><br>МИНИ-ИГРЫ</div>'; lucide.createIcons(); }
             function renderSettings() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px;height:48px;margin-bottom:20px;"></i><br>НАСТРОЙКИ</div>'; lucide.createIcons(); }
 
-            // Переключение вкладок
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
                     const tab = item.dataset.tab;
@@ -411,7 +394,6 @@
                 });
             });
 
-            // Bottom sheet
             createCharacterBtn.addEventListener('click', () => {
                 sheetOverlay.classList.remove('show');
                 barItems.forEach(i => i.classList.remove('active'));
@@ -425,7 +407,6 @@
             });
             sheetOverlay.addEventListener('click', (e) => { if (e.target === sheetOverlay) sheetOverlay.classList.remove('show'); });
 
-            // Сплэш анимация
             setTimeout(() => progressFill.style.width = '100%', 100);
             setTimeout(() => {
                 splash.classList.add('hidden');
@@ -433,16 +414,10 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
 
-            // Стартовая страница — лента
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
 
-            // Инициализация фото в сплэше
-            if (photo) {
-                splashPlaceholder.style.display = 'none';
-                splashImage.src = photo;
-                splashImage.style.display = 'block';
-            }
+            // Если есть фото пользователя, оно не трогает сплэш
         })();
     </script>
 </body>

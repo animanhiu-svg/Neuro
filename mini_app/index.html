@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · сплэш фикс</title>
+    <title>NeuroBro · финал</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         * {
@@ -36,16 +36,13 @@
         #splash-screen.hidden { opacity: 0; pointer-events: none; }
         .splash-avatar {
             width: 100px; height: 100px; border-radius: 50%;
-            background: #1e1e1e; border: 2px solid #fff;
-            display: flex; align-items: center; justify-content: center;
-            margin-bottom: 24px; overflow: hidden;
-            /* СЮДА ВСТАВЬ СВОЁ ФОТО */
-            background-image: url('https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/splash.jpg'); /* например: url('my-splash.jpg') */
+            background-color: #1e1e1e;
+            border: 2px solid #fff;
+            background-image: url('https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/splash.jpg'); /* ТВОЁ ФОТО */
             background-size: cover;
             background-position: center;
-        }
-        .splash-avatar span {
-            font-size: 48px; color: #fff;
+            background-repeat: no-repeat;
+            margin-bottom: 24px;
         }
         .splash-name { font-size: 32px; font-weight: 600; color: #fff; margin-bottom: 16px; }
         .splash-quote { font-size: 12px; color: #aaa; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
@@ -183,9 +180,7 @@
 
     <!-- СПЛЭШ -->
     <div id="splash-screen">
-        <div class="splash-avatar" id="splash-avatar">
-            <span id="splash-placeholder">🧬</span>
-        </div>
+        <div class="splash-avatar" id="splash-avatar"></div>
         <div class="splash-name">NEURO BRO</div>
         <div class="splash-quote">ТИШИНА В ЧЕРНО-БЕЛОМ</div>
         <div class="progress-container"><div class="progress-fill" id="progress-fill"></div></div>
@@ -228,12 +223,12 @@
             const contentArea = document.getElementById('content-area');
             const fileInput = document.getElementById('file-input');
             const loader = document.getElementById('loader');
-            const splashPlaceholder = document.getElementById('splash-placeholder');
             const sheetOverlay = document.getElementById('sheet-overlay');
             const createCharacterBtn = document.getElementById('create-character');
             const createGroupBtn = document.getElementById('create-group');
             const barItems = document.querySelectorAll('.bar-item');
 
+            // Данные персонажа
             let character = {
                 name: '',
                 gender: 'male',
@@ -251,6 +246,7 @@
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
+            // Обновление аватара пользователя (в конструкторе)
             function setPhoto(dataUrl) {
                 photo = dataUrl;
                 if (dataUrl) {
@@ -258,7 +254,7 @@
                 } else {
                     localStorage.removeItem('characterPhoto');
                 }
-                // Обновляем аватар в конструкторе, если он открыт
+                // Если открыт конструктор, обновляем фон круга
                 const avatarCircle = document.querySelector('.avatar-circle');
                 if (avatarCircle) {
                     if (dataUrl) {
@@ -407,6 +403,7 @@
             });
             sheetOverlay.addEventListener('click', (e) => { if (e.target === sheetOverlay) sheetOverlay.classList.remove('show'); });
 
+            // Сплэш анимация
             setTimeout(() => progressFill.style.width = '100%', 100);
             setTimeout(() => {
                 splash.classList.add('hidden');
@@ -416,8 +413,6 @@
 
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
-
-            // Если есть фото пользователя, оно не трогает сплэш
         })();
     </script>
 </body>

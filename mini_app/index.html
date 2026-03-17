@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · финал</title>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         * {
@@ -111,18 +110,16 @@
         .avatar-circle {
             width: 120px; height: 120px; border-radius: 50%;
             background: #1e1e1e; border: 2px solid #fff;
-            overflow: hidden; cursor: pointer; margin-bottom: 12px;
-        }
-        .avatar-circle img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-            display: block;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer; margin-bottom: 12px;
         }
         .avatar-placeholder {
-            width: 100%; height: 100%; display: flex;
-            align-items: center; justify-content: center; font-size: 48px; color: #fff;
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 48px; color: #fff;
+            background: #1e1e1e;
         }
         .avatar-label {
             font-size: 14px; color: #aaa; text-decoration: underline;
@@ -249,43 +246,42 @@
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Обновление фото (просто dataURL, без трансформаций)
-            function updatePhoto(dataUrl) {
-                character.photo = dataUrl;
-                localStorage.setItem('characterPhoto', dataUrl);
-                splashPlaceholder.style.display = 'none';
-                splashImage.src = dataUrl;
-                splashImage.style.display = 'block';
-                saveCharacter();
-
-                // Если открыт конструктор, обновляем картинку в нём
-                const avatarImg = document.querySelector('.avatar-circle img');
-                if (avatarImg) {
-                    avatarImg.src = dataUrl + '?t=' + Date.now(); // принудительное обновление
-                }
-            }
-
-            // Загрузка файла
+            // Загрузка фото
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (event) => updatePhoto(event.target.result);
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    // Сохраняем
+                    character.photo = dataUrl;
+                    localStorage.setItem('characterPhoto', dataUrl);
+                    saveCharacter();
+                    // Обновляем сплэш
+                    splashPlaceholder.style.display = 'none';
+                    splashImage.src = dataUrl;
+                    splashImage.style.display = 'block';
+                    // Обновляем аватар в конструкторе, если он открыт
+                    const avatarCircle = document.querySelector('.avatar-circle');
+                    if (avatarCircle) {
+                        // Добавляем timestamp, чтобы браузер перезагрузил фон
+                        avatarCircle.style.backgroundImage = `url('${dataUrl}?t=${Date.now()}')`;
+                    }
+                };
                 reader.readAsDataURL(file);
-                fileInput.value = '';
+                fileInput.value = ''; // сброс
             });
 
             // Рендер главной (конструктор)
             function renderHome() {
-                const photoHtml = character.photo 
-                    ? `<img src="${character.photo}" alt="" class="avatar-image">` 
-                    : '<span class="avatar-placeholder">🧬</span>';
+                const photoUrl = character.photo ? `url('${character.photo}?t=${Date.now()}')` : 'none';
+                const placeholderHtml = !character.photo ? '<div class="avatar-placeholder">🧬</div>' : '';
 
                 const html = `
                     <div class="neuro-header"><h1>NEURO BRO</h1></div>
                     <div class="avatar-block">
-                        <div class="avatar-circle" id="avatar-circle">
-                            ${photoHtml}
+                        <div class="avatar-circle" id="avatar-circle" style="background-image: ${photoUrl};">
+                            ${placeholderHtml}
                         </div>
                         <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
                     </div>

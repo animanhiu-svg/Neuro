@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · финал</title>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Cropper.js (лёгкая библиотека для кадрирования) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -36,13 +40,16 @@
         #splash-screen.hidden { opacity: 0; pointer-events: none; }
         .splash-avatar {
             width: 100px; height: 100px; border-radius: 50%;
-            background-color: #1e1e1e;
-            border: 2px solid #fff;
-            background-image: url('https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/splash.jpg'); /* ТВОЁ ФОТО */
+            background: #1e1e1e; border: 2px solid #fff;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 24px; overflow: hidden;
+            /* СЮДА ПОТОМ ВСТАВИШЬ СВОЁ ФОТО */
+            background-image: url(''); /* например: url('https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/splash.jpg') */
             background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
-            margin-bottom: 24px;
+        }
+        .splash-avatar span {
+            font-size: 48px; color: #fff;
         }
         .splash-name { font-size: 32px; font-weight: 600; color: #fff; margin-bottom: 16px; }
         .splash-quote { font-size: 12px; color: #aaa; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
@@ -173,6 +180,48 @@
         .loader-sub { margin-top: 10px; font-size: 12px; color: #aaa; }
 
         #file-input { display: none; }
+
+        /* Модалка кадрирования */
+        .crop-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .crop-modal.show { display: flex; }
+        .crop-container {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #fff;
+            margin-bottom: 30px;
+        }
+        .crop-image {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .crop-controls {
+            display: flex;
+            gap: 20px;
+        }
+        .crop-btn {
+            background: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+        .crop-btn.primary { background: #fff; color: #000; }
     </style>
 </head>
 <body>
@@ -180,7 +229,9 @@
 
     <!-- СПЛЭШ -->
     <div id="splash-screen">
-        <div class="splash-avatar" id="splash-avatar"></div>
+        <div class="splash-avatar" id="splash-avatar">
+            <span id="splash-placeholder">🧬</span>
+        </div>
         <div class="splash-name">NEURO BRO</div>
         <div class="splash-quote">ТИШИНА В ЧЕРНО-БЕЛОМ</div>
         <div class="progress-container"><div class="progress-fill" id="progress-fill"></div></div>
@@ -206,6 +257,17 @@
         </div>
     </div>
 
+    <!-- МОДАЛКА КАДРИРОВАНИЯ -->
+    <div class="crop-modal" id="crop-modal">
+        <div class="crop-container">
+            <img src="" id="crop-image" class="crop-image">
+        </div>
+        <div class="crop-controls">
+            <button class="crop-btn" id="crop-cancel">Отмена</button>
+            <button class="crop-btn primary" id="crop-apply">Готово</button>
+        </div>
+    </div>
+
     <!-- Лоадер -->
     <div class="loader-overlay" id="loader">
         <div class="loader-content"><div class="loader-text">ПРОБУЖДЕНИЕ</div><div class="loader-sub">связь с нейросетью...</div></div>
@@ -215,18 +277,39 @@
     <script>
         (function() {
             const tg = window.Telegram.WebApp;
-            tg.ready(); tg.expand();
+            tg.ready();
+            tg.expand();
 
+            // СИНЯЯ КНОПКА "ПОГРУЗИТЬСЯ"
+            tg.MainButton.setParams({
+                text: 'ПОГРУЗИТЬСЯ',
+                color: '#2481cc'
+            });
+            tg.MainButton.show();
+            tg.MainButton.onClick(() => {
+                // Пока просто закрываем, потом добавишь отправку данных
+                tg.close();
+            });
+
+            // Элементы
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
             const contentArea = document.getElementById('content-area');
             const fileInput = document.getElementById('file-input');
             const loader = document.getElementById('loader');
+            const splashPlaceholder = document.getElementById('splash-placeholder');
             const sheetOverlay = document.getElementById('sheet-overlay');
             const createCharacterBtn = document.getElementById('create-character');
             const createGroupBtn = document.getElementById('create-group');
             const barItems = document.querySelectorAll('.bar-item');
+
+            // Элементы для кадрирования
+            const cropModal = document.getElementById('crop-modal');
+            const cropImage = document.getElementById('crop-image');
+            const cropCancel = document.getElementById('crop-cancel');
+            const cropApply = document.getElementById('crop-apply');
+            let cropper = null;
 
             // Данные персонажа
             let character = {
@@ -246,7 +329,6 @@
                 localStorage.setItem('neuroCharacter', JSON.stringify(character));
             }
 
-            // Обновление аватара пользователя (в конструкторе)
             function setPhoto(dataUrl) {
                 photo = dataUrl;
                 if (dataUrl) {
@@ -254,7 +336,7 @@
                 } else {
                     localStorage.removeItem('characterPhoto');
                 }
-                // Если открыт конструктор, обновляем фон круга
+                // Обновляем аватар в конструкторе, если он открыт
                 const avatarCircle = document.querySelector('.avatar-circle');
                 if (avatarCircle) {
                     if (dataUrl) {
@@ -270,17 +352,56 @@
                 }
             }
 
+            // Загрузка файла и открытие кадрирования
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    setPhoto(event.target.result);
+                    const dataUrl = event.target.result;
+                    cropImage.src = dataUrl;
+                    cropModal.classList.add('show');
+                    if (cropper) cropper.destroy();
+                    cropper = new Cropper(cropImage, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 1,
+                        cropBoxMovable: false,
+                        cropBoxResizable: false,
+                        toggleDragModeOnDblclick: false,
+                        background: false,
+                        modal: false,
+                        guides: false,
+                        center: false,
+                        highlight: false
+                    });
                 };
                 reader.readAsDataURL(file);
                 fileInput.value = '';
             });
 
+            cropCancel.addEventListener('click', () => {
+                cropModal.classList.remove('show');
+                if (cropper) cropper.destroy();
+            });
+
+            cropApply.addEventListener('click', () => {
+                if (!cropper) return;
+                const canvas = cropper.getCroppedCanvas({
+                    width: 300,
+                    height: 300,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+                const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                setPhoto(croppedDataUrl);
+                cropModal.classList.remove('show');
+                cropper.destroy();
+                tg.HapticFeedback?.impactOccurred('medium');
+            });
+
+            // Рендер главной (конструктор)
             function renderHome() {
                 let avatarHtml = '';
                 if (photo) {
@@ -403,7 +524,6 @@
             });
             sheetOverlay.addEventListener('click', (e) => { if (e.target === sheetOverlay) sheetOverlay.classList.remove('show'); });
 
-            // Сплэш анимация
             setTimeout(() => progressFill.style.width = '100%', 100);
             setTimeout(() => {
                 splash.classList.add('hidden');
@@ -413,6 +533,8 @@
 
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
+
+            // Если есть фото, показываем его в сплэше (но сплэш у тебя отдельный, так что тут ничего не меняем)
         })();
     </script>
 </body>

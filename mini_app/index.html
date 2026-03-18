@@ -280,16 +280,6 @@
             tg.ready();
             tg.expand();
 
-            // СИНЯЯ КНОПКА "ПОГРУЗИТЬСЯ"
-            tg.MainButton.setParams({
-                text: 'ПОГРУЗИТЬСЯ',
-                color: '#2481cc'
-            });
-            tg.MainButton.show();
-            tg.MainButton.onClick(() => {
-                // Пока просто закрываем, потом добавишь отправку данных
-                tg.close();
-            });
 
             // Элементы
             const splash = document.getElementById('splash-screen');

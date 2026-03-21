@@ -9,7 +9,7 @@ from database import init_user, update_field, get_field, get_history, add_to_his
 from logic import contains_forbidden, query_dolphin
 
 # --- Инициализация ---
-# utils.start_pinger()   # <-- убираем, чтобы не было конфликта портов
+# utils.start_pinger()  # отключено, чтобы не конфликтовать с gunicorn
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
@@ -25,6 +25,7 @@ def serve_app():
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
+    print("🔔 /chat получил данные:", data)  # отладка
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
@@ -33,11 +34,18 @@ def chat():
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
-    try:
-        reply = query_dolphin(message, chat_id, client)
-    except Exception as e:
-        print(f"Ошибка в query_dolphin: {e}")
-        reply = "⚠️ Ошибка при обращении к нейросети."
+
+    # ВРЕМЕННАЯ ЗАГЛУШКА для проверки связи
+    reply = f"Тестовый ответ на сообщение: {message}"
+
+    # Раскомментируй, когда убедишься, что связь работает
+    # try:
+    #     reply = query_dolphin(message, chat_id, client)
+    # except Exception as e:
+    #     print(f"Ошибка в query_dolphin: {e}")
+    #     reply = "⚠️ Ошибка при обращении к нейросети."
+
+    print("📤 Ответ:", reply)  # отладка
     return jsonify({'reply': reply})
 
 # --- Вебхук для Telegram ---

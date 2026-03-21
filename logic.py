@@ -18,11 +18,25 @@ def query_dolphin(prompt, chat_id, client):
     history = get_history(chat_id)
     messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
     try:
-        completion = client.chat.completions.create(model=config.MODEL, messages=messages, max_tokens=limit, temperature=1.1, top_p=0.9, presence_penalty=0.7)
+        completion = client.chat.completions.create(
+            model=config.MODEL,
+            messages=messages,
+            max_tokens=limit,
+            temperature=1.1,
+            top_p=0.9,
+            presence_penalty=0.7
+        )
         reply = completion.choices[0].message.content
+        print(f"🟢 Ответ от API: {reply}")   # <-- отладочный вывод в лог
+        if reply is None:
+            print("❌ Ответ None")
+            return "Извини, я не могу ответить."
         if contains_forbidden(reply):
             return "⛔ Нарушение безопасности. Попробуй иначе."
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:
+        print(f"🔴 Ошибка в query_dolphin: {e}")
+        import traceback
+        traceback.print_exc()
         return f"⏳ Ошибка: {str(e)[:50]}"

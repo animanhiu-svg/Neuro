@@ -8,24 +8,22 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# --- Инициализация ---
-# utils.start_pinger()   # убрали
+# utils.start_pinger()  # убрали
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')
 
-# --- Отдаём мини-апп ---
 @app.route('/')
 @app.route('/app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
 
-# --- Эндпоинт для чата (с отладкой) ---
 @app.route('/chat', methods=['POST'])
 def chat():
+    print("🔔 /chat получил запрос")  # добавим
     data = request.get_json()
-    print("🔔 /chat получил данные:", data)
+    print("Данные:", data)
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
@@ -35,19 +33,11 @@ def chat():
 
     init_user(chat_id)
 
-    # ВРЕМЕННО: заглушка
+    # ВРЕМЕННАЯ ЗАГЛУШКА
     reply = f"Тестовый ответ на сообщение: {message}"
-    # Если заглушка работает, раскомментируй строки ниже и убери эту
-    # try:
-    #     reply = query_dolphin(message, chat_id, client)
-    # except Exception as e:
-    #     print(f"Ошибка в query_dolphin: {e}")
-    #     reply = "⚠️ Ошибка при обращении к нейросети."
-
-    print("📤 Ответ:", reply)
+    print("Ответ:", reply)
     return jsonify({'reply': reply})
 
-# --- Вебхук для Telegram ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     json_str = request.get_data().decode('UTF-8')
@@ -55,7 +45,6 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
-# --- Обработчики бота ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -110,7 +99,6 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
-# --- Установка вебхука ---
 if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
     webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/webhook"
     bot.remove_webhook()

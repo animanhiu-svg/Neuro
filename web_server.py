@@ -9,7 +9,7 @@ from database import init_user, update_field, get_field, get_history, add_to_his
 from logic import contains_forbidden, query_dolphin
 
 # --- Инициализация ---
-utils.start_pinger()
+# utils.start_pinger()   # <-- убираем, чтобы не было конфликта портов
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
@@ -21,7 +21,7 @@ app = Flask(__name__, static_folder='mini_app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
 
-# --- Эндпоинт для чата из мини-аппа ---
+# --- Эндпоинт для чата из мини-аппа (реальный ИИ) ---
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
@@ -33,7 +33,11 @@ def chat():
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
-    reply = query_dolphin(message, chat_id, client)
+    try:
+        reply = query_dolphin(message, chat_id, client)
+    except Exception as e:
+        print(f"Ошибка в query_dolphin: {e}")
+        reply = "⚠️ Ошибка при обращении к нейросети."
     return jsonify({'reply': reply})
 
 # --- Вебхук для Telegram ---
@@ -50,7 +54,6 @@ def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
         bot.reply_to(message, "⛔ Только для владельца.")
         return
-
     cid = message.chat.id
     init_user(cid)
 
@@ -58,7 +61,7 @@ def start(message):
     webapp_button = telebot.types.KeyboardButton(
         text="🚀 Погрузиться",
         web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/app"),
-        style="primary"   # синяя кнопка
+        style="primary"
     )
     markup.add(webapp_button)
 
@@ -100,14 +103,11 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
-# --- Установка вебхука (выполнится при запуске gunicorn) ---
-render_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME')
-if render_hostname:
-    webhook_url = f"https://{render_hostname}/webhook"
+# --- Установка вебхука при старте (выполнится при импорте gunicorn) ---
+if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/webhook"
     bot.remove_webhook()
     bot.set_webhook(url=webhook_url)
     print(f"✅ Вебхук установлен: {webhook_url}")
 else:
-    print("⚠️ RENDER_EXTERNAL_HOSTNAME не задан, вебхук не установлен")
-
-# Важно: НЕТ вызова bot.polling() и app.run() — gunicorn сам запустит приложение.
+    print("⚠️ RENDER_EXTERNAL_HOSTNAME не задан, вебхук не установлен.")

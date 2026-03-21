@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · поиск</title>
+    <title>NeuroBro · портал</title>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Cropper.js (лёгкая библиотека для кадрирования) -->
+    <!-- Cropper.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
@@ -43,14 +43,11 @@
             background: #1e1e1e; border: 2px solid #fff;
             display: flex; align-items: center; justify-content: center;
             margin-bottom: 24px; overflow: hidden;
-            /* СЮДА ВСТАВЬ СВОЁ ФОТО */
-            background-image: url(''); /* например: url('https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/splash.jpg') */
+            background-image: url(''); /* своё фото */
             background-size: cover;
             background-position: center;
         }
-        .splash-avatar span {
-            font-size: 48px; color: #fff;
-        }
+        .splash-avatar span { font-size: 48px; color: #fff; }
         .splash-name { font-size: 32px; font-weight: 600; color: #fff; margin-bottom: 16px; }
         .splash-quote { font-size: 12px; color: #aaa; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
         .progress-container { width: 200px; height: 2px; background: #333; }
@@ -110,23 +107,52 @@
         .sheet-item:last-child { border-bottom: none; }
         .sheet-item i { width: 24px; height: 24px; }
 
-        /* Стили для поиска (портал) */
-        .search-container {
-            margin-bottom: 20px;
+        /* ----- НОВЫЕ СТИЛИ ДЛЯ ПОРТАЛА (поиск) ----- */
+        .portal-header {
+            margin-bottom: 24px;
+        }
+        .portal-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .portal-header p {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+        .online-stats {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #b388ff;
+            background: rgba(179, 136, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 30px;
+            width: fit-content;
+        }
+        .online-stats i {
+            width: 16px;
+            height: 16px;
         }
         .search-box {
             display: flex;
             align-items: center;
             background: #1e1e1e;
             border-radius: 30px;
-            padding: 8px 16px;
-            margin-bottom: 16px;
-            border: 1px solid #444;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            transition: border 0.2s;
+        }
+        .search-box:focus-within {
+            border-color: #fff;
         }
         .search-box i {
             width: 20px;
             height: 20px;
-            margin-right: 10px;
+            margin-right: 12px;
             color: #aaa;
         }
         .search-box input {
@@ -137,50 +163,90 @@
             font-size: 16px;
             width: 100%;
         }
-        .search-box input::placeholder {
-            color: #666;
-        }
-        .filters {
+        .categories {
             display: flex;
             gap: 12px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            scrollbar-width: thin;
         }
-        .filter-chip {
+        .categories::-webkit-scrollbar {
+            height: 3px;
+        }
+        .category-chip {
             background: transparent;
             border: 1px solid #444;
             border-radius: 30px;
-            padding: 8px 16px;
+            padding: 8px 18px;
             font-size: 14px;
-            color: #aaa;
+            white-space: nowrap;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .filter-chip.active {
+        .category-chip.active {
             border-color: #fff;
-            color: #fff;
             background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .trending {
+            margin-bottom: 20px;
+        }
+        .trending-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .trending-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .trending-chip {
+            background: rgba(255,255,255,0.05);
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .characters-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
         .character-card {
+            background: #1a1a1a;
+            border-radius: 24px;
+            padding: 12px;
+            border: 1px solid #2a2a2a;
+            transition: transform 0.2s, border-color 0.2s;
+            opacity: 0;
+            transform: translateY(15px);
+            animation: fadeInUp 0.3s forwards;
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .character-card:hover {
+            border-color: #444;
+        }
+        .card-row {
             display: flex;
             gap: 12px;
-            background: #1e1e1e;
-            border-radius: 20px;
-            padding: 12px;
-            margin-bottom: 12px;
-            border: 1px solid #333;
-            transition: transform 0.1s;
-        }
-        .character-card:active {
-            transform: scale(0.98);
         }
         .card-avatar {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: #333;
             background-size: cover;
             background-position: center;
+            background-color: #333;
             flex-shrink: 0;
         }
         .card-info {
@@ -189,28 +255,84 @@
         .card-name {
             font-size: 18px;
             font-weight: 600;
-            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #ffd966;
+        }
+        .card-rating i {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
         }
         .card-desc {
             font-size: 12px;
             color: #aaa;
-            margin-bottom: 8px;
+            margin: 4px 0 6px;
         }
-        .card-action {
+        .card-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .tag {
+            background: #2a2a2a;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 10px;
+            color: #ccc;
+        }
+        .card-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .btn-chat {
             background: transparent;
             border: 1px solid #fff;
             border-radius: 30px;
-            padding: 6px 12px;
+            padding: 6px 16px;
             font-size: 12px;
             color: #fff;
             cursor: pointer;
             transition: all 0.2s;
-            align-self: flex-start;
         }
-        .card-action:active {
+        .btn-chat:active {
             transform: scale(0.95);
             background: rgba(255,255,255,0.2);
         }
+        .btn-like {
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+        .btn-like i {
+            width: 18px;
+            height: 18px;
+        }
+        .btn-like.active {
+            color: #ff5e5e;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #aaa;
+        }
+
+        /* Остальные стили (конструктор, заглушки) – без изменений */
         .placeholder-page {
             text-align: center;
             padding: 60px 20px;
@@ -218,8 +340,6 @@
             font-size: 16px;
             line-height: 1.8;
         }
-
-        /* Конструктор (остаётся без изменений) */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
@@ -299,24 +419,12 @@
             border: 2px solid #fff;
             margin-bottom: 30px;
         }
-        .crop-image {
-            max-width: 100%;
-            max-height: 100%;
-        }
-        .crop-controls {
-            display: flex;
-            gap: 20px;
-        }
+        .crop-image { max-width: 100%; max-height: 100%; }
+        .crop-controls { display: flex; gap: 20px; }
         .crop-btn {
-            background: transparent;
-            border: 1px solid #fff;
-            color: #fff;
-            padding: 12px 30px;
-            border-radius: 40px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
+            background: transparent; border: 1px solid #fff; color: #fff;
+            padding: 12px 30px; border-radius: 40px; font-size: 16px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s;
         }
         .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
         .crop-btn.primary { background: #fff; color: #000; }
@@ -375,10 +483,9 @@
     <script>
         (function() {
             const tg = window.Telegram.WebApp;
-            tg.ready();
-            tg.expand();
+            tg.ready(); tg.expand();
 
-            // Элементы
+            // Элементы (те же, что и ранее, без изменений)
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
@@ -391,7 +498,7 @@
             const createGroupBtn = document.getElementById('create-group');
             const barItems = document.querySelectorAll('.bar-item');
 
-            // Элементы для кадрирования
+            // Кадрирование
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
@@ -409,7 +516,6 @@
                 const saved = localStorage.getItem('neuroCharacter');
                 if (saved) Object.assign(character, JSON.parse(saved));
             } catch (e) {}
-
             let photo = localStorage.getItem('characterPhoto') || null;
 
             function saveCharacter() {
@@ -418,12 +524,8 @@
 
             function setPhoto(dataUrl) {
                 photo = dataUrl;
-                if (dataUrl) {
-                    localStorage.setItem('characterPhoto', dataUrl);
-                } else {
-                    localStorage.removeItem('characterPhoto');
-                }
-                // Обновляем аватар в конструкторе, если он открыт
+                if (dataUrl) localStorage.setItem('characterPhoto', dataUrl);
+                else localStorage.removeItem('characterPhoto');
                 const avatarCircle = document.querySelector('.avatar-circle');
                 if (avatarCircle) {
                     if (dataUrl) {
@@ -439,7 +541,6 @@
                 }
             }
 
-            // Загрузка файла и открытие кадрирования
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -472,15 +573,9 @@
                 cropModal.classList.remove('show');
                 if (cropper) cropper.destroy();
             });
-
             cropApply.addEventListener('click', () => {
                 if (!cropper) return;
-                const canvas = cropper.getCroppedCanvas({
-                    width: 300,
-                    height: 300,
-                    imageSmoothingEnabled: true,
-                    imageSmoothingQuality: 'high'
-                });
+                const canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
                 const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
                 setPhoto(croppedDataUrl);
                 cropModal.classList.remove('show');
@@ -488,50 +583,20 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             });
 
-            // Рендер главной (конструктор)
+            // Рендер конструктора
             function renderHome() {
-                let avatarHtml = '';
-                if (photo) {
-                    avatarHtml = `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${photo}');"></div>`;
-                } else {
-                    avatarHtml = `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
-                }
-
+                let avatarHtml = photo ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${photo}');"></div>` :
+                                          `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
                 const html = `
                     <div class="neuro-header"><h1>NEURO BRO</h1></div>
-                    <div class="avatar-block">
-                        ${avatarHtml}
-                        <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
-                    </div>
-                    <div class="input-group">
-                        <div class="input-label">[ ИМЯ ]</div>
-                        <input type="text" class="input-field" id="nameInput" value="${character.name || ''}" maxlength="30">
-                    </div>
-                    <div class="input-group">
-                        <div class="input-label">[ ПОЛ ]</div>
-                        <div class="gender-chips" id="genderChips">
-                            <div class="chip ${character.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
-                            <div class="chip ${character.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
-                            <div class="chip ${character.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <div class="input-label">[ ГОЛОС ]</div>
-                        <input type="text" class="input-field" id="greetingInput" value="${character.greeting || ''}" maxlength="100">
-                        <div class="char-counter" id="greetingCounter">${character.greeting?.length || 0}/100</div>
-                    </div>
-                    <div class="input-group">
-                        <div class="input-label">[ ИСТОРИЯ ]</div>
-                        <input type="text" class="input-field" id="storyInput" value="${character.story || ''}" maxlength="200">
-                        <div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div>
-                    </div>
-                    <div class="main-buttons">
-                        <button class="btn btn-outline" id="resetBtn">СБРОС</button>
-                        <button class="btn btn-primary" id="activateBtn">ПРОБУДИТЬ</button>
-                    </div>
+                    <div class="avatar-block">${avatarHtml}<div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div></div>
+                    <div class="input-group"><div class="input-label">[ ИМЯ ]</div><input type="text" class="input-field" id="nameInput" value="${character.name || ''}" maxlength="30"></div>
+                    <div class="input-group"><div class="input-label">[ ПОЛ ]</div><div class="gender-chips" id="genderChips"><div class="chip ${character.gender === 'male' ? 'active' : ''}" data-gender="male">М</div><div class="chip ${character.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div><div class="chip ${character.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div></div></div>
+                    <div class="input-group"><div class="input-label">[ ГОЛОС ]</div><input type="text" class="input-field" id="greetingInput" value="${character.greeting || ''}" maxlength="100"><div class="char-counter" id="greetingCounter">${character.greeting?.length || 0}/100</div></div>
+                    <div class="input-group"><div class="input-label">[ ИСТОРИЯ ]</div><input type="text" class="input-field" id="storyInput" value="${character.story || ''}" maxlength="200"><div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div></div>
+                    <div class="main-buttons"><button class="btn btn-outline" id="resetBtn">СБРОС</button><button class="btn btn-primary" id="activateBtn">ПРОБУДИТЬ</button></div>
                 `;
                 contentArea.innerHTML = html;
-
                 document.getElementById('avatar-circle')?.addEventListener('click', () => fileInput.click());
                 document.getElementById('upload-label')?.addEventListener('click', () => fileInput.click());
 
@@ -545,7 +610,6 @@
                 nameInput?.addEventListener('input', (e) => { character.name = e.target.value; saveCharacter(); });
                 greetingInput?.addEventListener('input', (e) => { character.greeting = e.target.value; saveCharacter(); document.getElementById('greetingCounter').textContent = `${e.target.value.length}/100`; });
                 storyInput?.addEventListener('input', (e) => { character.story = e.target.value; saveCharacter(); document.getElementById('storyCounter').textContent = `${e.target.value.length}/200`; });
-
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', function() {
                         genderChips.forEach(c => c.classList.remove('active'));
@@ -554,7 +618,6 @@
                         saveCharacter();
                     });
                 });
-
                 resetBtn?.addEventListener('click', () => {
                     character = { name: '', gender: 'male', greeting: '', story: '' };
                     saveCharacter();
@@ -562,7 +625,6 @@
                     renderHome();
                     tg.HapticFeedback?.impactOccurred('light');
                 });
-
                 activateBtn?.addEventListener('click', () => {
                     loader.classList.add('show');
                     tg.HapticFeedback?.impactOccurred('medium');
@@ -574,80 +636,137 @@
                 });
             }
 
-            // Рендер поиска (портал)
+            // НОВЫЙ ПОРТАЛ (красивый поиск)
             function renderFeed() {
                 const demoCharacters = [
-                    { name: "Айко", desc: "Кибер-воин, ищущая напарника", avatar: "https://i.pravatar.cc/150?img=1" },
-                    { name: "Нейро", desc: "Загадочный хакер, любит головоломки", avatar: "https://i.pravatar.cc/150?img=2" },
-                    { name: "Сакура", desc: "Целительница, добрая и отзывчивая", avatar: "https://i.pravatar.cc/150?img=3" },
+                    { name: "Айко", desc: "Кибер-воин, ищущая напарника", tags: ["боевик", "киберпанк"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=1" },
+                    { name: "Нейро", desc: "Загадочный хакер, любит головоломки", tags: ["хакер", "детектив"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=2" },
+                    { name: "Сакура", desc: "Целительница, добрая и отзывчивая", tags: ["фэнтези", "целитель"], rating: 4.7, avatar: "https://i.pravatar.cc/150?img=3" },
+                    { name: "Зеро", desc: "Беспилотный андроид, ищет смысл", tags: ["научная фантастика"], rating: 4.6, avatar: "https://i.pravatar.cc/150?img=4" },
                 ];
-                let html = `
-                    <div class="search-container">
-                        <div class="search-box">
-                            <i data-lucide="search"></i>
-                            <input type="text" id="searchInput" placeholder="Имя или тег...">
-                        </div>
-                        <div class="filters" id="filters">
-                            <div class="filter-chip" data-filter="all">Все</div>
-                            <div class="filter-chip" data-filter="male">М</div>
-                            <div class="filter-chip" data-filter="female">Ж</div>
-                            <div class="filter-chip" data-filter="popular">Популярные</div>
-                        </div>
-                        <div id="charactersList"></div>
+
+                const html = `
+                    <div class="portal-header">
+                        <h2>Портал</h2>
+                        <p>Найди своего героя</p>
+                        <div class="online-stats"><i data-lucide="circle"></i> 47 героев сейчас в сети</div>
                     </div>
+                    <div class="search-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="searchInput" placeholder="Имя, тег или характер...">
+                    </div>
+                    <div class="categories" id="categories">
+                        <div class="category-chip" data-cat="all">Все</div>
+                        <div class="category-chip" data-cat="popular">Популярные</div>
+                        <div class="category-chip" data-cat="new">Новинки</div>
+                        <div class="category-chip" data-cat="friends">Друзья</div>
+                        <div class="category-chip" data-cat="active">В сети</div>
+                    </div>
+                    <div class="trending">
+                        <div class="trending-label"><i data-lucide="trending-up"></i> Популярные запросы</div>
+                        <div class="trending-chips" id="trendingChips">
+                            <div class="trending-chip">киберпанк</div>
+                            <div class="trending-chip">целитель</div>
+                            <div class="trending-chip">андроид</div>
+                            <div class="trending-chip">хакер</div>
+                        </div>
+                    </div>
+                    <div id="charactersList" class="characters-list"></div>
                 `;
                 contentArea.innerHTML = html;
                 lucide.createIcons();
 
                 const searchInput = document.getElementById('searchInput');
-                const filterChips = document.querySelectorAll('.filter-chip');
+                const categories = document.querySelectorAll('.category-chip');
+                const trendingChips = document.querySelectorAll('.trending-chip');
                 const charactersList = document.getElementById('charactersList');
+
+                let activeCategory = 'all';
+                let currentFilter = '';
 
                 function renderCharacters() {
                     const query = searchInput.value.toLowerCase();
-                    const activeFilter = document.querySelector('.filter-chip.active')?.dataset.filter || 'all';
                     let filtered = [...demoCharacters];
+
                     if (query) {
-                        filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
+                        filtered = filtered.filter(c => 
+                            c.name.toLowerCase().includes(query) || 
+                            c.tags.some(t => t.includes(query)) ||
+                            c.desc.toLowerCase().includes(query)
+                        );
                     }
-                    // Простая имитация фильтров
-                    if (activeFilter === 'male') filtered = filtered.slice(0, 1);
-                    if (activeFilter === 'female') filtered = filtered.slice(1, 2);
-                    if (activeFilter === 'popular') filtered = filtered.slice(0, 2);
+                    if (activeCategory === 'popular') {
+                        filtered = filtered.sort((a,b) => b.rating - a.rating);
+                    }
+                    if (activeCategory === 'new') {
+                        filtered = filtered.slice(0, 3);
+                    }
+                    if (activeCategory === 'active') {
+                        filtered = filtered.filter((_, i) => i % 2 === 0);
+                    }
+                    if (activeCategory === 'friends') {
+                        filtered = filtered.slice(0, 2);
+                    }
 
                     if (filtered.length === 0) {
-                        charactersList.innerHTML = '<div class="placeholder-page">Ничего не найдено</div>';
+                        charactersList.innerHTML = '<div class="empty-state">✨ Ничего не найдено</div>';
                         return;
                     }
-                    charactersList.innerHTML = filtered.map(c => `
-                        <div class="character-card">
-                            <div class="card-avatar" style="background-image: url('${c.avatar}');"></div>
-                            <div class="card-info">
-                                <div class="card-name">${c.name}</div>
-                                <div class="card-desc">${c.desc}</div>
-                                <button class="card-action" data-name="${c.name}">Общаться →</button>
+
+                    charactersList.innerHTML = filtered.map((c, idx) => `
+                        <div class="character-card" style="animation-delay: ${idx * 0.05}s">
+                            <div class="card-row">
+                                <div class="card-avatar" style="background-image: url('${c.avatar}');"></div>
+                                <div class="card-info">
+                                    <div class="card-name">
+                                        ${c.name}
+                                        <div class="card-rating"><i data-lucide="star"></i> ${c.rating}</div>
+                                    </div>
+                                    <div class="card-desc">${c.desc}</div>
+                                    <div class="card-tags">${c.tags.map(t => `<span class="tag">#${t}</span>`).join('')}</div>
+                                    <div class="card-actions">
+                                        <button class="btn-chat" data-name="${c.name}">Общаться →</button>
+                                        <button class="btn-like" data-name="${c.name}"><i data-lucide="heart"></i> 24</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `).join('');
-                    // Обработчики для кнопок
-                    document.querySelectorAll('.card-action').forEach(btn => {
+                    lucide.createIcons();
+
+                    document.querySelectorAll('.btn-chat').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             e.stopPropagation();
                             tg.showAlert(`Чат с ${btn.dataset.name} (в разработке)`);
                         });
                     });
+                    document.querySelectorAll('.btn-like').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            tg.HapticFeedback?.impactOccurred('light');
+                            btn.classList.toggle('active');
+                            // можно менять счётчик лайков, но пока просто визуально
+                        });
+                    });
                 }
 
                 searchInput.addEventListener('input', renderCharacters);
-                filterChips.forEach(chip => {
-                    chip.addEventListener('click', () => {
-                        filterChips.forEach(c => c.classList.remove('active'));
-                        chip.classList.add('active');
+                categories.forEach(cat => {
+                    cat.addEventListener('click', () => {
+                        categories.forEach(c => c.classList.remove('active'));
+                        cat.classList.add('active');
+                        activeCategory = cat.dataset.cat;
                         renderCharacters();
                     });
                 });
-                // Активируем первый чип
-                filterChips[0].classList.add('active');
+                trendingChips.forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        searchInput.value = chip.innerText;
+                        renderCharacters();
+                    });
+                });
+                // активируем первую категорию
+                categories[0].classList.add('active');
                 renderCharacters();
             }
 
@@ -697,8 +816,6 @@
 
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
-
-            // Если есть фото пользователя, оно не трогает сплэш
         })();
     </script>
 </body>

@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 import config
 import utils
-from database import init_user, get_field, get_history, add_to_history
+from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
 # --- Инициализация ---
@@ -27,7 +27,6 @@ def chat():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
-
     chat_id = data.get('chat_id')
     message = data.get('message')
     if not chat_id or not message:
@@ -37,7 +36,7 @@ def chat():
     reply = query_dolphin(message, chat_id, client)
     return jsonify({'reply': reply})
 
-# --- Вебхук для Telegram (вместо polling) ---
+# --- Вебхук для Telegram ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     json_str = request.get_data().decode('UTF-8')
@@ -45,7 +44,7 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
-# --- Обработчики сообщений бота (те же, что в main.py) ---
+# --- Обработчики бота ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -58,7 +57,8 @@ def start(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     webapp_button = telebot.types.KeyboardButton(
         text="🚀 Погрузиться",
-        web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/app")
+        web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/app"),
+        style="primary"   # синяя кнопка
     )
     markup.add(webapp_button)
 
@@ -100,16 +100,14 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
-# --- Запуск Flask и установка вебхука ---
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    render_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME')
-    if render_hostname:
-        webhook_url = f"https://{render_hostname}/webhook"
-        bot.remove_webhook()
-        bot.set_webhook(url=webhook_url)
-        print(f"✅ Вебхук установлен: {webhook_url}")
-    else:
-        print("⚠️ RENDER_EXTERNAL_HOSTNAME не задан, вебхук не установлен. Бот будет работать только через мини-апп?")
-    print(f"🚀 Flask запущен на порту {port}")
-    app.run(host='0.0.0.0', port=port)
+# --- Установка вебхука (выполнится при запуске gunicorn) ---
+render_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if render_hostname:
+    webhook_url = f"https://{render_hostname}/webhook"
+    bot.remove_webhook()
+    bot.set_webhook(url=webhook_url)
+    print(f"✅ Вебхук установлен: {webhook_url}")
+else:
+    print("⚠️ RENDER_EXTERNAL_HOSTNAME не задан, вебхук не установлен")
+
+# Важно: НЕТ вызова bot.polling() и app.run() — gunicorn сам запустит приложение.

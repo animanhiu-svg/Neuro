@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · портал</title>
+    <title>NeuroBro · чаты</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
+        /* (все стили те же, что в предыдущей версии, плюс несколько для списка чатов) */
         * {
             margin: 0;
             padding: 0;
@@ -436,6 +437,67 @@
             transform: scale(0.95);
         }
 
+        /* Стили для списка чатов */
+        .chats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 12px;
+            border: 1px solid #2a2a2a;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .chat-item:active {
+            transform: scale(0.98);
+        }
+        .chat-item-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+        }
+        .chat-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .chat-item-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .chat-item-last {
+            font-size: 12px;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-item-badge {
+            background: #2481cc;
+            border-radius: 30px;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #fff;
+            margin-left: 8px;
+        }
+        .empty-chats {
+            text-align: center;
+            padding: 40px 20px;
+            color: #aaa;
+        }
+
         /* Остальные стили (конструктор, заглушки) */
         .placeholder-page {
             text-align: center;
@@ -682,60 +744,105 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             });
 
-            // Рендер конструктора
-            function renderHome() {
-                let avatarHtml = photo ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${photo}');"></div>` :
-                                          `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
+            // --- Вспомогательные функции для чатов ---
+            let currentChat = null; // имя текущего открытого чата (для сброса unread)
+
+            function getChatsList() {
+                try {
+                    return JSON.parse(localStorage.getItem('chatsList')) || [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function saveChatsList(chats) {
+                localStorage.setItem('chatsList', JSON.stringify(chats));
+            }
+
+            // Обновление или создание диалога в списке чатов
+            function updateChatsList(chatId, name, avatar, lastMessage, lastTime, incrementUnread = false) {
+                let chats = getChatsList();
+                const existingIndex = chats.findIndex(c => c.chatId === chatId);
+                const now = new Date();
+                const timeStr = lastTime || now.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
+                const newChat = {
+                    chatId,
+                    name,
+                    avatar,
+                    lastMessage,
+                    lastTime: timeStr,
+                    unreadCount: 0
+                };
+                if (existingIndex !== -1) {
+                    // обновляем существующий
+                    chats[existingIndex].lastMessage = lastMessage;
+                    chats[existingIndex].lastTime = timeStr;
+                    if (incrementUnread && currentChat !== chatId) {
+                        chats[existingIndex].unreadCount = (chats[existingIndex].unreadCount || 0) + 1;
+                    } else {
+                        chats[existingIndex].unreadCount = 0; // если чат открыт, сбрасываем
+                    }
+                } else {
+                    newChat.unreadCount = (incrementUnread && currentChat !== chatId) ? 1 : 0;
+                    chats.push(newChat);
+                }
+                // сортировка по времени (свежие сверху)
+                chats.sort((a,b) => new Date(b.lastTime) - new Date(a.lastTime));
+                saveChatsList(chats);
+            }
+
+            // Рендер вкладки Чаты
+            function renderChats() {
+                const chats = getChatsList();
+                if (chats.length === 0) {
+                    contentArea.innerHTML = `
+                        <div class="empty-chats">
+                            <i data-lucide="message-circle" style="width:48px;height:48px;margin-bottom:16px;"></i>
+                            <p>Нет чатов</p>
+                            <p style="font-size:12px">Начните диалог из портала</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
                 const html = `
-                    <div class="neuro-header"><h1>NEURO BRO</h1></div>
-                    <div class="avatar-block">${avatarHtml}<div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div></div>
-                    <div class="input-group"><div class="input-label">[ ИМЯ ]</div><input type="text" class="input-field" id="nameInput" value="${character.name || ''}" maxlength="30"></div>
-                    <div class="input-group"><div class="input-label">[ ПОЛ ]</div><div class="gender-chips" id="genderChips"><div class="chip ${character.gender === 'male' ? 'active' : ''}" data-gender="male">М</div><div class="chip ${character.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div><div class="chip ${character.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div></div></div>
-                    <div class="input-group"><div class="input-label">[ ГОЛОС ]</div><input type="text" class="input-field" id="greetingInput" value="${character.greeting || ''}" maxlength="100"><div class="char-counter" id="greetingCounter">${character.greeting?.length || 0}/100</div></div>
-                    <div class="input-group"><div class="input-label">[ ИСТОРИЯ ]</div><input type="text" class="input-field" id="storyInput" value="${character.story || ''}" maxlength="200"><div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div></div>
-                    <div class="main-buttons"><button class="btn btn-outline" id="resetBtn">СБРОС</button><button class="btn btn-primary" id="activateBtn">ПРОБУДИТЬ</button></div>
+                    <div class="chats-list">
+                        ${chats.map(chat => `
+                            <div class="chat-item" data-chat-id="${chat.chatId}">
+                                <div class="chat-item-avatar" style="background-image: url('${chat.avatar}');"></div>
+                                <div class="chat-item-info">
+                                    <div class="chat-item-name">
+                                        ${chat.name}
+                                        ${chat.unreadCount > 0 ? `<span class="chat-item-badge">${chat.unreadCount}</span>` : ''}
+                                    </div>
+                                    <div class="chat-item-last">${chat.lastMessage}</div>
+                                    <div class="chat-item-time" style="font-size:10px; color:#666;">${chat.lastTime}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 `;
                 contentArea.innerHTML = html;
-                document.getElementById('avatar-circle')?.addEventListener('click', () => fileInput.click());
-                document.getElementById('upload-label')?.addEventListener('click', () => fileInput.click());
+                lucide.createIcons();
 
-                const nameInput = document.getElementById('nameInput');
-                const greetingInput = document.getElementById('greetingInput');
-                const storyInput = document.getElementById('storyInput');
-                const genderChips = document.querySelectorAll('.chip');
-                const resetBtn = document.getElementById('resetBtn');
-                const activateBtn = document.getElementById('activateBtn');
-
-                nameInput?.addEventListener('input', (e) => { character.name = e.target.value; saveCharacter(); });
-                greetingInput?.addEventListener('input', (e) => { character.greeting = e.target.value; saveCharacter(); document.getElementById('greetingCounter').textContent = `${e.target.value.length}/100`; });
-                storyInput?.addEventListener('input', (e) => { character.story = e.target.value; saveCharacter(); document.getElementById('storyCounter').textContent = `${e.target.value.length}/200`; });
-                genderChips.forEach(chip => {
-                    chip.addEventListener('click', function() {
-                        genderChips.forEach(c => c.classList.remove('active'));
-                        this.classList.add('active');
-                        character.gender = this.dataset.gender;
-                        saveCharacter();
-                    });
-                });
-                resetBtn?.addEventListener('click', () => {
-                    character = { name: '', gender: 'male', greeting: '', story: '' };
-                    saveCharacter();
-                    setPhoto(null);
-                    renderHome();
-                    tg.HapticFeedback?.impactOccurred('light');
-                });
-                activateBtn?.addEventListener('click', () => {
-                    loader.classList.add('show');
-                    tg.HapticFeedback?.impactOccurred('medium');
-                    setTimeout(() => {
-                        loader.classList.remove('show');
-                        console.log('Персонаж:', { ...character, photo: photo ? 'есть' : 'нет' });
-                        tg.showAlert('Данные готовы (консоль)');
-                    }, 1500);
+                document.querySelectorAll('.chat-item').forEach(el => {
+                    const chatId = el.dataset.chatId;
+                    const chat = chats.find(c => c.chatId === chatId);
+                    if (chat) {
+                        el.addEventListener('click', () => {
+                            // сбрасываем unread для этого чата
+                            let updatedChats = getChatsList();
+                            const idx = updatedChats.findIndex(c => c.chatId === chatId);
+                            if (idx !== -1) updatedChats[idx].unreadCount = 0;
+                            saveChatsList(updatedChats);
+                            // открываем чат
+                            renderChat(chat.name, chat.avatar);
+                        });
+                    }
                 });
             }
 
-            // === ЧАТ ===
+            // --- Чат ---
             function renderChat(chatName, chatAvatar) {
                 const storageKey = `chat_${chatName}`;
                 let messages = [];
@@ -743,6 +850,8 @@
                     const stored = localStorage.getItem(storageKey);
                     if (stored) messages = JSON.parse(stored);
                 } catch (e) {}
+
+                currentChat = chatName; // запоминаем открытый чат для сброса уведомлений
 
                 const html = `
                     <div class="chat-header">
@@ -780,6 +889,15 @@
                     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
                     messages.push({ text, sender, time });
                     localStorage.setItem(storageKey, JSON.stringify(messages));
+
+                    // Обновляем список чатов: для отправленных сообщений увеличиваем счётчик, для ответов бота — нет (но можно по желанию)
+                    if (sender === 'user') {
+                        updateChatsList(chatName, chatName, chatAvatar, text, time, true);
+                    } else {
+                        // для ответов бота тоже обновляем, но не увеличиваем unread (так как мы их не ждём от бота, но можно оставить без инкремента)
+                        updateChatsList(chatName, chatName, chatAvatar, text, time, false);
+                    }
+
                     const msgDiv = document.createElement('div');
                     msgDiv.className = `message ${sender}`;
                     msgDiv.innerHTML = `<div class="message-bubble">${text}</div><div class="message-time">${time}</div>`;
@@ -804,11 +922,12 @@
                 });
 
                 backBtn.addEventListener('click', () => {
-                    renderFeed(); // возврат в портал
+                    currentChat = null;
+                    renderChats(); // возврат к списку чатов
                 });
             }
 
-            // === ПОРТАЛ (с переходом в чат) ===
+            // --- ПОРТАЛ (с переходом в чат, и с обновлением списка) ---
             function renderFeed() {
                 const demoCharacters = [
                     { name: "Айко", desc: "Кибер-воин, ищущая напарника", tags: ["боевик", "киберпанк"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=1" },
@@ -910,6 +1029,7 @@
                             e.stopPropagation();
                             const name = btn.dataset.name;
                             const avatar = btn.dataset.avatar;
+                            // при переходе из портала сразу показываем чат, но в списке чатов он появится после отправки первого сообщения
                             renderChat(name, avatar);
                         });
                     });
@@ -941,7 +1061,58 @@
                 renderCharacters();
             }
 
-            function renderChats() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="message-circle-more" style="width:48px;height:48px;margin-bottom:20px;"></i><br>ДИАЛОГИ<br>скоро здесь будут ваши чаты</div>'; lucide.createIcons(); }
+            function renderHome() {
+                let avatarHtml = photo ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${photo}');"></div>` :
+                                          `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
+                const html = `
+                    <div class="neuro-header"><h1>NEURO BRO</h1></div>
+                    <div class="avatar-block">${avatarHtml}<div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div></div>
+                    <div class="input-group"><div class="input-label">[ ИМЯ ]</div><input type="text" class="input-field" id="nameInput" value="${character.name || ''}" maxlength="30"></div>
+                    <div class="input-group"><div class="input-label">[ ПОЛ ]</div><div class="gender-chips" id="genderChips"><div class="chip ${character.gender === 'male' ? 'active' : ''}" data-gender="male">М</div><div class="chip ${character.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div><div class="chip ${character.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div></div></div>
+                    <div class="input-group"><div class="input-label">[ ГОЛОС ]</div><input type="text" class="input-field" id="greetingInput" value="${character.greeting || ''}" maxlength="100"><div class="char-counter" id="greetingCounter">${character.greeting?.length || 0}/100</div></div>
+                    <div class="input-group"><div class="input-label">[ ИСТОРИЯ ]</div><input type="text" class="input-field" id="storyInput" value="${character.story || ''}" maxlength="200"><div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div></div>
+                    <div class="main-buttons"><button class="btn btn-outline" id="resetBtn">СБРОС</button><button class="btn btn-primary" id="activateBtn">ПРОБУДИТЬ</button></div>
+                `;
+                contentArea.innerHTML = html;
+                document.getElementById('avatar-circle')?.addEventListener('click', () => fileInput.click());
+                document.getElementById('upload-label')?.addEventListener('click', () => fileInput.click());
+
+                const nameInput = document.getElementById('nameInput');
+                const greetingInput = document.getElementById('greetingInput');
+                const storyInput = document.getElementById('storyInput');
+                const genderChips = document.querySelectorAll('.chip');
+                const resetBtn = document.getElementById('resetBtn');
+                const activateBtn = document.getElementById('activateBtn');
+
+                nameInput?.addEventListener('input', (e) => { character.name = e.target.value; saveCharacter(); });
+                greetingInput?.addEventListener('input', (e) => { character.greeting = e.target.value; saveCharacter(); document.getElementById('greetingCounter').textContent = `${e.target.value.length}/100`; });
+                storyInput?.addEventListener('input', (e) => { character.story = e.target.value; saveCharacter(); document.getElementById('storyCounter').textContent = `${e.target.value.length}/200`; });
+                genderChips.forEach(chip => {
+                    chip.addEventListener('click', function() {
+                        genderChips.forEach(c => c.classList.remove('active'));
+                        this.classList.add('active');
+                        character.gender = this.dataset.gender;
+                        saveCharacter();
+                    });
+                });
+                resetBtn?.addEventListener('click', () => {
+                    character = { name: '', gender: 'male', greeting: '', story: '' };
+                    saveCharacter();
+                    setPhoto(null);
+                    renderHome();
+                    tg.HapticFeedback?.impactOccurred('light');
+                });
+                activateBtn?.addEventListener('click', () => {
+                    loader.classList.add('show');
+                    tg.HapticFeedback?.impactOccurred('medium');
+                    setTimeout(() => {
+                        loader.classList.remove('show');
+                        console.log('Персонаж:', { ...character, photo: photo ? 'есть' : 'нет' });
+                        tg.showAlert('Данные готовы (консоль)');
+                    }, 1500);
+                });
+            }
+
             function renderGames() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px;height:48px;margin-bottom:20px;"></i><br>МИНИ-ИГРЫ<br>скоро здесь появятся активности</div>'; lucide.createIcons(); }
             function renderSettings() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px;height:48px;margin-bottom:20px;"></i><br>НАСТРОЙКИ<br>профиль, уведомления, тема</div>'; lucide.createIcons(); }
 

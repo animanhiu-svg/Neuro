@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · финал</title>
+    <title>NeuroBro · поиск</title>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Cropper.js (лёгкая библиотека для кадрирования) -->
@@ -43,7 +43,7 @@
             background: #1e1e1e; border: 2px solid #fff;
             display: flex; align-items: center; justify-content: center;
             margin-bottom: 24px; overflow: hidden;
-            /* СЮДА ПОТОМ ВСТАВИШЬ СВОЁ ФОТО */
+            /* СЮДА ВСТАВЬ СВОЁ ФОТО */
             background-image: url(''); /* например: url('https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/splash.jpg') */
             background-size: cover;
             background-position: center;
@@ -110,12 +110,118 @@
         .sheet-item:last-child { border-bottom: none; }
         .sheet-item i { width: 24px; height: 24px; }
 
-        .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
+        /* Стили для поиска (портал) */
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #1e1e1e;
+            border-radius: 30px;
+            padding: 8px 16px;
+            margin-bottom: 16px;
+            border: 1px solid #444;
+        }
+        .search-box i {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            color: #aaa;
+        }
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 16px;
+            width: 100%;
+        }
+        .search-box input::placeholder {
+            color: #666;
+        }
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .filter-chip {
+            background: transparent;
+            border: 1px solid #444;
+            border-radius: 30px;
+            padding: 8px 16px;
+            font-size: 14px;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-chip.active {
+            border-color: #fff;
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+        .character-card {
+            display: flex;
+            gap: 12px;
+            background: #1e1e1e;
+            border-radius: 20px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #333;
+            transition: transform 0.1s;
+        }
+        .character-card:active {
+            transform: scale(0.98);
+        }
+        .card-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #333;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+        }
+        .card-info {
+            flex: 1;
+        }
+        .card-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .card-desc {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        .card-action {
+            background: transparent;
+            border: 1px solid #fff;
+            border-radius: 30px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            align-self: flex-start;
+        }
+        .card-action:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.2);
+        }
+        .placeholder-page {
+            text-align: center;
+            padding: 60px 20px;
+            color: #aaa;
+            font-size: 16px;
+            line-height: 1.8;
+        }
 
-        /* Конструктор */
+        /* Конструктор (остаётся без изменений) */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
-
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
         .avatar-circle {
             width: 120px; height: 120px; border-radius: 50%;
@@ -138,7 +244,6 @@
             text-underline-offset: 4px; cursor: pointer;
         }
         .avatar-label:active { transform: scale(0.95); }
-
         .input-group { margin-bottom: 20px; }
         .input-label { font-size: 12px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; }
         .input-field {
@@ -147,7 +252,6 @@
             font-size: 16px; color: #fff; outline: none;
         }
         .input-field:focus { border-bottom-color: #fff; }
-
         .gender-chips { display: flex; gap: 16px; margin-top: 8px; }
         .chip {
             background: transparent; border: 1px solid #444; border-radius: 30px;
@@ -156,9 +260,7 @@
         }
         .chip.active { border-color: #fff; color: #fff; }
         .chip:active { transform: scale(0.95); }
-
         .char-counter { text-align: right; font-size: 10px; color: #666; margin-top: 4px; }
-
         .main-buttons { display: flex; gap: 16px; margin-top: 32px; }
         .btn {
             flex: 1; padding: 16px 0; border-radius: 40px;
@@ -168,7 +270,6 @@
         .btn:active { transform: scale(0.95); }
         .btn-outline { background: transparent; border: 1px solid #fff; color: #fff; }
         .btn-primary { background: #fff; color: #121212; }
-
         .loader-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center;
@@ -178,10 +279,7 @@
         .loader-content { background: #1e1e1e; border: 1px solid #fff; border-radius: 40px; padding: 30px 40px; text-align: center; }
         .loader-text { font-size: 18px; font-weight: 500; color: #fff; }
         .loader-sub { margin-top: 10px; font-size: 12px; color: #aaa; }
-
         #file-input { display: none; }
-
-        /* Модалка кадрирования */
         .crop-modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -279,7 +377,6 @@
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
-
 
             // Элементы
             const splash = document.getElementById('splash-screen');
@@ -477,11 +574,88 @@
                 });
             }
 
-            function renderFeed() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="globe" style="width:48px;height:48px;margin-bottom:20px;"></i><br>ЛЕНТА ПЕРСОНАЖЕЙ</div>'; lucide.createIcons(); }
-            function renderChats() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="message-circle-more" style="width:48px;height:48px;margin-bottom:20px;"></i><br>ДИАЛОГИ</div>'; lucide.createIcons(); }
-            function renderGames() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px;height:48px;margin-bottom:20px;"></i><br>МИНИ-ИГРЫ</div>'; lucide.createIcons(); }
-            function renderSettings() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px;height:48px;margin-bottom:20px;"></i><br>НАСТРОЙКИ</div>'; lucide.createIcons(); }
+            // Рендер поиска (портал)
+            function renderFeed() {
+                const demoCharacters = [
+                    { name: "Айко", desc: "Кибер-воин, ищущая напарника", avatar: "https://i.pravatar.cc/150?img=1" },
+                    { name: "Нейро", desc: "Загадочный хакер, любит головоломки", avatar: "https://i.pravatar.cc/150?img=2" },
+                    { name: "Сакура", desc: "Целительница, добрая и отзывчивая", avatar: "https://i.pravatar.cc/150?img=3" },
+                ];
+                let html = `
+                    <div class="search-container">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="searchInput" placeholder="Имя или тег...">
+                        </div>
+                        <div class="filters" id="filters">
+                            <div class="filter-chip" data-filter="all">Все</div>
+                            <div class="filter-chip" data-filter="male">М</div>
+                            <div class="filter-chip" data-filter="female">Ж</div>
+                            <div class="filter-chip" data-filter="popular">Популярные</div>
+                        </div>
+                        <div id="charactersList"></div>
+                    </div>
+                `;
+                contentArea.innerHTML = html;
+                lucide.createIcons();
 
+                const searchInput = document.getElementById('searchInput');
+                const filterChips = document.querySelectorAll('.filter-chip');
+                const charactersList = document.getElementById('charactersList');
+
+                function renderCharacters() {
+                    const query = searchInput.value.toLowerCase();
+                    const activeFilter = document.querySelector('.filter-chip.active')?.dataset.filter || 'all';
+                    let filtered = [...demoCharacters];
+                    if (query) {
+                        filtered = filtered.filter(c => c.name.toLowerCase().includes(query));
+                    }
+                    // Простая имитация фильтров
+                    if (activeFilter === 'male') filtered = filtered.slice(0, 1);
+                    if (activeFilter === 'female') filtered = filtered.slice(1, 2);
+                    if (activeFilter === 'popular') filtered = filtered.slice(0, 2);
+
+                    if (filtered.length === 0) {
+                        charactersList.innerHTML = '<div class="placeholder-page">Ничего не найдено</div>';
+                        return;
+                    }
+                    charactersList.innerHTML = filtered.map(c => `
+                        <div class="character-card">
+                            <div class="card-avatar" style="background-image: url('${c.avatar}');"></div>
+                            <div class="card-info">
+                                <div class="card-name">${c.name}</div>
+                                <div class="card-desc">${c.desc}</div>
+                                <button class="card-action" data-name="${c.name}">Общаться →</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    // Обработчики для кнопок
+                    document.querySelectorAll('.card-action').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            tg.showAlert(`Чат с ${btn.dataset.name} (в разработке)`);
+                        });
+                    });
+                }
+
+                searchInput.addEventListener('input', renderCharacters);
+                filterChips.forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        filterChips.forEach(c => c.classList.remove('active'));
+                        chip.classList.add('active');
+                        renderCharacters();
+                    });
+                });
+                // Активируем первый чип
+                filterChips[0].classList.add('active');
+                renderCharacters();
+            }
+
+            function renderChats() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="message-circle-more" style="width:48px;height:48px;margin-bottom:20px;"></i><br>ДИАЛОГИ<br>скоро здесь будут ваши чаты</div>'; lucide.createIcons(); }
+            function renderGames() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px;height:48px;margin-bottom:20px;"></i><br>МИНИ-ИГРЫ<br>скоро здесь появятся активности</div>'; lucide.createIcons(); }
+            function renderSettings() { contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px;height:48px;margin-bottom:20px;"></i><br>НАСТРОЙКИ<br>профиль, уведомления, тема</div>'; lucide.createIcons(); }
+
+            // Переключение вкладок
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
                     const tab = item.dataset.tab;
@@ -524,7 +698,7 @@
             renderFeed();
             document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
 
-            // Если есть фото, показываем его в сплэше (но сплэш у тебя отдельный, так что тут ничего не меняем)
+            // Если есть фото пользователя, оно не трогает сплэш
         })();
     </script>
 </body>

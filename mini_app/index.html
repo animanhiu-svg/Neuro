@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · портал</title>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Cropper.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
@@ -43,7 +41,7 @@
             background: #1e1e1e; border: 2px solid #fff;
             display: flex; align-items: center; justify-content: center;
             margin-bottom: 24px; overflow: hidden;
-            background-image: url(''); /* своё фото */
+            background-image: url('');
             background-size: cover;
             background-position: center;
         }
@@ -107,7 +105,7 @@
         .sheet-item:last-child { border-bottom: none; }
         .sheet-item i { width: 24px; height: 24px; }
 
-        /* ----- НОВЫЕ СТИЛИ ДЛЯ ПОРТАЛА (поиск) ----- */
+        /* Стили для портала (поиск) */
         .portal-header {
             margin-bottom: 24px;
         }
@@ -332,7 +330,113 @@
             color: #aaa;
         }
 
-        /* Остальные стили (конструктор, заглушки) – без изменений */
+        /* Стили чата */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #333;
+        }
+        .chat-back {
+            background: transparent;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 30px;
+            transition: background 0.2s;
+        }
+        .chat-back:active {
+            background: rgba(255,255,255,0.1);
+        }
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+        }
+        .chat-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .messages {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
+        .message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+        .message.bot {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+        .message-bubble {
+            background: #2a2a2a;
+            padding: 8px 12px;
+            border-radius: 18px;
+            font-size: 14px;
+            word-break: break-word;
+        }
+        .message.user .message-bubble {
+            background: #2481cc;
+            color: #fff;
+        }
+        .message-time {
+            font-size: 10px;
+            color: #888;
+            margin-top: 4px;
+            margin-left: 8px;
+            margin-right: 8px;
+        }
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+            background: #1e1e1e;
+            border-radius: 30px;
+            padding: 8px 12px;
+            border: 1px solid #333;
+        }
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 14px;
+        }
+        .chat-send {
+            background: transparent;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+        }
+        .chat-send:active {
+            transform: scale(0.95);
+        }
+
+        /* Остальные стили (конструктор, заглушки) */
         .placeholder-page {
             text-align: center;
             padding: 60px 20px;
@@ -433,7 +537,6 @@
 <body>
     <input type="file" id="file-input" accept="image/*">
 
-    <!-- СПЛЭШ -->
     <div id="splash-screen">
         <div class="splash-avatar" id="splash-avatar">
             <span id="splash-placeholder">🧬</span>
@@ -443,7 +546,6 @@
         <div class="progress-container"><div class="progress-fill" id="progress-fill"></div></div>
     </div>
 
-    <!-- ОСНОВНОЙ КОНТЕНТ -->
     <div id="main-content">
         <div class="content-area" id="content-area"></div>
         <div class="bottom-bar">
@@ -455,7 +557,6 @@
         </div>
     </div>
 
-    <!-- BOTTOM SHEET -->
     <div class="sheet-overlay" id="sheet-overlay">
         <div class="sheet">
             <div class="sheet-item" id="create-character"><i data-lucide="user-plus"></i> Создать персонажа</div>
@@ -463,7 +564,6 @@
         </div>
     </div>
 
-    <!-- МОДАЛКА КАДРИРОВАНИЯ -->
     <div class="crop-modal" id="crop-modal">
         <div class="crop-container">
             <img src="" id="crop-image" class="crop-image">
@@ -474,7 +574,6 @@
         </div>
     </div>
 
-    <!-- Лоадер -->
     <div class="loader-overlay" id="loader">
         <div class="loader-content"><div class="loader-text">ПРОБУЖДЕНИЕ</div><div class="loader-sub">связь с нейросетью...</div></div>
     </div>
@@ -485,7 +584,7 @@
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
 
-            // Элементы (те же, что и ранее, без изменений)
+            // Элементы
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             const mainContent = document.getElementById('main-content');
@@ -636,7 +735,80 @@
                 });
             }
 
-            // НОВЫЙ ПОРТАЛ (красивый поиск)
+            // === ЧАТ ===
+            function renderChat(chatName, chatAvatar) {
+                const storageKey = `chat_${chatName}`;
+                let messages = [];
+                try {
+                    const stored = localStorage.getItem(storageKey);
+                    if (stored) messages = JSON.parse(stored);
+                } catch (e) {}
+
+                const html = `
+                    <div class="chat-header">
+                        <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
+                        <div class="chat-avatar" style="background-image: url('${chatAvatar}');"></div>
+                        <div class="chat-name">${chatName}</div>
+                    </div>
+                    <div class="messages" id="chat-messages">
+                        ${messages.map(msg => `
+                            <div class="message ${msg.sender}">
+                                <div class="message-bubble">${msg.text}</div>
+                                <div class="message-time">${msg.time}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">
+                        <button class="chat-send" id="chat-send"><i data-lucide="send"></i></button>
+                    </div>
+                `;
+                contentArea.innerHTML = html;
+                lucide.createIcons();
+
+                const messagesContainer = document.getElementById('chat-messages');
+                const input = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('chat-send');
+                const backBtn = document.getElementById('chat-back');
+
+                function scrollToBottom() {
+                    if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+                scrollToBottom();
+
+                function addMessage(text, sender) {
+                    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
+                    messages.push({ text, sender, time });
+                    localStorage.setItem(storageKey, JSON.stringify(messages));
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `message ${sender}`;
+                    msgDiv.innerHTML = `<div class="message-bubble">${text}</div><div class="message-time">${time}</div>`;
+                    messagesContainer.appendChild(msgDiv);
+                    scrollToBottom();
+                }
+
+                function sendMessage() {
+                    const text = input.value.trim();
+                    if (!text) return;
+                    addMessage(text, 'user');
+                    input.value = '';
+                    // Имитация ответа бота (можно позже заменить на реальный запрос)
+                    setTimeout(() => {
+                        addMessage(`Я ${chatName}, я услышал тебя!`, 'bot');
+                    }, 500);
+                }
+
+                sendBtn.addEventListener('click', sendMessage);
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendMessage();
+                });
+
+                backBtn.addEventListener('click', () => {
+                    renderFeed(); // возврат в портал
+                });
+            }
+
+            // === ПОРТАЛ (с переходом в чат) ===
             function renderFeed() {
                 const demoCharacters = [
                     { name: "Айко", desc: "Кибер-воин, ищущая напарника", tags: ["боевик", "киберпанк"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=1" },
@@ -682,7 +854,6 @@
                 const charactersList = document.getElementById('charactersList');
 
                 let activeCategory = 'all';
-                let currentFilter = '';
 
                 function renderCharacters() {
                     const query = searchInput.value.toLowerCase();
@@ -725,7 +896,7 @@
                                     <div class="card-desc">${c.desc}</div>
                                     <div class="card-tags">${c.tags.map(t => `<span class="tag">#${t}</span>`).join('')}</div>
                                     <div class="card-actions">
-                                        <button class="btn-chat" data-name="${c.name}">Общаться →</button>
+                                        <button class="btn-chat" data-name="${c.name}" data-avatar="${c.avatar}">Общаться →</button>
                                         <button class="btn-like" data-name="${c.name}"><i data-lucide="heart"></i> 24</button>
                                     </div>
                                 </div>
@@ -737,7 +908,9 @@
                     document.querySelectorAll('.btn-chat').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            tg.showAlert(`Чат с ${btn.dataset.name} (в разработке)`);
+                            const name = btn.dataset.name;
+                            const avatar = btn.dataset.avatar;
+                            renderChat(name, avatar);
                         });
                     });
                     document.querySelectorAll('.btn-like').forEach(btn => {
@@ -745,7 +918,6 @@
                             e.stopPropagation();
                             tg.HapticFeedback?.impactOccurred('light');
                             btn.classList.toggle('active');
-                            // можно менять счётчик лайков, но пока просто визуально
                         });
                     });
                 }
@@ -765,7 +937,6 @@
                         renderCharacters();
                     });
                 });
-                // активируем первую категорию
                 categories[0].classList.add('active');
                 renderCharacters();
             }

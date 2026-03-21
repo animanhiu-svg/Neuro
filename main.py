@@ -39,7 +39,7 @@ def start(message):
     webapp_button = KeyboardButton(
         text="🚀 Погрузиться",
         web_app=WebAppInfo(url=get_webapp_url()),
-        style="primary"   # <--- вот эта строчка делает кнопку синей
+        style="success" # <--- вот эта строчка делает кнопку синей
     )
     markup.add(webapp_button)
 

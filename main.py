@@ -39,7 +39,8 @@ def start(message):
     webapp_button = KeyboardButton(
         text="🚀 Погрузиться",
         web_app=WebAppInfo(url=get_webapp_url())
-    )
+        style="primary
+    )   
     markup.add(webapp_button)
 
     bot.send_message(

@@ -8,20 +8,24 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# Отключаем пингер, чтобы не конфликтовать с gunicorn
-# utils.start_pinger()
+# utils.start_pinger()   # убираем, чтобы не конфликтовать
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')
 
+# --- Отдача статики ---
 @app.route('/')
 @app.route('/app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
 
-# --- Эндпоинт для чата мини-аппа (реальный ИИ) ---
+@app.route('/test.html')
+def serve_test():
+    return send_from_directory('mini_app', 'test.html')
+
+# --- Эндпоинт для чата мини-аппа ---
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
@@ -34,7 +38,7 @@ def chat():
 
     init_user(chat_id)
     try:
-        reply = query_dolphin(message, chat_id, client)   # реальный вызов ИИ
+        reply = query_dolphin(message, chat_id, client)   # реальный ИИ
     except Exception as e:
         print(f"Ошибка в query_dolphin: {e}")
         reply = "⚠️ Ошибка при обращении к нейросети."
@@ -48,7 +52,7 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
-# --- Обработчики бота ---
+# --- Обработчики бота (твои) ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -60,7 +64,7 @@ def start(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     webapp_button = telebot.types.KeyboardButton(
         text="🚀 Погрузиться",
-        web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/app"),
+        web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')}/app"),
         style="primary"
     )
     markup.add(webapp_button)
@@ -103,14 +107,18 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
-# --- Установка вебхука ---
-if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
-    webhook_url = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/webhook"
-    bot.remove_webhook()
-    bot.set_webhook(url=webhook_url)
-    print(f"✅ Вебхук установлен: {webhook_url}")
-else:
-    print("⚠️ RENDER_EXTERNAL_HOSTNAME не задан, вебхук не установлен.")
+# --- Установка вебхука один раз при первом запросе ---
+@app.before_first_request
+def set_webhook():
+    # Определяем базовый URL
+    base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
+    webhook_url = f"https://{base_url}/webhook"
+    try:
+        bot.remove_webhook()
+        bot.set_webhook(url=webhook_url)
+        print(f"✅ Вебхук установлен: {webhook_url}")
+    except Exception as e:
+        print(f"❌ Ошибка установки вебхука: {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))

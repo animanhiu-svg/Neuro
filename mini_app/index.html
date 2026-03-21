@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · финал</title>
+    <title>NeuroBro · ИИ-чат</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        /* все стили, которые были у тебя в последней стабильной версии */
         * {
             margin: 0;
             padding: 0;
@@ -530,7 +529,7 @@
                 saveChatsList(chats);
             }
 
-            // Рендер чата (с отправкой на /chat)
+            // Рендер чата (с рабочим fetch)
             function renderChat(chatName, chatAvatar) {
                 const storageKey = `chat_${chatName}`;
                 let messages = [];
@@ -583,30 +582,29 @@
                     scrollToBottom();
                 }
 
-                function sendMessage() {
+                async function sendMessage() {
                     const text = input.value.trim();
                     if (!text) return;
                     addMessage(text, 'user');
                     input.value = '';
 
-                    // ИСПРАВЛЕНО: используем относительный путь /chat
-                    fetch('/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: chatId, message: text })
-                    })
-                    .then(res => {
-                        if (!res.ok) throw new Error('HTTP ' + res.status);
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (data.reply) addMessage(data.reply, 'bot');
-                        else addMessage('⚠️ Пустой ответ от сервера', 'bot');
-                    })
-                    .catch(err => {
+                    try {
+                        const response = await fetch('/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: chatId, message: text })
+                        });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const data = await response.json();
+                        if (data.reply) {
+                            addMessage(data.reply, 'bot');
+                        } else {
+                            addMessage('⚠️ Пустой ответ от сервера', 'bot');
+                        }
+                    } catch (err) {
                         console.error(err);
                         addMessage('⚠️ Ошибка соединения с сервером', 'bot');
-                    });
+                    }
                 }
 
                 sendBtn.addEventListener('click', sendMessage);
@@ -788,7 +786,7 @@
                 renderCharacters();
             }
 
-            // Конструктор (создание персонажа)
+            // Конструктор
             function renderHome() {
                 let avatarHtml = photo ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${photo}');"></div>` :
                                           `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;

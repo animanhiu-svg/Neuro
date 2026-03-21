@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        /* ---------- общие стили ---------- */
+        /* все стили остаются как в предыдущей версии, не меняем */
         * {
             margin: 0;
             padding: 0;
@@ -598,8 +598,9 @@
                     addMessage(text, 'user');
                     input.value = '';
 
-                    // Отправляем запрос к нашему веб-серверу
-                    fetch('/chat', {
+                    // Отправляем запрос к нашему веб-серверу (используем текущий origin)
+                    const baseUrl = window.location.origin;
+                    fetch(`${baseUrl}/chat`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ chat_id: chatId, message: text })

@@ -8,7 +8,7 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# utils.start_pinger()   # убираем, чтобы не конфликтовать
+# utils.start_pinger()   # убрали
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
@@ -38,7 +38,7 @@ def chat():
 
     init_user(chat_id)
     try:
-        reply = query_dolphin(message, chat_id, client)   # реальный ИИ
+        reply = query_dolphin(message, chat_id, client)
     except Exception as e:
         print(f"Ошибка в query_dolphin: {e}")
         reply = "⚠️ Ошибка при обращении к нейросети."
@@ -107,18 +107,24 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
-# --- Установка вебхука один раз при первом запросе ---
-@app.before_first_request
-def set_webhook():
-    # Определяем базовый URL
+# --- Установка вебхука один раз при старте приложения ---
+def setup_webhook():
     base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
     webhook_url = f"https://{base_url}/webhook"
     try:
-        bot.remove_webhook()
-        bot.set_webhook(url=webhook_url)
-        print(f"✅ Вебхук установлен: {webhook_url}")
+        # Проверяем, активен ли уже вебхук
+        info = bot.get_webhook_info()
+        if info.url != webhook_url:
+            bot.remove_webhook()
+            bot.set_webhook(url=webhook_url)
+            print(f"✅ Вебхук установлен: {webhook_url}")
+        else:
+            print("ℹ️ Вебхук уже установлен.")
     except Exception as e:
         print(f"❌ Ошибка установки вебхука: {e}")
+
+# Вызываем установку один раз при запуске
+setup_webhook()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))

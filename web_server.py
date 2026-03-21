@@ -8,8 +8,8 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# utils.start_pinger()   # убрали
-
+# --- Инициализация ---
+# utils.start_pinger()  # отключаем, чтобы не конфликтовать с gunicorn
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
@@ -28,21 +28,27 @@ def serve_test():
 # --- Эндпоинт для чата мини-аппа ---
 @app.route('/chat', methods=['POST'])
 def chat():
+    print("🔔 POST /chat вызван")
     data = request.get_json()
     if not data:
+        print("⚠️ Нет JSON данных")
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
     message = data.get('message')
+    print(f"📩 Получено от chat_id={chat_id}: {message}")
     if not chat_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
     try:
         reply = query_dolphin(message, chat_id, client)
+        print(f"✅ Ответ от ИИ: {reply}")
+        return jsonify({'reply': reply})
     except Exception as e:
-        print(f"Ошибка в query_dolphin: {e}")
-        reply = "⚠️ Ошибка при обращении к нейросети."
-    return jsonify({'reply': reply})
+        print(f"❌ Ошибка в /chat: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
 
 # --- Вебхук для бота ---
 @app.route('/webhook', methods=['POST'])
@@ -52,9 +58,10 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
-# --- Обработчики бота (твои) ---
+# --- Обработчики бота ---
 @bot.message_handler(commands=['start'])
 def start(message):
+    print(f"📩 Команда /start от {message.chat.id}")
     if message.chat.id != config.ALLOWED_USER_ID:
         bot.reply_to(message, "⛔ Только для владельца.")
         return
@@ -81,6 +88,7 @@ def start(message):
 
 @bot.message_handler(content_types=['web_app_data'])
 def handle_web_app_data(message):
+    print(f"📩 Получены данные из WebApp от {message.chat.id}")
     cid = message.chat.id
     if cid != config.ALLOWED_USER_ID:
         return
@@ -95,37 +103,55 @@ def handle_web_app_data(message):
 
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/'))
 def handle_chat(message):
+    print(f"📩 Получено сообщение от ID {message.chat.id}: {message.text}")
+
     if message.chat.id != config.ALLOWED_USER_ID:
+        print(f"⚠️ Доступ запрещён для {message.chat.id}")
+        bot.reply_to(message, "⛔ Только для владельца.")
         return
+
     cid = message.chat.id
     text = message.text
+
     if contains_forbidden(text):
         bot.reply_to(message, "⛔ Запрещённая тема.")
         return
+
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-    reply = query_dolphin(text, cid, client)
-    bot.send_message(cid, reply)
 
-# --- Установка вебхука один раз при старте приложения ---
+    try:
+        reply = query_dolphin(text, cid, client)
+        print(f"💬 Ответ для отправки: {reply}")
+
+        if not reply or str(reply).strip() == "":
+            bot.send_message(cid, "⚠️ Нейросеть вернула пустой ответ.")
+        else:
+            bot.send_message(cid, reply)
+
+    except Exception as e:
+        print(f"💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        import traceback
+        traceback.print_exc()
+        bot.send_message(cid, f"❌ Ошибка сервера: {e}")
+
+# --- Установка вебхука (выполняется один раз при старте) ---
 def setup_webhook():
     base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
     webhook_url = f"https://{base_url}/webhook"
     try:
-        # Проверяем, активен ли уже вебхук
-        info = bot.get_webhook_info()
-        if info.url != webhook_url:
-            bot.remove_webhook()
-            bot.set_webhook(url=webhook_url)
-            print(f"✅ Вебхук установлен: {webhook_url}")
-        else:
-            print("ℹ️ Вебхук уже установлен.")
+        bot.remove_webhook()
+        bot.set_webhook(url=webhook_url)
+        print(f"✅ Вебхук установлен: {webhook_url}")
     except Exception as e:
         print(f"❌ Ошибка установки вебхука: {e}")
 
-# Вызываем установку один раз при запуске
+# Вызовем установку вебхука прямо при импорте (в основном потоке, до запуска gunicorn)
+# Это сработает один раз для каждого воркера, но не страшно.
 setup_webhook()
 
+# gunicorn будет использовать объект app
 if __name__ == '__main__':
+    # Для локального запуска (не через gunicorn)
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)

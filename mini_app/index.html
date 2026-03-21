@@ -23,6 +23,7 @@
         const tg = Telegram.WebApp;
         tg.ready();
         const chatId = tg.initDataUnsafe.user?.id || 0;
+        console.log('chatId:', chatId);
         const chatDiv = document.getElementById('chat');
 
         function addMessage(text, sender) {

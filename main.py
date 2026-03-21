@@ -4,7 +4,7 @@ import telebot
 from openai import OpenAI
 from telebot.types import (
     InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo,
-    ReplyKeyboardMarkup, KeyboardButton  # <-- добавили для reply-кнопки
+    ReplyKeyboardMarkup, KeyboardButton
 )
 
 import config
@@ -34,11 +34,12 @@ def start(message):
     cid = message.chat.id
     init_user(cid)
 
-    # Создаём reply-клавиатуру с одной кнопкой
+    # Создаём reply-клавиатуру с одной синей кнопкой
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     webapp_button = KeyboardButton(
-        text=" Погрузиться",  # <--- теперь тут "Погрузиться"
-        web_app=WebAppInfo(url=get_webapp_url())
+        text="🚀 Погрузиться",
+        web_app=WebAppInfo(url=get_webapp_url()),
+        style="primary"  # <-- синий цвет
     )
     markup.add(webapp_button)
 
@@ -81,5 +82,5 @@ def handle_chat(message):
     bot.send_message(cid, reply)
 
 if __name__ == "__main__":
-    print("🚀 Чистый бот с Mini App и кнопкой меню запущен!")
+    print("🚀 Бот с синей кнопкой и Mini App запущен!")
     bot.polling(none_stop=True)

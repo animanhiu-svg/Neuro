@@ -34,13 +34,13 @@ def start(message):
     cid = message.chat.id
     init_user(cid)
 
-    # Создаём reply-клавиатуру (гарантированно работает)
+    # Создаём reply-клавиатуру с синей кнопкой
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     webapp_button = KeyboardButton(
         text="🚀 Погрузиться",
-        web_app=WebAppInfo(url=get_webapp_url())
-        style="primary
-    )   
+        web_app=WebAppInfo(url=get_webapp_url()),
+        style="primary"   # <--- вот эта строчка делает кнопку синей
+    )
     markup.add(webapp_button)
 
     bot.send_message(
@@ -82,5 +82,5 @@ def handle_chat(message):
     bot.send_message(cid, reply)
 
 if __name__ == "__main__":
-    print("🚀 Бот с Mini App и кнопкой запущен!")
+    print("🚀 Бот с синей кнопкой и Mini App запущен!")
     bot.polling(none_stop=True)

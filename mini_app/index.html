@@ -220,8 +220,9 @@
         tg.ready();
         tg.expand();
 
-        const chatId = tg.initDataUnsafe.user?.id || 0;
-        console.log('chatId:', chatId);
+        // Используем правильное поле chat_id (с подчёркиванием)
+        const chat_id = tg.initDataUnsafe.user?.id || 0;
+        console.log('chat_id:', chat_id);
 
         // Персонажи для портала
         const characters = [
@@ -238,13 +239,13 @@
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
         }
 
-        // Отправка сообщения (как в debug.html)
+        // Отправка сообщения (копия из debug.html)
         async function sendToServer(message) {
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: chatId, message: message })
+                    body: JSON.stringify({ chat_id: chat_id, message: message })
                 });
                 const data = await response.json();
                 return data.reply || '⚠️ Пустой ответ от сервера';
@@ -328,7 +329,6 @@
                 localStorage.setItem(storageKey, JSON.stringify(messages));
                 addMessageElement(text, sender, time);
                 if (sender === 'user') {
-                    // Отправляем и добавляем ответ
                     sendToServer(text).then(reply => {
                         addMessage(reply, 'bot');
                     });

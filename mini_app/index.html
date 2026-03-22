@@ -170,7 +170,11 @@
             overflow-y: auto;
             max-height: 60vh;
         }
-        .message { display: flex; flex-direction: column; max-width: 80%; }
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
         .message.user { align-self: flex-end; align-items: flex-end; }
         .message.bot { align-self: flex-start; align-items: flex-start; }
         .message-bubble {
@@ -195,6 +199,13 @@
         .chat-send { background: transparent; border: none; color: #fff; cursor: pointer; padding: 6px; display: flex; align-items: center; }
 
         .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
+        .typing-indicator {
+            display: inline-block;
+            background: #2a2a2a;
+            padding: 8px 12px;
+            border-radius: 18px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -220,8 +231,9 @@
         tg.ready();
         tg.expand();
 
-        // Используем правильное поле chat_id (с подчёркиванием)
-        const chat_id = tg.initDataUnsafe.user?.id || 0;
+        // ID пользователя: если не определён или 0, используем запасной (замени на свой)
+        const user_id = tg.initDataUnsafe.user?.id;
+        const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // ← сюда вставь свой ID
         console.log('chat_id:', chat_id);
 
         // Персонажи для портала
@@ -232,30 +244,67 @@
             { name: "Зеро", desc: "Андроид, ищет смысл", avatar: "https://i.pravatar.cc/150?img=4" }
         ];
 
-        let currentChatName = null;
-
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
         }
 
-        // Отправка сообщения (копия из debug.html)
-        async function sendToServer(message) {
+        // ---- Отрисовка сообщений (без вызова сервера) ----
+        function addMessageToUI(container, text, sender, time) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ---- Отправка сообщения на сервер с индикатором ----
+        async function sendMessageToServer(chatName, chatAvatar, text, messagesContainer, storageKey, onReply) {
+            // Показываем индикатор «печатает...»
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 секунд
+
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: chat_id, message: message })
+                    body: JSON.stringify({ chat_id: chat_id, message: text }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
+
                 const data = await response.json();
-                return data.reply || '⚠️ Пустой ответ от сервера';
+                const replyText = data.reply || '⚠️ Пустой ответ от сервера';
+
+                // Удаляем индикатор
+                typingDiv.remove();
+
+                // Добавляем ответ бота
+                const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                addMessageToUI(messagesContainer, replyText, 'bot', time);
+
+                // Сохраняем в localStorage (история)
+                let messages = [];
+                try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
+                messages.push({ text: replyText, sender: 'bot', time });
+                localStorage.setItem(storageKey, JSON.stringify(messages));
+
+                if (onReply) onReply(replyText);
             } catch (err) {
                 console.error(err);
-                return '⚠️ Ошибка соединения с сервером';
+                typingDiv.remove();
+                const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
+                addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
             }
         }
 
-        // Рендер портала
+        // ---- Рендер портала ----
         function renderFeed() {
             const html = `
                 <div class="portal-header">
@@ -284,7 +333,7 @@
             });
         }
 
-        // Рендер чата
+        // ---- Рендер чата ----
         function renderChat(chatName, chatAvatar) {
             const storageKey = `chat_${chatName}`;
             let messages = [];
@@ -305,45 +354,42 @@
             contentArea.innerHTML = html;
             lucide.createIcons();
 
-            const messagesDiv = document.getElementById('chat-messages');
+            const messagesContainer = document.getElementById('chat-messages');
             const input = document.getElementById('chat-input');
             const sendBtn = document.getElementById('chat-send');
             const backBtn = document.getElementById('chat-back');
 
             // Загружаем историю
-            messages.forEach(msg => addMessageElement(msg.text, msg.sender, msg.time));
+            messages.forEach(msg => {
+                addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time);
+            });
 
-            function scrollToBottom() { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
-
-            function addMessageElement(text, sender, time) {
-                const div = document.createElement('div');
-                div.className = `message ${sender}`;
-                div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
-                messagesDiv.appendChild(div);
-                scrollToBottom();
-            }
-
-            function addMessage(text, sender) {
+            // Функция добавления сообщения пользователя (сохраняет и рисует)
+            function addUserMessage(text) {
                 const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                messages.push({ text, sender, time });
+                addMessageToUI(messagesContainer, text, 'user', time);
+                messages.push({ text, sender: 'user', time });
                 localStorage.setItem(storageKey, JSON.stringify(messages));
-                addMessageElement(text, sender, time);
-                if (sender === 'user') {
-                    sendToServer(text).then(reply => {
-                        addMessage(reply, 'bot');
-                    });
-                }
             }
 
-            function sendMessage() {
+            // Обработка отправки
+            async function handleSend() {
                 const text = input.value.trim();
                 if (!text) return;
-                addMessage(text, 'user');
+                addUserMessage(text);
                 input.value = '';
+
+                // Отправляем на сервер и ждём ответ
+                await sendMessageToServer(chatName, chatAvatar, text, messagesContainer, storageKey, (reply) => {
+                    // После получения ответа история уже сохранена внутри sendMessageToServer
+                    // но можно обновить список сообщений в памяти
+                    messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) });
+                    localStorage.setItem(storageKey, JSON.stringify(messages));
+                });
             }
 
-            sendBtn.addEventListener('click', sendMessage);
-            input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+            sendBtn.addEventListener('click', handleSend);
+            input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
             backBtn.addEventListener('click', () => renderFeed());
         }
 

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · портал</title>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -198,7 +200,6 @@
         .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 14px; }
         .chat-send { background: transparent; border: none; color: #fff; cursor: pointer; padding: 6px; display: flex; align-items: center; }
 
-        .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
         .typing-indicator {
             display: inline-block;
             background: #2a2a2a;
@@ -206,9 +207,118 @@
             border-radius: 18px;
             font-size: 14px;
         }
+
+        /* конструктор */
+        .neuro-header { text-align: center; margin-bottom: 24px; }
+        .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
+        .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
+        .avatar-circle {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: #1e1e1e;
+            border: 2px solid #fff;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .avatar-placeholder {
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #fff;
+            background: #1e1e1e;
+            border-radius: 50%;
+        }
+        .avatar-label {
+            font-size: 14px;
+            color: #aaa;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .input-group { margin-bottom: 20px; }
+        .input-label { font-size: 12px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; }
+        .input-field {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #444;
+            padding: 8px 0;
+            font-size: 16px;
+            color: #fff;
+            outline: none;
+        }
+        .input-field:focus { border-bottom-color: #fff; }
+        .gender-chips { display: flex; gap: 16px; margin-top: 8px; }
+        .chip {
+            background: transparent;
+            border: 1px solid #444;
+            border-radius: 30px;
+            padding: 8px 24px;
+            font-size: 15px;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chip.active { border-color: #fff; color: #fff; }
+        .char-counter { text-align: right; font-size: 10px; color: #666; margin-top: 4px; }
+        .main-buttons { display: flex; gap: 16px; margin-top: 32px; }
+        .btn {
+            flex: 1;
+            padding: 16px 0;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 15px;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-outline { background: transparent; border: 1px solid #fff; color: #fff; }
+        .btn-primary { background: #fff; color: #121212; }
+        .crop-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .crop-modal.show { display: flex; }
+        .crop-container {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #fff;
+            margin-bottom: 30px;
+        }
+        .crop-image { max-width: 100%; max-height: 100%; }
+        .crop-controls { display: flex; gap: 20px; }
+        .crop-btn {
+            background: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 40px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
+        .crop-btn.primary { background: #fff; color: #000; }
+        #file-input { display: none; }
+        .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
     </style>
 </head>
 <body>
+    <input type="file" id="file-input" accept="image/*">
+
     <div id="splash-screen">
         <div class="splash-avatar"><span>🧬</span></div>
         <div class="splash-name">NEURO BRO</div>
@@ -225,6 +335,16 @@
         </div>
     </div>
 
+    <div class="crop-modal" id="crop-modal">
+        <div class="crop-container">
+            <img src="" id="crop-image" class="crop-image">
+        </div>
+        <div class="crop-controls">
+            <button class="crop-btn" id="crop-cancel">Отмена</button>
+            <button class="crop-btn primary" id="crop-apply">Готово</button>
+        </div>
+    </div>
+
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
@@ -233,10 +353,10 @@
 
         // ID пользователя: если не определён или 0, используем запасной (замени на свой)
         const user_id = tg.initDataUnsafe.user?.id;
-        const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // ← сюда вставь свой ID
+        const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // ← замени на свой ID, если нужно
         console.log('chat_id:', chat_id);
 
-        // Персонажи для портала
+        // ---------- Персонажи портала ----------
         const characters = [
             { name: "Айко", desc: "Кибер-воин, ищет напарника", avatar: "https://i.pravatar.cc/150?img=1" },
             { name: "Нейро", desc: "Загадочный хакер", avatar: "https://i.pravatar.cc/150?img=2" },
@@ -244,67 +364,90 @@
             { name: "Зеро", desc: "Андроид, ищет смысл", avatar: "https://i.pravatar.cc/150?img=4" }
         ];
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+        // ---------- Данные конструктора ----------
+        let character = {
+            name: '',
+            gender: 'male',
+            greeting: '',
+            story: '',
+            photo: null
+        };
+
+        // Загружаем сохранённого персонажа
+        try {
+            const saved = localStorage.getItem('neuroCharacter');
+            if (saved) Object.assign(character, JSON.parse(saved));
+        } catch(e) {}
+        let photoData = localStorage.getItem('characterPhoto') || null;
+        if (photoData) character.photo = photoData;
+
+        // ---------- Функции для конструктора ----------
+        function saveCharacterToLocal() {
+            localStorage.setItem('neuroCharacter', JSON.stringify({
+                name: character.name,
+                gender: character.gender,
+                greeting: character.greeting,
+                story: character.story
+            }));
+            if (character.photo) localStorage.setItem('characterPhoto', character.photo);
+            else localStorage.removeItem('characterPhoto');
         }
 
-        // ---- Отрисовка сообщений (без вызова сервера) ----
-        function addMessageToUI(container, text, sender, time) {
-            const div = document.createElement('div');
-            div.className = `message ${sender}`;
-            div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
+        // ---------- Кадрирование фото ----------
+        const cropModal = document.getElementById('crop-modal');
+        const cropImage = document.getElementById('crop-image');
+        const cropCancel = document.getElementById('crop-cancel');
+        const cropApply = document.getElementById('crop-apply');
+        let cropper = null;
+        let pendingFile = null;
 
-        // ---- Отправка сообщения на сервер с индикатором ----
-        async function sendMessageToServer(chatName, chatAvatar, text, messagesContainer, storageKey, onReply) {
-            // Показываем индикатор «печатает...»
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message bot';
-            typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
-            messagesContainer.appendChild(typingDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 секунд
-
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: chat_id, message: text }),
-                    signal: controller.signal
+        function openCrop(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                cropImage.src = e.target.result;
+                cropModal.classList.add('show');
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 1,
+                    cropBoxMovable: false,
+                    cropBoxResizable: false,
+                    toggleDragModeOnDblclick: false,
+                    background: false,
+                    modal: false,
+                    guides: false,
+                    center: false,
+                    highlight: false
                 });
-                clearTimeout(timeoutId);
-
-                const data = await response.json();
-                const replyText = data.reply || '⚠️ Пустой ответ от сервера';
-
-                // Удаляем индикатор
-                typingDiv.remove();
-
-                // Добавляем ответ бота
-                const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                addMessageToUI(messagesContainer, replyText, 'bot', time);
-
-                // Сохраняем в localStorage (история)
-                let messages = [];
-                try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
-                messages.push({ text: replyText, sender: 'bot', time });
-                localStorage.setItem(storageKey, JSON.stringify(messages));
-
-                if (onReply) onReply(replyText);
-            } catch (err) {
-                console.error(err);
-                typingDiv.remove();
-                const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
-                addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
-            }
+                pendingFile = file;
+            };
+            reader.readAsDataURL(file);
         }
 
-        // ---- Рендер портала ----
+        cropCancel.addEventListener('click', () => {
+            cropModal.classList.remove('show');
+            if (cropper) cropper.destroy();
+            pendingFile = null;
+        });
+
+        cropApply.addEventListener('click', () => {
+            if (!cropper || !pendingFile) return;
+            const canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
+            const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            character.photo = croppedDataUrl;
+            saveCharacterToLocal();
+            cropModal.classList.remove('show');
+            cropper.destroy();
+            pendingFile = null;
+            // Если конструктор открыт, обновляем аватар
+            if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
+                renderCenter();
+            }
+        });
+
+        // ---------- Рендер портала (без изменений) ----------
         function renderFeed() {
             const html = `
                 <div class="portal-header">
@@ -333,7 +476,50 @@
             });
         }
 
-        // ---- Рендер чата ----
+        // ---------- Чат (рабочий) ----------
+        function addMessageToUI(container, text, sender, time) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessageToServer(chatName, chatAvatar, text, messagesContainer, storageKey, onReply) {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: chat_id, message: text }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const data = await response.json();
+                const replyText = data.reply || '⚠️ Пустой ответ от сервера';
+                typingDiv.remove();
+                const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                addMessageToUI(messagesContainer, replyText, 'bot', time);
+                let messages = [];
+                try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
+                messages.push({ text: replyText, sender: 'bot', time });
+                localStorage.setItem(storageKey, JSON.stringify(messages));
+                if (onReply) onReply(replyText);
+            } catch (err) {
+                console.error(err);
+                typingDiv.remove();
+                const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
+                addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }));
+            }
+        }
+
         function renderChat(chatName, chatAvatar) {
             const storageKey = `chat_${chatName}`;
             let messages = [];
@@ -359,12 +545,8 @@
             const sendBtn = document.getElementById('chat-send');
             const backBtn = document.getElementById('chat-back');
 
-            // Загружаем историю
-            messages.forEach(msg => {
-                addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time);
-            });
+            messages.forEach(msg => addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time));
 
-            // Функция добавления сообщения пользователя (сохраняет и рисует)
             function addUserMessage(text) {
                 const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
                 addMessageToUI(messagesContainer, text, 'user', time);
@@ -372,17 +554,12 @@
                 localStorage.setItem(storageKey, JSON.stringify(messages));
             }
 
-            // Обработка отправки
             async function handleSend() {
                 const text = input.value.trim();
                 if (!text) return;
                 addUserMessage(text);
                 input.value = '';
-
-                // Отправляем на сервер и ждём ответ
                 await sendMessageToServer(chatName, chatAvatar, text, messagesContainer, storageKey, (reply) => {
-                    // После получения ответа история уже сохранена внутри sendMessageToServer
-                    // но можно обновить список сообщений в памяти
                     messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) });
                     localStorage.setItem(storageKey, JSON.stringify(messages));
                 });
@@ -393,14 +570,121 @@
             backBtn.addEventListener('click', () => renderFeed());
         }
 
+        // ---------- Вкладка "Центр" (конструктор) ----------
+        function renderCenter() {
+            const avatarHtml = character.photo
+                ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${character.photo}');"></div>`
+                : `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
+
+            const html = `
+                <div class="neuro-header"><h1>NEURO BRO</h1></div>
+                <div class="avatar-block">
+                    ${avatarHtml}
+                    <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
+                </div>
+                <div class="input-group">
+                    <div class="input-label">[ ИМЯ ]</div>
+                    <input type="text" class="input-field" id="nameInput" value="${escapeHtml(character.name)}" maxlength="30">
+                </div>
+                <div class="input-group">
+                    <div class="input-label">[ ПОЛ ]</div>
+                    <div class="gender-chips" id="genderChips">
+                        <div class="chip ${character.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
+                        <div class="chip ${character.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
+                        <div class="chip ${character.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="input-label">[ ГОЛОС ]</div>
+                    <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(character.greeting)}" maxlength="100">
+                    <div class="char-counter" id="greetingCounter">${character.greeting?.length || 0}/100</div>
+                </div>
+                <div class="input-group">
+                    <div class="input-label">[ ИСТОРИЯ ]</div>
+                    <input type="text" class="input-field" id="storyInput" value="${escapeHtml(character.story)}" maxlength="200">
+                    <div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div>
+                </div>
+                <div class="main-buttons">
+                    <button class="btn btn-outline" id="resetBtn">СБРОС</button>
+                    <button class="btn btn-primary" id="activateBtn">ПРОБУДИТЬ</button>
+                </div>
+            `;
+            contentArea.innerHTML = html;
+            lucide.createIcons();
+
+            // Обработчики конструктора
+            const fileInput = document.getElementById('file-input');
+            const avatarCircle = document.getElementById('avatar-circle');
+            const uploadLabel = document.getElementById('upload-label');
+
+            function handleFileSelect() {
+                fileInput.click();
+            }
+            avatarCircle?.addEventListener('click', handleFileSelect);
+            uploadLabel?.addEventListener('click', handleFileSelect);
+
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) openCrop(file);
+                fileInput.value = '';
+            };
+
+            const nameInput = document.getElementById('nameInput');
+            const greetingInput = document.getElementById('greetingInput');
+            const storyInput = document.getElementById('storyInput');
+            const genderChips = document.querySelectorAll('.chip');
+            const resetBtn = document.getElementById('resetBtn');
+            const activateBtn = document.getElementById('activateBtn');
+
+            nameInput.addEventListener('input', (e) => {
+                character.name = e.target.value;
+                saveCharacterToLocal();
+            });
+            greetingInput.addEventListener('input', (e) => {
+                character.greeting = e.target.value;
+                saveCharacterToLocal();
+                document.getElementById('greetingCounter').textContent = `${e.target.value.length}/100`;
+            });
+            storyInput.addEventListener('input', (e) => {
+                character.story = e.target.value;
+                saveCharacterToLocal();
+                document.getElementById('storyCounter').textContent = `${e.target.value.length}/200`;
+            });
+
+            genderChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    genderChips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    character.gender = chip.dataset.gender;
+                    saveCharacterToLocal();
+                });
+            });
+
+            resetBtn.addEventListener('click', () => {
+                character = { name: '', gender: 'male', greeting: '', story: '', photo: null };
+                saveCharacterToLocal();
+                renderCenter();
+                tg.HapticFeedback?.impactOccurred('light');
+            });
+
+            activateBtn.addEventListener('click', () => {
+                // Отправляем данные в бота через WebApp
+                tg.sendData(JSON.stringify({
+                    name: character.name,
+                    gender: character.gender,
+                    greeting: character.greeting,
+                    story: character.story,
+                    photo: character.photo
+                }));
+                tg.close(); // закрываем мини-апп после отправки
+            });
+        }
+
         function renderChats() {
             contentArea.innerHTML = '<div class="placeholder-page">Скоро здесь будет список чатов</div>';
         }
 
-        function renderCenter() {
-            contentArea.innerHTML = '<div class="placeholder-page">Центр (конструктор позже)</div>';
-        }
-
+        // ---------- Переключение вкладок ----------
         const contentArea = document.getElementById('content-area');
         const barItems = document.querySelectorAll('.bar-item');
 
@@ -426,8 +710,14 @@
             tg.HapticFeedback?.impactOccurred('medium');
         }, 3200);
 
+        // Стартовая страница – портал
         renderFeed();
         barItems[0].classList.add('active');
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+        }
     </script>
 </body>
 </html>

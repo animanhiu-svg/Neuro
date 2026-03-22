@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · полный интерфейс</title>
+    <title>NeuroBro · портал</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        /* ========== ВСЕ СТИЛИ (те же, что в последней стабильной версии) ========== */
         * {
             margin: 0;
             padding: 0;
@@ -72,24 +71,16 @@
             width: 100%;
         }
 
-        /* нижняя панель */
+        /* нижняя панель – овальная */
         .bottom-bar {
             display: flex;
             justify-content: space-around;
+            align-items: center;
             background: #000;
             padding: 8px 0 12px;
-            position: relative;
-            border-top: none;
-        }
-        .bottom-bar::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 70%;
-            height: 1px;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+            border-radius: 30px 30px 0 0;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
         }
         .bar-item {
             display: flex;
@@ -101,50 +92,13 @@
             transition: transform 0.1s, opacity 0.2s;
             cursor: pointer;
             flex: 1;
+            padding: 4px 0;
         }
         .bar-item.active { opacity: 1; }
         .bar-item:active { transform: scale(0.92); }
         .bar-item i { width: 24px; height: 24px; margin-bottom: 4px; stroke-width: 1.5; }
 
-        /* bottom sheet */
-        .sheet-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(3px);
-            z-index: 1100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-            display: flex;
-            align-items: flex-end;
-        }
-        .sheet-overlay.show { opacity: 1; pointer-events: all; }
-        .sheet {
-            background: #121212;
-            border-top: 1px solid #fff;
-            border-radius: 24px 24px 0 0;
-            padding: 24px 20px 30px;
-            width: 100%;
-            transform: translateY(100%);
-            transition: transform 0.3s;
-        }
-        .sheet-overlay.show .sheet { transform: translateY(0); }
-        .sheet-item {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px 0;
-            border-bottom: 1px solid #333;
-            font-size: 18px;
-            color: #fff;
-            cursor: pointer;
-        }
-        .sheet-item:active { transform: scale(0.95); }
-        .sheet-item:last-child { border-bottom: none; }
-        .sheet-item i { width: 24px; height: 24px; }
-
-        /* портал (поиск) */
+        /* портал (как в старом интерфейсе) */
         .portal-header { margin-bottom: 24px; }
         .portal-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .portal-header p { font-size: 14px; color: #aaa; margin-bottom: 12px; }
@@ -262,7 +216,8 @@
         .message.user .message-bubble { background: #2481cc; color: #fff; }
         .message-time { font-size: 10px; color: #888; margin-top: 4px; }
         .chat-input-container {
-            display: flex; gap: 10px; margin-top: auto;
+            display: flex; gap: 10px;
+            margin-top: auto;
             background: #1e1e1e; border-radius: 30px; padding: 8px 12px;
             border: 1px solid #333;
         }
@@ -277,35 +232,7 @@
             font-size: 14px;
         }
 
-        /* список чатов */
-        .chats-list { display: flex; flex-direction: column; gap: 12px; }
-        .chat-item {
-            display: flex; align-items: center; gap: 12px;
-            background: #1a1a1a; border-radius: 20px; padding: 12px;
-            border: 1px solid #2a2a2a; cursor: pointer;
-        }
-        .chat-item:active { transform: scale(0.98); }
-        .chat-item-avatar {
-            width: 50px; height: 50px; border-radius: 50%;
-            background-size: cover; background-position: center; flex-shrink: 0;
-        }
-        .chat-item-info { flex: 1; min-width: 0; }
-        .chat-item-name {
-            font-size: 16px; font-weight: 600; margin-bottom: 4px;
-            display: flex; justify-content: space-between;
-        }
-        .chat-item-last {
-            font-size: 12px; color: #aaa;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .chat-item-badge {
-            background: #2481cc; border-radius: 30px;
-            padding: 2px 8px; font-size: 10px; font-weight: 600; color: #fff;
-            margin-left: 8px;
-        }
-        .empty-chats { text-align: center; padding: 40px 20px; color: #aaa; }
-
-        /* конструктор (полный) */
+        /* конструктор (без шкал) */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
@@ -378,67 +305,6 @@
         .btn-outline { background: transparent; border: 1px solid #fff; color: #fff; }
         .btn-primary { background: #fff; color: #121212; }
 
-        /* шкалы (тамагочи) */
-        .stats {
-            width: 100%;
-            margin-bottom: 32px;
-        }
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        .stat-icon {
-            width: 24px;
-            font-size: 16px;
-            color: #fff;
-        }
-        .stat-bar {
-            flex: 1;
-            height: 6px;
-            background: #333;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .stat-fill {
-            height: 100%;
-            background: #fff;
-            border-radius: 10px;
-            width: 0%;
-        }
-        .stat-value {
-            font-size: 12px;
-            color: #aaa;
-            width: 35px;
-            text-align: right;
-        }
-        .action-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin: 32px 0 24px;
-            justify-content: center;
-        }
-        .action-btn {
-            background: #1e1e1e;
-            border: 1px solid #444;
-            border-radius: 40px;
-            padding: 12px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex: 1 0 auto;
-            max-width: 160px;
-            justify-content: center;
-        }
-        .action-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
-
         /* кадрирование */
         .crop-modal {
             position: fixed;
@@ -487,7 +353,9 @@
         <div class="bottom-bar">
             <div class="bar-item" data-tab="feed"><i data-lucide="globe"></i><span>Портал</span></div>
             <div class="bar-item" data-tab="chats"><i data-lucide="message-circle-more"></i><span>Чаты</span></div>
-            <div class="bar-item" data-tab="center" id="center-button"><i data-lucide="circle-user"></i><span>Центр</span></div>
+            <div class="bar-item" data-tab="center"><i data-lucide="circle-user"></i><span>Центр</span></div>
+            <div class="bar-item" data-tab="games"><i data-lucide="layout-grid"></i><span>Игры</span></div>
+            <div class="bar-item" data-tab="profile"><i data-lucide="menu"></i><span>Профиль</span></div>
         </div>
     </div>
 
@@ -507,21 +375,17 @@
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
 
-            // ID пользователя (с подстраховкой)
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // замени на свой ID
             console.log('chat_id:', chat_id);
 
-            // ---------- Данные конструктора (включая шкалы) ----------
+            // ---------- Данные конструктора ----------
             let character = {
                 name: '',
                 gender: 'male',
                 greeting: '',
                 story: '',
-                photo: null,
-                hunger: 80,
-                energy: 70,
-                happiness: 90
+                photo: null
             };
             try {
                 const saved = localStorage.getItem('neuroCharacter');
@@ -530,22 +394,18 @@
             let photoData = localStorage.getItem('characterPhoto') || null;
             if (photoData) character.photo = photoData;
 
-            // ---------- Сохранение конструктора ----------
             function saveCharacterToLocal() {
                 localStorage.setItem('neuroCharacter', JSON.stringify({
                     name: character.name,
                     gender: character.gender,
                     greeting: character.greeting,
-                    story: character.story,
-                    hunger: character.hunger,
-                    energy: character.energy,
-                    happiness: character.happiness
+                    story: character.story
                 }));
                 if (character.photo) localStorage.setItem('characterPhoto', character.photo);
                 else localStorage.removeItem('characterPhoto');
             }
 
-            // ---------- Кадрирование фото ----------
+            // ---------- Кадрирование ----------
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
@@ -640,7 +500,7 @@
                 }
             }
 
-            // ---------- Портал (карточки персонажей) ----------
+            // ---------- Портал ----------
             const demoCharacters = [
                 { name: "Айко", desc: "Кибер-воин, ищущая напарника", tags: ["боевик", "киберпанк"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=1" },
                 { name: "Нейро", desc: "Загадочный хакер, любит головоломки", tags: ["хакер", "детектив"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=2" },
@@ -814,23 +674,11 @@
 
             // ---------- Список чатов (заглушка) ----------
             function renderChats() {
-                const chats = [];
-                if (chats.length === 0) {
-                    contentArea.innerHTML = `
-                        <div class="empty-chats">
-                            <i data-lucide="message-circle" style="width:48px;height:48px;margin-bottom:16px;"></i>
-                            <p>Нет чатов</p>
-                            <p style="font-size:12px">Начните диалог из портала</p>
-                        </div>
-                    `;
-                    lucide.createIcons();
-                    return;
-                }
-                // (можно сделать список, но пока заглушка)
+                // можно добавить реальный список, пока просто заглушка
                 contentArea.innerHTML = '<div class="placeholder-page">Скоро здесь будет список чатов</div>';
             }
 
-            // ---------- Центр (конструктор с шкалами) ----------
+            // ---------- Конструктор персонажа ----------
             function renderCenter() {
                 const avatarHtml = character.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${character.photo}');"></div>`
@@ -841,11 +689,6 @@
                     <div class="avatar-block">
                         ${avatarHtml}
                         <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
-                    </div>
-                    <div class="stats">
-                        <div class="stat-item"><span class="stat-icon">🍽️</span><div class="stat-bar"><div class="stat-fill" style="width: ${character.hunger}%;"></div></div><span class="stat-value">${character.hunger}%</span></div>
-                        <div class="stat-item"><span class="stat-icon">⚡</span><div class="stat-bar"><div class="stat-fill" style="width: ${character.energy}%;"></div></div><span class="stat-value">${character.energy}%</span></div>
-                        <div class="stat-item"><span class="stat-icon">🤍</span><div class="stat-bar"><div class="stat-fill" style="width: ${character.happiness}%;"></div></div><span class="stat-value">${character.happiness}%</span></div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ИМЯ ]</div>
@@ -869,12 +712,6 @@
                         <input type="text" class="input-field" id="storyInput" value="${escapeHtml(character.story)}" maxlength="200">
                         <div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div>
                     </div>
-                    <div class="action-grid">
-                        <div class="action-btn" id="action-feed"><span>🍖</span> Покормить</div>
-                        <div class="action-btn" id="action-sleep"><span>🛌</span> Спать</div>
-                        <div class="action-btn" id="action-walk"><span>🚶</span> Гулять</div>
-                        <div class="action-btn" id="action-play"><span>🎮</span> Играть</div>
-                    </div>
                     <div class="main-buttons">
                         <button class="btn btn-outline" id="resetBtn">СБРОС</button>
                         <button class="btn btn-primary" id="activateBtn">ПРОБУДИТЬ</button>
@@ -883,7 +720,6 @@
                 contentArea.innerHTML = html;
                 lucide.createIcons();
 
-                // Обработчики конструктора
                 const fileInput = document.getElementById('file-input');
                 const avatarCircle = document.getElementById('avatar-circle');
                 const uploadLabel = document.getElementById('upload-label');
@@ -906,10 +742,6 @@
                 const genderChips = document.querySelectorAll('.chip');
                 const resetBtn = document.getElementById('resetBtn');
                 const activateBtn = document.getElementById('activateBtn');
-                const actionFeed = document.getElementById('action-feed');
-                const actionSleep = document.getElementById('action-sleep');
-                const actionWalk = document.getElementById('action-walk');
-                const actionPlay = document.getElementById('action-play');
 
                 nameInput.addEventListener('input', (e) => {
                     character.name = e.target.value;
@@ -935,32 +767,14 @@
                     });
                 });
 
-                function modifyStat(stat, delta) {
-                    if (stat === 'hunger') character.hunger = Math.min(100, Math.max(0, character.hunger + delta));
-                    if (stat === 'energy') character.energy = Math.min(100, Math.max(0, character.energy + delta));
-                    if (stat === 'happiness') character.happiness = Math.min(100, Math.max(0, character.happiness + delta));
-                    saveCharacterToLocal();
-                    renderCenter(); // обновить интерфейс
-                    tg.HapticFeedback?.impactOccurred('light');
-                }
-
-                actionFeed?.addEventListener('click', () => modifyStat('hunger', 10));
-                actionSleep?.addEventListener('click', () => modifyStat('energy', 15));
-                actionWalk?.addEventListener('click', () => modifyStat('happiness', 12));
-                actionPlay?.addEventListener('click', () => {
-                    modifyStat('happiness', 8);
-                    modifyStat('energy', -3);
-                });
-
                 resetBtn.addEventListener('click', () => {
-                    character = { name: '', gender: 'male', greeting: '', story: '', photo: null, hunger: 80, energy: 70, happiness: 90 };
+                    character = { name: '', gender: 'male', greeting: '', story: '', photo: null };
                     saveCharacterToLocal();
                     renderCenter();
                     tg.HapticFeedback?.impactOccurred('light');
                 });
 
                 activateBtn.addEventListener('click', () => {
-                    // Отправляем данные в бота через WebApp
                     tg.sendData(JSON.stringify({
                         name: character.name,
                         gender: character.gender,
@@ -968,8 +782,18 @@
                         story: character.story,
                         photo: character.photo
                     }));
-                    tg.close(); // закрываем мини-апп после отправки
+                    tg.close();
                 });
+            }
+
+            // ---------- Заглушки для игр и профиля ----------
+            function renderGames() {
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px;height:48px;margin-bottom:20px;"></i><br>МИНИ-ИГРЫ<br>скоро здесь появятся активности</div>';
+                lucide.createIcons();
+            }
+            function renderProfile() {
+                contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="menu" style="width:48px;height:48px;margin-bottom:20px;"></i><br>НАСТРОЙКИ<br>профиль, уведомления, тема</div>';
+                lucide.createIcons();
             }
 
             // ---------- Переключение вкладок ----------
@@ -984,6 +808,8 @@
                     if (tab === 'feed') renderFeed();
                     else if (tab === 'chats') renderChats();
                     else if (tab === 'center') renderCenter();
+                    else if (tab === 'games') renderGames();
+                    else if (tab === 'profile') renderProfile();
                     tg.HapticFeedback?.impactOccurred('light');
                 });
             });

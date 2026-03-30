@@ -98,7 +98,7 @@
         .bar-item:active { transform: scale(0.92); }
         .bar-item i { width: 24px; height: 24px; margin-bottom: 4px; stroke-width: 1.5; }
 
-        /* портал (как в старом интерфейсе) */
+        /* портал */
         .portal-header { margin-bottom: 24px; }
         .portal-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .portal-header p { font-size: 14px; color: #aaa; margin-bottom: 12px; }
@@ -232,7 +232,7 @@
             font-size: 14px;
         }
 
-        /* конструктор (без шкал) */
+        /* конструктор */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
@@ -265,7 +265,7 @@
         }
         .input-group { margin-bottom: 20px; }
         .input-label { font-size: 12px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; }
-        .input-field {
+        .input-field, .input-textarea {
             width: 100%;
             background: transparent;
             border: none;
@@ -274,8 +274,16 @@
             font-size: 16px;
             color: #fff;
             outline: none;
+            font-family: 'Inter', sans-serif;
         }
-        .input-field:focus { border-bottom-color: #fff; }
+        .input-textarea {
+            border: 1px solid #444;
+            border-radius: 16px;
+            padding: 10px;
+            margin-top: 4px;
+            resize: vertical;
+        }
+        .input-field:focus, .input-textarea:focus { border-bottom-color: #fff; border-color: #fff; }
         .gender-chips { display: flex; gap: 16px; margin-top: 8px; }
         .chip {
             background: transparent;
@@ -379,12 +387,16 @@
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // замени на свой ID
             console.log('chat_id:', chat_id);
 
-            // ---------- Данные конструктора ----------
+            // ---------- Данные конструктора (расширенные) ----------
             let character = {
                 name: '',
                 gender: 'male',
                 greeting: '',
-                story: '',
+                subtitles: '',      // описание/внешность
+                memory_cards: '',   // память/характер
+                location: '',       // локация
+                scenario: '',       // сценарий
+                relation: '',       // твоя роль
                 photo: null
             };
             try {
@@ -399,7 +411,11 @@
                     name: character.name,
                     gender: character.gender,
                     greeting: character.greeting,
-                    story: character.story
+                    subtitles: character.subtitles,
+                    memory_cards: character.memory_cards,
+                    location: character.location,
+                    scenario: character.scenario,
+                    relation: character.relation
                 }));
                 if (character.photo) localStorage.setItem('characterPhoto', character.photo);
                 else localStorage.removeItem('characterPhoto');
@@ -500,12 +516,14 @@
                 }
             }
 
-            // ---------- Портал ----------
+            // ---------- Портал (новые персонажи) ----------
             const demoCharacters = [
-                { name: "Айко", desc: "Кибер-воин, ищущая напарника", tags: ["боевик", "киберпанк"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=1" },
-                { name: "Нейро", desc: "Загадочный хакер, любит головоломки", tags: ["хакер", "детектив"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=2" },
-                { name: "Сакура", desc: "Целительница, добрая и отзывчивая", tags: ["фэнтези", "целитель"], rating: 4.7, avatar: "https://i.pravatar.cc/150?img=3" },
-                { name: "Зеро", desc: "Беспилотный андроид, ищет смысл", tags: ["научная фантастика"], rating: 4.6, avatar: "https://i.pravatar.cc/150?img=4" }
+                { name: "Наруто Узумаки", desc: "Ниндзя-оборотень, мечтает стать Хокаге", tags: ["аниме", "Наруто", "шиноби"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=11" },
+                { name: "Гоку (Сон Гоку)", desc: "Сайян, защитник Земли, любит сражаться и есть", tags: ["аниме", "Dragon Ball", "сайян"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=12" },
+                { name: "Леви Аккерман", desc: "Сильнейший солдат Разведкорпуса, мастер меча", tags: ["аниме", "Атака Титанов", "Леви"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=13" },
+                { name: "Сангвиния (Аркейн)", desc: "Загадочная колдунья из другого мира", tags: ["манхва", "фэнтези", "магия"], rating: 4.7, avatar: "https://i.pravatar.cc/150?img=14" },
+                { name: "Густав (Соло Левелинг)", desc: "Берсерк, выживший в адских подземельях", tags: ["манхва", "Solo Leveling", "берсерк"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=15" },
+                { name: "Рин Тосака", desc: "Магичка, наследница древнего рода", tags: ["аниме", "Fate", "магия"], rating: 4.6, avatar: "https://i.pravatar.cc/150?img=16" }
             ];
 
             function renderFeed() {
@@ -529,10 +547,10 @@
                     <div class="trending">
                         <div class="trending-label"><i data-lucide="trending-up"></i> Популярные запросы</div>
                         <div class="trending-chips" id="trendingChips">
-                            <div class="trending-chip">киберпанк</div>
-                            <div class="trending-chip">целитель</div>
-                            <div class="trending-chip">андроид</div>
-                            <div class="trending-chip">хакер</div>
+                            <div class="trending-chip">Наруто</div>
+                            <div class="trending-chip">Гоку</div>
+                            <div class="trending-chip">Леви</div>
+                            <div class="trending-chip">манхва</div>
                         </div>
                     </div>
                     <div id="charactersList" class="characters-list"></div>
@@ -672,19 +690,97 @@
                 backBtn.addEventListener('click', () => renderFeed());
             }
 
-            // ---------- Список чатов (заглушка) ----------
+            // ---------- Список чатов ----------
             function renderChats() {
-                contentArea.innerHTML = '<div class="placeholder-page">Скоро здесь будет список чатов</div>';
+                // Собираем все чаты из localStorage
+                const chats = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('chat_')) {
+                        const chatName = key.slice(5);
+                        // Ищем аватарку: сначала в сохранённых персонажах, потом стандартную
+                        let avatar = "https://i.pravatar.cc/150?img=0";
+                        const savedCharacter = localStorage.getItem('neuroCharacter');
+                        if (savedCharacter) {
+                            try {
+                                const char = JSON.parse(savedCharacter);
+                                if (char.name === chatName && char.photo) avatar = char.photo;
+                            } catch(e) {}
+                        }
+                        // Получаем последнее сообщение
+                        let lastMessage = "Нет сообщений";
+                        let lastTime = "";
+                        try {
+                            const msgs = JSON.parse(localStorage.getItem(key)) || [];
+                            if (msgs.length > 0) {
+                                const last = msgs[msgs.length-1];
+                                lastMessage = last.text;
+                                lastTime = last.time;
+                            }
+                        } catch(e) {}
+                        chats.push({
+                            name: chatName,
+                            avatar: avatar,
+                            lastMessage: lastMessage,
+                            lastTime: lastTime
+                        });
+                    }
+                }
+                // Добавляем созданного персонажа, если он есть и его ещё нет в чатах
+                if (character.name && !chats.some(c => c.name === character.name)) {
+                    chats.unshift({
+                        name: character.name,
+                        avatar: character.photo || "https://i.pravatar.cc/150?img=0",
+                        lastMessage: "Персонаж создан, начните общение",
+                        lastTime: ""
+                    });
+                }
+                if (chats.length === 0) {
+                    contentArea.innerHTML = `
+                        <div class="empty-chats">
+                            <i data-lucide="message-circle" style="width:48px;height:48px;margin-bottom:16px;"></i>
+                            <p>Нет чатов</p>
+                            <p style="font-size:12px">Создайте персонажа в центре или начните диалог из портала</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+                const html = `
+                    <div class="chats-list">
+                        ${chats.map(chat => `
+                            <div class="chat-item" data-name="${escapeHtml(chat.name)}" data-avatar="${chat.avatar}">
+                                <div class="chat-item-avatar" style="background-image: url('${chat.avatar}');"></div>
+                                <div class="chat-item-info">
+                                    <div class="chat-item-name">
+                                        ${escapeHtml(chat.name)}
+                                    </div>
+                                    <div class="chat-item-last">${escapeHtml(chat.lastMessage)}</div>
+                                    ${chat.lastTime ? `<div style="font-size:10px; color:#666;">${chat.lastTime}</div>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                contentArea.innerHTML = html;
+                lucide.createIcons();
+                document.querySelectorAll('.chat-item').forEach(el => {
+                    const name = el.dataset.name;
+                    const avatar = el.dataset.avatar;
+                    el.addEventListener('click', () => {
+                        renderChat(name, avatar);
+                    });
+                });
             }
 
-            // ---------- Конструктор персонажа ----------
+            // ---------- Конструктор персонажа (расширенный) ----------
             function renderCenter() {
                 const avatarHtml = character.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${character.photo}');"></div>`
                     : `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
 
                 const html = `
-                    <div class="neuro-header"><h1>NEURO BRO</h1></div>
+                    <div class="neuro-header"><h1>СОЗДАТЬ ПЕРСОНАЖА</h1></div>
                     <div class="avatar-block">
                         ${avatarHtml}
                         <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
@@ -702,18 +798,36 @@
                         </div>
                     </div>
                     <div class="input-group">
-                        <div class="input-label">[ ГОЛОС ]</div>
+                        <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
                         <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(character.greeting)}" maxlength="100">
                         <div class="char-counter" id="greetingCounter">${character.greeting?.length || 0}/100</div>
                     </div>
                     <div class="input-group">
-                        <div class="input-label">[ ИСТОРИЯ ]</div>
-                        <input type="text" class="input-field" id="storyInput" value="${escapeHtml(character.story)}" maxlength="200">
-                        <div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div>
+                        <div class="input-label">[ ОПИСАНИЕ (внешность, характер) ]</div>
+                        <textarea class="input-textarea" id="subtitlesInput" rows="2" maxlength="500">${escapeHtml(character.subtitles)}</textarea>
+                        <div class="char-counter" id="subtitlesCounter">${character.subtitles?.length || 0}/500</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ПАМЯТЬ (важные факты) ]</div>
+                        <textarea class="input-textarea" id="memoryInput" rows="2" maxlength="500">${escapeHtml(character.memory_cards)}</textarea>
+                        <div class="char-counter" id="memoryCounter">${character.memory_cards?.length || 0}/500</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ЛОКАЦИЯ ]</div>
+                        <input type="text" class="input-field" id="locationInput" value="${escapeHtml(character.location)}" maxlength="100">
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ СЦЕНАРИЙ (начальная ситуация) ]</div>
+                        <textarea class="input-textarea" id="scenarioInput" rows="2" maxlength="500">${escapeHtml(character.scenario)}</textarea>
+                        <div class="char-counter" id="scenarioCounter">${character.scenario?.length || 0}/500</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ТВОЯ РОЛЬ (друг, враг, прохожий) ]</div>
+                        <input type="text" class="input-field" id="relationInput" value="${escapeHtml(character.relation)}" maxlength="100">
                     </div>
                     <div class="main-buttons">
                         <button class="btn btn-outline" id="resetBtn">СБРОС</button>
-                        <button class="btn btn-primary" id="activateBtn">ПРОБУДИТЬ</button>
+                        <button class="btn btn-primary" id="activateBtn">СОЗДАТЬ</button>
                     </div>
                 `;
                 contentArea.innerHTML = html;
@@ -737,10 +851,21 @@
 
                 const nameInput = document.getElementById('nameInput');
                 const greetingInput = document.getElementById('greetingInput');
-                const storyInput = document.getElementById('storyInput');
+                const subtitlesInput = document.getElementById('subtitlesInput');
+                const memoryInput = document.getElementById('memoryInput');
+                const locationInput = document.getElementById('locationInput');
+                const scenarioInput = document.getElementById('scenarioInput');
+                const relationInput = document.getElementById('relationInput');
                 const genderChips = document.querySelectorAll('.chip');
                 const resetBtn = document.getElementById('resetBtn');
                 const activateBtn = document.getElementById('activateBtn');
+
+                function updateCounters() {
+                    document.getElementById('greetingCounter').textContent = `${greetingInput.value.length}/100`;
+                    document.getElementById('subtitlesCounter').textContent = `${subtitlesInput.value.length}/500`;
+                    document.getElementById('memoryCounter').textContent = `${memoryInput.value.length}/500`;
+                    document.getElementById('scenarioCounter').textContent = `${scenarioInput.value.length}/500`;
+                }
 
                 nameInput.addEventListener('input', (e) => {
                     character.name = e.target.value;
@@ -749,12 +874,30 @@
                 greetingInput.addEventListener('input', (e) => {
                     character.greeting = e.target.value;
                     saveCharacterToLocal();
-                    document.getElementById('greetingCounter').textContent = `${e.target.value.length}/100`;
+                    updateCounters();
                 });
-                storyInput.addEventListener('input', (e) => {
-                    character.story = e.target.value;
+                subtitlesInput.addEventListener('input', (e) => {
+                    character.subtitles = e.target.value;
                     saveCharacterToLocal();
-                    document.getElementById('storyCounter').textContent = `${e.target.value.length}/200`;
+                    updateCounters();
+                });
+                memoryInput.addEventListener('input', (e) => {
+                    character.memory_cards = e.target.value;
+                    saveCharacterToLocal();
+                    updateCounters();
+                });
+                locationInput.addEventListener('input', (e) => {
+                    character.location = e.target.value;
+                    saveCharacterToLocal();
+                });
+                scenarioInput.addEventListener('input', (e) => {
+                    character.scenario = e.target.value;
+                    saveCharacterToLocal();
+                    updateCounters();
+                });
+                relationInput.addEventListener('input', (e) => {
+                    character.relation = e.target.value;
+                    saveCharacterToLocal();
                 });
 
                 genderChips.forEach(chip => {
@@ -767,21 +910,31 @@
                 });
 
                 resetBtn.addEventListener('click', () => {
-                    character = { name: '', gender: 'male', greeting: '', story: '', photo: null };
+                    character = {
+                        name: '', gender: 'male', greeting: '', subtitles: '', memory_cards: '',
+                        location: '', scenario: '', relation: '', photo: null
+                    };
                     saveCharacterToLocal();
                     renderCenter();
                     tg.HapticFeedback?.impactOccurred('light');
                 });
 
                 activateBtn.addEventListener('click', () => {
+                    // Отправляем данные в бота
                     tg.sendData(JSON.stringify({
                         name: character.name,
                         gender: character.gender,
                         greeting: character.greeting,
-                        story: character.story,
+                        subtitles: character.subtitles,
+                        memory_cards: character.memory_cards,
+                        location: character.location,
+                        scenario: character.scenario,
+                        relation: character.relation,
                         photo: character.photo
                     }));
-                    tg.close();
+                    // Можно показать уведомление, но не закрывать мини-апп
+                    tg.showAlert(`Персонаж "${character.name || 'Безымянный'}" создан!`);
+                    // Не закрываем, чтобы можно было сразу общаться в чатах
                 });
             }
 

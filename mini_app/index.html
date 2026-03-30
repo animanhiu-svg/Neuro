@@ -642,6 +642,10 @@
             // ---------- Чат ----------
             function renderChat(chatName, chatAvatar) {
                 const storageKey = `chat_${chatName}`;
+                const avatarKey = `chat_avatar_${chatName}`;
+                if (!localStorage.getItem(avatarKey)) {
+                    localStorage.setItem(avatarKey, chatAvatar);
+                }
                 let messages = [];
                 try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
 
@@ -692,22 +696,17 @@
 
             // ---------- Список чатов ----------
             function renderChats() {
-                // Собираем все чаты из localStorage
                 const chats = [];
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && key.startsWith('chat_')) {
+                    if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {
                         const chatName = key.slice(5);
-                        // Ищем аватарку: сначала в сохранённых персонажах, потом стандартную
-                        let avatar = "https://i.pravatar.cc/150?img=0";
-                        const savedCharacter = localStorage.getItem('neuroCharacter');
-                        if (savedCharacter) {
-                            try {
-                                const char = JSON.parse(savedCharacter);
-                                if (char.name === chatName && char.photo) avatar = char.photo;
-                            } catch(e) {}
+                        const avatarKey = `chat_avatar_${chatName}`;
+                        let avatar = localStorage.getItem(avatarKey);
+                        if (!avatar) {
+                            const found = demoCharacters.find(c => c.name === chatName);
+                            avatar = found ? found.avatar : "https://i.pravatar.cc/150?img=0";
                         }
-                        // Получаем последнее сообщение
                         let lastMessage = "Нет сообщений";
                         let lastTime = "";
                         try {
@@ -726,11 +725,12 @@
                         });
                     }
                 }
-                // Добавляем созданного персонажа, если он есть и его ещё нет в чатах
+                // Добавляем созданного персонажа, если его ещё нет в чатах
                 if (character.name && !chats.some(c => c.name === character.name)) {
+                    const avatar = character.photo || (demoCharacters.find(c => c.name === character.name)?.avatar) || "https://i.pravatar.cc/150?img=0";
                     chats.unshift({
                         name: character.name,
-                        avatar: character.photo || "https://i.pravatar.cc/150?img=0",
+                        avatar: avatar,
                         lastMessage: "Персонаж создан, начните общение",
                         lastTime: ""
                     });
@@ -920,8 +920,11 @@
                 });
 
                 activateBtn.addEventListener('click', () => {
-                    // Отправляем данные в бота
-                    tg.sendData(JSON.stringify({
+                    if (!character.name.trim()) {
+                        tg.showAlert('Введите имя персонажа');
+                        return;
+                    }
+                    const dataToSend = {
                         name: character.name,
                         gender: character.gender,
                         greeting: character.greeting,
@@ -930,11 +933,10 @@
                         location: character.location,
                         scenario: character.scenario,
                         relation: character.relation,
-                        photo: character.photo
-                    }));
-                    // Можно показать уведомление, но не закрывать мини-апп
-                    tg.showAlert(`Персонаж "${character.name || 'Безымянный'}" создан!`);
-                    // Не закрываем, чтобы можно было сразу общаться в чатах
+                        photo: character.photo || null
+                    };
+                    tg.sendData(JSON.stringify(dataToSend));
+                    tg.showAlert(`Персонаж "${character.name}" создан!`);
                 });
             }
 

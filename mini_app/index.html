@@ -344,6 +344,32 @@
         #file-input { display: none; }
 
         .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
+        .chats-list { display: flex; flex-direction: column; gap: 12px; }
+        .chat-item {
+            display: flex; align-items: center; gap: 12px;
+            background: #1a1a1a; border-radius: 20px; padding: 12px;
+            border: 1px solid #2a2a2a; cursor: pointer;
+        }
+        .chat-item:active { transform: scale(0.98); }
+        .chat-item-avatar {
+            width: 50px; height: 50px; border-radius: 50%;
+            background-size: cover; background-position: center; flex-shrink: 0;
+        }
+        .chat-item-info { flex: 1; min-width: 0; }
+        .chat-item-name {
+            font-size: 16px; font-weight: 600; margin-bottom: 4px;
+            display: flex; justify-content: space-between;
+        }
+        .chat-item-last {
+            font-size: 12px; color: #aaa;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .chat-item-badge {
+            background: #2481cc; border-radius: 30px;
+            padding: 2px 8px; font-size: 10px; font-weight: 600; color: #fff;
+            margin-left: 8px;
+        }
+        .empty-chats { text-align: center; padding: 40px 20px; color: #aaa; }
     </style>
 </head>
 <body>
@@ -387,16 +413,26 @@
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // замени на свой ID
             console.log('chat_id:', chat_id);
 
+            // ---------- Персонажи портала ----------
+            const demoCharacters = [
+                { name: "Наруто Узумаки", desc: "Ниндзя-оборотень, мечтает стать Хокаге", tags: ["аниме", "Наруто", "шиноби"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=11" },
+                { name: "Гоку (Сон Гоку)", desc: "Сайян, защитник Земли, любит сражаться и есть", tags: ["аниме", "Dragon Ball", "сайян"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=12" },
+                { name: "Леви Аккерман", desc: "Сильнейший солдат Разведкорпуса, мастер меча", tags: ["аниме", "Атака Титанов", "Леви"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=13" },
+                { name: "Сангвиния (Аркейн)", desc: "Загадочная колдунья из другого мира", tags: ["манхва", "фэнтези", "магия"], rating: 4.7, avatar: "https://i.pravatar.cc/150?img=14" },
+                { name: "Густав (Соло Левелинг)", desc: "Берсерк, выживший в адских подземельях", tags: ["манхва", "Solo Leveling", "берсерк"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=15" },
+                { name: "Рин Тосака", desc: "Магичка, наследница древнего рода", tags: ["аниме", "Fate", "магия"], rating: 4.6, avatar: "https://i.pravatar.cc/150?img=16" }
+            ];
+
             // ---------- Данные конструктора (расширенные) ----------
             let character = {
                 name: '',
                 gender: 'male',
                 greeting: '',
-                subtitles: '',      // описание/внешность
-                memory_cards: '',   // память/характер
-                location: '',       // локация
-                scenario: '',       // сценарий
-                relation: '',       // твоя роль
+                subtitles: '',
+                memory_cards: '',
+                location: '',
+                scenario: '',
+                relation: '',
                 photo: null
             };
             try {
@@ -516,16 +552,7 @@
                 }
             }
 
-            // ---------- Портал (новые персонажи) ----------
-            const demoCharacters = [
-                { name: "Наруто Узумаки", desc: "Ниндзя-оборотень, мечтает стать Хокаге", tags: ["аниме", "Наруто", "шиноби"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=11" },
-                { name: "Гоку (Сон Гоку)", desc: "Сайян, защитник Земли, любит сражаться и есть", tags: ["аниме", "Dragon Ball", "сайян"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=12" },
-                { name: "Леви Аккерман", desc: "Сильнейший солдат Разведкорпуса, мастер меча", tags: ["аниме", "Атака Титанов", "Леви"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=13" },
-                { name: "Сангвиния (Аркейн)", desc: "Загадочная колдунья из другого мира", tags: ["манхва", "фэнтези", "магия"], rating: 4.7, avatar: "https://i.pravatar.cc/150?img=14" },
-                { name: "Густав (Соло Левелинг)", desc: "Берсерк, выживший в адских подземельях", tags: ["манхва", "Solo Leveling", "берсерк"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=15" },
-                { name: "Рин Тосака", desc: "Магичка, наследница древнего рода", tags: ["аниме", "Fate", "магия"], rating: 4.6, avatar: "https://i.pravatar.cc/150?img=16" }
-            ];
-
+            // ---------- Портал (рендер) ----------
             function renderFeed() {
                 const html = `
                     <div class="portal-header">
@@ -608,6 +635,8 @@
                             e.stopPropagation();
                             const name = btn.dataset.name;
                             const avatar = btn.dataset.avatar;
+                            // Перед открытием чата сохраняем аватарку
+                            localStorage.setItem(`chat_avatar_${name}`, avatar);
                             renderChat(name, avatar);
                         });
                     });
@@ -641,11 +670,9 @@
 
             // ---------- Чат ----------
             function renderChat(chatName, chatAvatar) {
+                // Сохраняем аватарку для этого чата
+                localStorage.setItem(`chat_avatar_${chatName}`, chatAvatar);
                 const storageKey = `chat_${chatName}`;
-                const avatarKey = `chat_avatar_${chatName}`;
-                if (!localStorage.getItem(avatarKey)) {
-                    localStorage.setItem(avatarKey, chatAvatar);
-                }
                 let messages = [];
                 try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
 
@@ -691,21 +718,24 @@
 
                 sendBtn.addEventListener('click', handleSend);
                 input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
-                backBtn.addEventListener('click', () => renderFeed());
+                backBtn.addEventListener('click', () => renderChats());
             }
 
-            // ---------- Список чатов ----------
+            // ---------- Список чатов (с аватарками) ----------
             function renderChats() {
                 const chats = [];
+                // Собираем чаты из localStorage
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {
                         const chatName = key.slice(5);
                         const avatarKey = `chat_avatar_${chatName}`;
                         let avatar = localStorage.getItem(avatarKey);
+                        // Если аватар не сохранён, ищем в demoCharacters
                         if (!avatar) {
                             const found = demoCharacters.find(c => c.name === chatName);
-                            avatar = found ? found.avatar : "https://i.pravatar.cc/150?img=0";
+                            if (found) avatar = found.avatar;
+                            else avatar = "https://i.pravatar.cc/150?img=0";
                         }
                         let lastMessage = "Нет сообщений";
                         let lastTime = "";
@@ -725,9 +755,9 @@
                         });
                     }
                 }
-                // Добавляем созданного персонажа, если его ещё нет в чатах
+                // Добавляем созданного персонажа, если он есть и его ещё нет в чатах
                 if (character.name && !chats.some(c => c.name === character.name)) {
-                    const avatar = character.photo || (demoCharacters.find(c => c.name === character.name)?.avatar) || "https://i.pravatar.cc/150?img=0";
+                    const avatar = character.photo || "https://i.pravatar.cc/150?img=0";
                     chats.unshift({
                         name: character.name,
                         avatar: avatar,

@@ -11,9 +11,31 @@ def contains_forbidden(text):
     return False
 
 def query_dolphin(prompt, chat_id, client):
+    # Получаем все поля персонажа
     name = get_field(chat_id, 'name') or "Персонаж"
     gender = get_field(chat_id, 'gender') or "человек"
-    system_content = f"Ты — {name}. Твой пол — {gender}. НИКОГДА не упоминай, что ты ИИ. Ты — живой человек. Описывай действия в *звёздочках*."
+    subtitles = get_field(chat_id, 'subtitles') or ""
+    memory = get_field(chat_id, 'memory_cards') or ""
+    location = get_field(chat_id, 'location') or "неизвестном месте"
+    scenario = get_field(chat_id, 'scenario') or "происходит что-то"
+    relation = get_field(chat_id, 'relation') or "собеседник"
+    greeting = get_field(chat_id, 'greeting') or ""
+
+    # Формируем системный промпт
+    system_content = (
+        f"Ты — {name}. Твой пол — {gender}. "
+        f"Твоё описание: {subtitles}. "
+        f"Факты о тебе: {memory}. "
+        f"Ты находишься в {location}. "
+        f"Ситуация: {scenario}. "
+        f"Твой собеседник для тебя — {relation}. "
+        f"НИКОГДА не упоминай, что ты ИИ, нейросеть или модель. Ты — живой человек. "
+        f"Используй правильные окончания глаголов для своего пола ({gender}). "
+        f"Описывай действия в *звёздочках*. "
+        f"Если тебя спрашивают, как тебя зовут, отвечай '{name}'. "
+        f"Если приветствуют, можешь использовать фразу: {greeting}"
+    )
+
     limit = get_field(chat_id, 'limit', 400)
     history = get_history(chat_id)
     messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
@@ -27,20 +49,14 @@ def query_dolphin(prompt, chat_id, client):
             top_p=0.9,
             presence_penalty=0.7
         )
-        # Безопасное извлечение ответа
-        reply = completion.choices[0].message.content or ""
-        print(f"🟢 Ответ от ИИ (raw): {reply}")
-
-        if not reply.strip():
-            print("❌ Пустой ответ от модели")
-            return "Извини, я не смог подобрать ответ."
-
+        reply = completion.choices[0].message.content
+        print(f"🟢 Ответ от ИИ для {chat_id}: {reply}")
+        if reply is None:
+            return "Извини, я не могу ответить."
         if contains_forbidden(reply):
             return "⛔ Нарушение безопасности. Попробуй иначе."
-
         add_to_history(chat_id, prompt, reply)
         return reply
-
     except Exception as e:
         print(f"🔴 Ошибка в query_dolphin: {e}")
         import traceback

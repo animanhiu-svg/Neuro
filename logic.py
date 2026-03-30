@@ -11,7 +11,6 @@ def contains_forbidden(text):
     return False
 
 def query_dolphin(prompt, chat_id, client):
-    # Получаем все поля персонажа
     name = get_field(chat_id, 'name') or "Персонаж"
     gender = get_field(chat_id, 'gender') or "человек"
     subtitles = get_field(chat_id, 'subtitles') or ""
@@ -21,7 +20,6 @@ def query_dolphin(prompt, chat_id, client):
     relation = get_field(chat_id, 'relation') or "собеседник"
     greeting = get_field(chat_id, 'greeting') or ""
 
-    # Формируем системный промпт
     system_content = (
         f"Ты — {name}. Твой пол — {gender}. "
         f"Твоё описание: {subtitles}. "

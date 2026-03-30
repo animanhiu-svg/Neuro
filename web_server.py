@@ -8,8 +8,9 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# --- Инициализация ---
-# utils.start_pinger()  # отключаем, чтобы не конфликтовать с gunicorn
+# Отключаем пингер, чтобы не конфликтовать с gunicorn (можно закомментировать)
+# utils.start_pinger()
+
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
@@ -20,10 +21,6 @@ app = Flask(__name__, static_folder='mini_app')
 @app.route('/app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
-
-@app.route('/test.html')
-def serve_test():
-    return send_from_directory('mini_app', 'test.html')
 
 # --- Эндпоинт для чата мини-аппа ---
 @app.route('/chat', methods=['POST'])
@@ -88,47 +85,38 @@ def start(message):
 
 @bot.message_handler(content_types=['web_app_data'])
 def handle_web_app_data(message):
-    print(f"📩 Получены данные из WebApp от {message.chat.id}")
     cid = message.chat.id
     if cid != config.ALLOWED_USER_ID:
         return
     try:
         data = json.loads(message.web_app_data.data)
+        # Сохраняем все поля, которые пришли
         for key, value in data.items():
             if value:
                 update_field(cid, key, value)
         bot.send_message(cid, "✅ Персонаж сохранён! Теперь можно общаться.")
     except Exception as e:
+        print(f"❌ Ошибка при сохранении: {e}")
         bot.send_message(cid, f"❌ Ошибка при сохранении: {e}")
 
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/'))
 def handle_chat(message):
-    print(f"📩 Получено сообщение от ID {message.chat.id}: {message.text}")
-
     if message.chat.id != config.ALLOWED_USER_ID:
         print(f"⚠️ Доступ запрещён для {message.chat.id}")
-        bot.reply_to(message, "⛔ Только для владельца.")
         return
-
     cid = message.chat.id
     text = message.text
-
     if contains_forbidden(text):
         bot.reply_to(message, "⛔ Запрещённая тема.")
         return
-
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-
     try:
         reply = query_dolphin(text, cid, client)
-        print(f"💬 Ответ для отправки: {reply}")
-
         if not reply or str(reply).strip() == "":
             bot.send_message(cid, "⚠️ Нейросеть вернула пустой ответ.")
         else:
             bot.send_message(cid, reply)
-
     except Exception as e:
         print(f"💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
         import traceback
@@ -147,7 +135,6 @@ def setup_webhook():
         print(f"❌ Ошибка установки вебхука: {e}")
 
 # Вызовем установку вебхука прямо при импорте (в основном потоке, до запуска gunicorn)
-# Это сработает один раз для каждого воркера, но не страшно.
 setup_webhook()
 
 # gunicorn будет использовать объект app

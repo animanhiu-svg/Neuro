@@ -102,12 +102,6 @@
         .portal-header { margin-bottom: 24px; }
         .portal-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .portal-header p { font-size: 14px; color: #aaa; margin-bottom: 12px; }
-        .online-stats {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 12px; color: #b388ff;
-            background: rgba(179,136,255,0.1);
-            padding: 6px 12px; border-radius: 30px; width: fit-content;
-        }
         .search-box {
             display: flex; align-items: center;
             background: #1e1e1e; border-radius: 30px; padding: 12px 18px;
@@ -119,75 +113,33 @@
             background: transparent; border: none; outline: none;
             color: #fff; font-size: 16px; width: 100%;
         }
-        .categories {
-            display: flex; gap: 12px; overflow-x: auto;
-            padding-bottom: 12px; margin-bottom: 20px;
-        }
-        .category-chip {
-            background: transparent; border: 1px solid #444; border-radius: 30px;
-            padding: 8px 18px; font-size: 14px; white-space: nowrap;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .category-chip.active {
-            border-color: #fff; background: rgba(255,255,255,0.1); color: #fff;
-        }
-        .trending { margin-bottom: 20px; }
-        .trending-label {
-            font-size: 12px; color: #888; margin-bottom: 10px;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .trending-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-        .trending-chip {
-            background: rgba(255,255,255,0.05); border-radius: 30px;
-            padding: 6px 14px; font-size: 13px; cursor: pointer;
-        }
         .characters-list {
-            display: flex; flex-direction: column; gap: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
         .character-card {
-            background: #1a1a1a; border-radius: 24px; padding: 12px;
-            border: 1px solid #2a2a2a; transition: transform 0.2s, border-color 0.2s;
-            opacity: 0; transform: translateY(15px);
-            animation: fadeInUp 0.3s forwards;
-        }
-        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
-        .card-row { display: flex; gap: 12px; }
-        .card-avatar {
-            width: 60px; height: 60px; border-radius: 50%;
-            background-size: cover; background-position: center;
-            background-color: #333; flex-shrink: 0;
-        }
-        .card-info { flex: 1; }
-        .card-name {
-            font-size: 18px; font-weight: 600;
-            display: flex; justify-content: space-between;
-            align-items: center;
-        }
-        .card-rating {
-            display: flex; align-items: center; gap: 4px;
-            font-size: 12px; color: #ffd966;
-        }
-        .card-desc { font-size: 12px; color: #aaa; margin: 4px 0 6px; }
-        .card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-        .tag { background: #2a2a2a; border-radius: 20px; padding: 2px 10px; font-size: 10px; color: #ccc; }
-        .card-actions {
-            display: flex; justify-content: space-between;
-            margin-top: 8px;
-        }
-        .btn-chat {
-            background: transparent; border: 1px solid #fff; border-radius: 30px;
-            padding: 6px 16px; font-size: 12px; color: #fff;
+            background: #1a1a1a;
+            border-radius: 24px;
+            padding: 12px;
+            border: 1px solid #2a2a2a;
+            transition: transform 0.2s, border-color 0.2s;
+            display: flex;
+            gap: 12px;
             cursor: pointer;
         }
-        .btn-chat:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
-        .btn-like {
-            background: transparent; border: none; color: #888;
-            cursor: pointer; display: flex; align-items: center; gap: 4px;
-            font-size: 12px;
+        .character-card:active { transform: scale(0.98); }
+        .card-avatar {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            background-color: #333;
+            flex-shrink: 0;
         }
-        .btn-like i { width: 18px; height: 18px; }
-        .btn-like.active { color: #ff5e5e; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
+        .card-info { flex: 1; }
+        .card-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .card-desc { font-size: 12px; color: #aaa; }
 
         /* чат */
         .chat-header {
@@ -344,6 +296,7 @@
         #file-input { display: none; }
 
         .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
         .chats-list { display: flex; flex-direction: column; gap: 12px; }
         .chat-item {
             display: flex; align-items: center; gap: 12px;
@@ -353,21 +306,16 @@
         .chat-item:active { transform: scale(0.98); }
         .chat-item-avatar {
             width: 50px; height: 50px; border-radius: 50%;
-            background-size: cover; background-position: center; flex-shrink: 0;
+            background-size: cover; background-position: center;
+            flex-shrink: 0;
         }
         .chat-item-info { flex: 1; min-width: 0; }
         .chat-item-name {
             font-size: 16px; font-weight: 600; margin-bottom: 4px;
-            display: flex; justify-content: space-between;
         }
         .chat-item-last {
             font-size: 12px; color: #aaa;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .chat-item-badge {
-            background: #2481cc; border-radius: 30px;
-            padding: 2px 8px; font-size: 10px; font-weight: 600; color: #fff;
-            margin-left: 8px;
         }
         .empty-chats { text-align: center; padding: 40px 20px; color: #aaa; }
     </style>
@@ -412,16 +360,6 @@
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // замени на свой ID
             console.log('chat_id:', chat_id);
-
-            // ---------- Персонажи портала ----------
-            const demoCharacters = [
-                { name: "Наруто Узумаки", desc: "Ниндзя-оборотень, мечтает стать Хокаге", tags: ["аниме", "Наруто", "шиноби"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=11" },
-                { name: "Гоку (Сон Гоку)", desc: "Сайян, защитник Земли, любит сражаться и есть", tags: ["аниме", "Dragon Ball", "сайян"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=12" },
-                { name: "Леви Аккерман", desc: "Сильнейший солдат Разведкорпуса, мастер меча", tags: ["аниме", "Атака Титанов", "Леви"], rating: 4.8, avatar: "https://i.pravatar.cc/150?img=13" },
-                { name: "Сангвиния (Аркейн)", desc: "Загадочная колдунья из другого мира", tags: ["манхва", "фэнтези", "магия"], rating: 4.7, avatar: "https://i.pravatar.cc/150?img=14" },
-                { name: "Густав (Соло Левелинг)", desc: "Берсерк, выживший в адских подземельях", tags: ["манхва", "Solo Leveling", "берсерк"], rating: 4.9, avatar: "https://i.pravatar.cc/150?img=15" },
-                { name: "Рин Тосака", desc: "Магичка, наследница древнего рода", tags: ["аниме", "Fate", "магия"], rating: 4.6, avatar: "https://i.pravatar.cc/150?img=16" }
-            ];
 
             // ---------- Данные конструктора (расширенные) ----------
             let character = {
@@ -552,129 +490,20 @@
                 }
             }
 
-            // ---------- Портал (рендер) ----------
-            function renderFeed() {
-                const html = `
-                    <div class="portal-header">
-                        <h2>Портал</h2>
-                        <p>Найди своего героя</p>
-                        <div class="online-stats"><i data-lucide="circle"></i> 47 героев сейчас в сети</div>
-                    </div>
-                    <div class="search-box">
-                        <i data-lucide="search"></i>
-                        <input type="text" id="searchInput" placeholder="Имя, тег или характер...">
-                    </div>
-                    <div class="categories" id="categories">
-                        <div class="category-chip" data-cat="all">Все</div>
-                        <div class="category-chip" data-cat="popular">Популярные</div>
-                        <div class="category-chip" data-cat="new">Новинки</div>
-                        <div class="category-chip" data-cat="friends">Друзья</div>
-                        <div class="category-chip" data-cat="active">В сети</div>
-                    </div>
-                    <div class="trending">
-                        <div class="trending-label"><i data-lucide="trending-up"></i> Популярные запросы</div>
-                        <div class="trending-chips" id="trendingChips">
-                            <div class="trending-chip">Наруто</div>
-                            <div class="trending-chip">Гоку</div>
-                            <div class="trending-chip">Леви</div>
-                            <div class="trending-chip">манхва</div>
-                        </div>
-                    </div>
-                    <div id="charactersList" class="characters-list"></div>
-                `;
-                contentArea.innerHTML = html;
-                lucide.createIcons();
-
-                const searchInput = document.getElementById('searchInput');
-                const categories = document.querySelectorAll('.category-chip');
-                const trendingChips = document.querySelectorAll('.trending-chip');
-                const charactersList = document.getElementById('charactersList');
-
-                let activeCategory = 'all';
-                function renderCharacters() {
-                    const query = searchInput.value.toLowerCase();
-                    let filtered = [...demoCharacters];
-                    if (query) {
-                        filtered = filtered.filter(c => 
-                            c.name.toLowerCase().includes(query) || 
-                            c.tags.some(t => t.includes(query)) ||
-                            c.desc.toLowerCase().includes(query)
-                        );
-                    }
-                    if (activeCategory === 'popular') filtered = filtered.sort((a,b) => b.rating - a.rating);
-                    if (activeCategory === 'new') filtered = filtered.slice(0, 3);
-                    if (activeCategory === 'active') filtered = filtered.filter((_, i) => i % 2 === 0);
-                    if (activeCategory === 'friends') filtered = filtered.slice(0, 2);
-
-                    if (filtered.length === 0) {
-                        charactersList.innerHTML = '<div class="empty-state">✨ Ничего не найдено</div>';
-                        return;
-                    }
-                    charactersList.innerHTML = filtered.map((c, idx) => `
-                        <div class="character-card" style="animation-delay: ${idx * 0.05}s">
-                            <div class="card-row">
-                                <div class="card-avatar" style="background-image: url('${c.avatar}');"></div>
-                                <div class="card-info">
-                                    <div class="card-name">
-                                        ${escapeHtml(c.name)}
-                                        <div class="card-rating"><i data-lucide="star"></i> ${c.rating}</div>
-                                    </div>
-                                    <div class="card-desc">${escapeHtml(c.desc)}</div>
-                                    <div class="card-tags">${c.tags.map(t => `<span class="tag">#${escapeHtml(t)}</span>`).join('')}</div>
-                                    <div class="card-actions">
-                                        <button class="btn-chat" data-name="${escapeHtml(c.name)}" data-avatar="${c.avatar}">Общаться →</button>
-                                        <button class="btn-like" data-name="${c.name}"><i data-lucide="heart"></i> 24</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                    lucide.createIcons();
-                    document.querySelectorAll('.btn-chat').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            const name = btn.dataset.name;
-                            const avatar = btn.dataset.avatar;
-                            // Перед открытием чата сохраняем аватарку
-                            localStorage.setItem(`chat_avatar_${name}`, avatar);
-                            renderChat(name, avatar);
-                        });
-                    });
-                    document.querySelectorAll('.btn-like').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            tg.HapticFeedback?.impactOccurred('light');
-                            btn.classList.toggle('active');
-                        });
-                    });
+            // ---------- Сохранение аватара чата ----------
+            function ensureChatAvatar(chatName, avatar) {
+                const avatarKey = `chat_avatar_${chatName}`;
+                if (!localStorage.getItem(avatarKey)) {
+                    localStorage.setItem(avatarKey, avatar);
                 }
-
-                searchInput.addEventListener('input', renderCharacters);
-                categories.forEach(cat => {
-                    cat.addEventListener('click', () => {
-                        categories.forEach(c => c.classList.remove('active'));
-                        cat.classList.add('active');
-                        activeCategory = cat.dataset.cat;
-                        renderCharacters();
-                    });
-                });
-                trendingChips.forEach(chip => {
-                    chip.addEventListener('click', () => {
-                        searchInput.value = chip.innerText;
-                        renderCharacters();
-                    });
-                });
-                categories[0].classList.add('active');
-                renderCharacters();
             }
 
-            // ---------- Чат ----------
+            // ---------- Рендер чата ----------
             function renderChat(chatName, chatAvatar) {
-                // Сохраняем аватарку для этого чата
-                localStorage.setItem(`chat_avatar_${chatName}`, chatAvatar);
                 const storageKey = `chat_${chatName}`;
                 let messages = [];
                 try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
+                ensureChatAvatar(chatName, chatAvatar);
 
                 const html = `
                     <div class="chat-header">
@@ -718,25 +547,116 @@
 
                 sendBtn.addEventListener('click', handleSend);
                 input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
-                backBtn.addEventListener('click', () => renderChats());
+                backBtn.addEventListener('click', () => renderFeed());
             }
 
-            // ---------- Список чатов (с аватарками) ----------
+            // ---------- Портал (только созданные персонажи) ----------
+            function getCreatedCharacters() {
+                const chars = [];
+                // Получаем созданного персонажа из localStorage (если есть)
+                const saved = localStorage.getItem('neuroCharacter');
+                if (saved) {
+                    try {
+                        const char = JSON.parse(saved);
+                        if (char.name) {
+                            chars.push({
+                                name: char.name,
+                                desc: char.subtitles || 'Нет описания',
+                                avatar: character.photo || "https://i.pravatar.cc/150?img=0"
+                            });
+                        }
+                    } catch(e) {}
+                }
+                // Также можно добавить персонажей, с которыми уже общались (но без своего конструктора)
+                // Проходим по всем ключам localStorage, ищем чаты
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {
+                        const chatName = key.slice(5);
+                        if (!chars.some(c => c.name === chatName)) {
+                            const avatarKey = `chat_avatar_${chatName}`;
+                            let avatar = localStorage.getItem(avatarKey);
+                            if (!avatar) avatar = "https://i.pravatar.cc/150?img=0";
+                            chars.push({
+                                name: chatName,
+                                desc: 'Персонаж из чата',
+                                avatar: avatar
+                            });
+                        }
+                    }
+                }
+                return chars;
+            }
+
+            function renderFeed() {
+                const createdChars = getCreatedCharacters();
+                if (createdChars.length === 0) {
+                    contentArea.innerHTML = `
+                        <div class="portal-header">
+                            <h2>Портал</h2>
+                            <p>Создайте своего первого персонажа в центре</p>
+                        </div>
+                        <div class="empty-state">✨ Здесь будут ваши персонажи</div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+                const html = `
+                    <div class="portal-header">
+                        <h2>Портал</h2>
+                        <p>Найди своего героя</p>
+                    </div>
+                    <div class="search-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="searchInput" placeholder="Имя персонажа...">
+                    </div>
+                    <div id="charactersList" class="characters-list"></div>
+                `;
+                contentArea.innerHTML = html;
+                lucide.createIcons();
+
+                const searchInput = document.getElementById('searchInput');
+                const charactersList = document.getElementById('charactersList');
+
+                function renderCharacters() {
+                    const query = searchInput.value.toLowerCase();
+                    let filtered = createdChars.filter(c => c.name.toLowerCase().includes(query));
+                    if (filtered.length === 0) {
+                        charactersList.innerHTML = '<div class="empty-state">✨ Ничего не найдено</div>';
+                        return;
+                    }
+                    charactersList.innerHTML = filtered.map(c => `
+                        <div class="character-card" data-name="${escapeHtml(c.name)}" data-avatar="${c.avatar}">
+                            <div class="card-avatar" style="background-image: url('${c.avatar}');"></div>
+                            <div class="card-info">
+                                <div class="card-name">${escapeHtml(c.name)}</div>
+                                <div class="card-desc">${escapeHtml(c.desc)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    document.querySelectorAll('.character-card').forEach(card => {
+                        card.addEventListener('click', () => {
+                            const name = card.dataset.name;
+                            const avatar = card.dataset.avatar;
+                            renderChat(name, avatar);
+                        });
+                    });
+                }
+
+                searchInput.addEventListener('input', renderCharacters);
+                renderCharacters();
+            }
+
+            // ---------- Список чатов ----------
             function renderChats() {
                 const chats = [];
-                // Собираем чаты из localStorage
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {
                         const chatName = key.slice(5);
                         const avatarKey = `chat_avatar_${chatName}`;
                         let avatar = localStorage.getItem(avatarKey);
-                        // Если аватар не сохранён, ищем в demoCharacters
-                        if (!avatar) {
-                            const found = demoCharacters.find(c => c.name === chatName);
-                            if (found) avatar = found.avatar;
-                            else avatar = "https://i.pravatar.cc/150?img=0";
-                        }
+                        if (!avatar) avatar = "https://i.pravatar.cc/150?img=0";
                         let lastMessage = "Нет сообщений";
                         let lastTime = "";
                         try {
@@ -755,16 +675,6 @@
                         });
                     }
                 }
-                // Добавляем созданного персонажа, если он есть и его ещё нет в чатах
-                if (character.name && !chats.some(c => c.name === character.name)) {
-                    const avatar = character.photo || "https://i.pravatar.cc/150?img=0";
-                    chats.unshift({
-                        name: character.name,
-                        avatar: avatar,
-                        lastMessage: "Персонаж создан, начните общение",
-                        lastTime: ""
-                    });
-                }
                 if (chats.length === 0) {
                     contentArea.innerHTML = `
                         <div class="empty-chats">
@@ -782,9 +692,7 @@
                             <div class="chat-item" data-name="${escapeHtml(chat.name)}" data-avatar="${chat.avatar}">
                                 <div class="chat-item-avatar" style="background-image: url('${chat.avatar}');"></div>
                                 <div class="chat-item-info">
-                                    <div class="chat-item-name">
-                                        ${escapeHtml(chat.name)}
-                                    </div>
+                                    <div class="chat-item-name">${escapeHtml(chat.name)}</div>
                                     <div class="chat-item-last">${escapeHtml(chat.lastMessage)}</div>
                                     ${chat.lastTime ? `<div style="font-size:10px; color:#666;">${chat.lastTime}</div>` : ''}
                                 </div>
@@ -803,7 +711,7 @@
                 });
             }
 
-            // ---------- Конструктор персонажа (расширенный) ----------
+            // ---------- Конструктор персонажа ----------
             function renderCenter() {
                 const avatarHtml = character.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${character.photo}');"></div>`
@@ -965,8 +873,16 @@
                         relation: character.relation,
                         photo: character.photo || null
                     };
+                    // Отправляем в бота
                     tg.sendData(JSON.stringify(dataToSend));
                     tg.showAlert(`Персонаж "${character.name}" создан!`);
+
+                    // Сохраняем аватар для чата
+                    const avatar = character.photo || "https://i.pravatar.cc/150?img=0";
+                    ensureChatAvatar(character.name, avatar);
+
+                    // Сразу открываем чат с созданным персонажем
+                    renderChat(character.name, avatar);
                 });
             }
 

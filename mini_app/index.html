@@ -567,8 +567,7 @@
                         }
                     } catch(e) {}
                 }
-                // Также можно добавить персонажей, с которыми уже общались (но без своего конструктора)
-                // Проходим по всем ключам localStorage, ищем чаты
+                // Добавляем персонажей, с которыми уже общались (из чатов)
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {

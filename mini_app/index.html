@@ -123,7 +123,6 @@
             border-radius: 24px;
             padding: 12px;
             border: 1px solid #2a2a2a;
-            transition: transform 0.2s, border-color 0.2s;
             display: flex;
             gap: 12px;
             cursor: pointer;
@@ -305,8 +304,10 @@
         }
         .chat-item:active { transform: scale(0.98); }
         .chat-item-avatar {
-            width: 50px; height: 50px; border-radius: 50%;
-            background-size: cover; background-position: center;
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
             flex-shrink: 0;
         }
         .chat-item-info { flex: 1; min-width: 0; }
@@ -567,7 +568,7 @@
                         }
                     } catch(e) {}
                 }
-                // Добавляем персонажей, с которыми уже общались (из чатов)
+                // Также добавляем персонажей, с которыми уже общались (но без своего конструктора)
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {

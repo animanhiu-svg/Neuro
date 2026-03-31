@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        /* ========== СТИЛИ (те же, что в последней стабильной версии) ========== */
         * {
             margin: 0;
             padding: 0;
@@ -352,10 +351,9 @@
             tg.ready(); tg.expand();
 
             const user_id = tg.initDataUnsafe.user?.id;
-            const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070; // замени на свой ID
+            const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
             console.log('chat_id:', chat_id);
 
-            // ---------- Данные конструктора (базовые) ----------
             let character = {
                 name: '',
                 gender: 'male',
@@ -381,7 +379,7 @@
                 else localStorage.removeItem('characterPhoto');
             }
 
-            // ---------- Кадрирование ----------
+            // Кадрирование
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
@@ -432,7 +430,7 @@
                 if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') renderCenter();
             });
 
-            // ---------- Чат ----------
+            // Чат
             function addMessageToUI(container, text, sender, time) {
                 const div = document.createElement('div');
                 div.className = `message ${sender}`;
@@ -534,7 +532,6 @@
                 backBtn.addEventListener('click', () => renderFeed());
             }
 
-            // ---------- Портал (только созданные персонажи) ----------
             function getCreatedCharacters() {
                 const chars = [];
                 const saved = localStorage.getItem('neuroCharacter');
@@ -691,7 +688,7 @@
                 });
             }
 
-            // ---------- Конструктор (базовый) ----------
+            // Конструктор с fetch
             function renderCenter() {
                 const avatarHtml = character.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${character.photo}');"></div>`
@@ -792,28 +789,40 @@
                     tg.HapticFeedback?.impactOccurred('light');
                 });
 
-                activateBtn.addEventListener('click', () => {
+                activateBtn.addEventListener('click', async () => {
                     if (!character.name.trim()) {
                         tg.showAlert('Введите имя персонажа');
                         return;
                     }
                     const dataToSend = {
+                        chat_id: chat_id,
                         name: character.name,
                         gender: character.gender,
                         greeting: character.greeting,
                         story: character.story,
                         photo: character.photo || null
                     };
-                    tg.sendData(JSON.stringify(dataToSend));
-                    tg.showAlert(`Персонаж "${character.name}" создан!`);
-
-                    const avatar = character.photo || "https://i.pravatar.cc/150?img=0";
-                    ensureChatAvatar(character.name, avatar);
-                    renderChat(character.name, avatar);
+                    try {
+                        const response = await fetch('/save_character', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(dataToSend)
+                        });
+                        if (response.ok) {
+                            tg.showAlert(`Персонаж "${character.name}" создан!`);
+                            const avatar = character.photo || "https://i.pravatar.cc/150?img=0";
+                            ensureChatAvatar(character.name, avatar);
+                            renderChat(character.name, avatar);
+                        } else {
+                            tg.showAlert('Ошибка при сохранении персонажа');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        tg.showAlert('Ошибка соединения с сервером');
+                    }
                 });
             }
 
-            // ---------- Профиль с кнопкой очистки ----------
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">
@@ -848,7 +857,7 @@
                 lucide.createIcons();
             }
 
-            // ---------- Переключение вкладок ----------
+            // Переключение вкладок
             const contentArea = document.getElementById('content-area');
             const barItems = document.querySelectorAll('.bar-item');
 

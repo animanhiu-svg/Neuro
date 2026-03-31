@@ -10,52 +10,66 @@ def contains_forbidden(text):
             return True
     return False
 
-def query_dolphin(prompt, chat_id, client, character_data=None):
-    # Если передан character_data, используем его, иначе берём из БД
-    if character_data:
-        name = character_data.get('name', "Персонаж")
-        gender = character_data.get('gender', "человек")
-        subtitles = character_data.get('subtitles', "") or character_data.get('appearance', "")
-        memory = character_data.get('memory_cards', "") or character_data.get('memory', "")
-        location = character_data.get('location', "") or character_data.get('scenario', "")  # локация может быть в сценарии
-        scenario = character_data.get('scenario', "")
-        relation = character_data.get('relation', "")
-        greeting = character_data.get('greeting', "")
-        personality = character_data.get('personality', "")
-        tags = character_data.get('tags', [])
-        if isinstance(tags, list):
-            tags_str = ", ".join(tags)
-        else:
-            tags_str = str(tags)
-    else:
-        # Старая логика (из БД)
-        name = get_field(chat_id, 'name') or "Персонаж"
-        gender = get_field(chat_id, 'gender') or "человек"
-        subtitles = get_field(chat_id, 'subtitles') or ""
-        memory = get_field(chat_id, 'memory_cards') or ""
-        location = get_field(chat_id, 'location') or "неизвестном месте"
-        scenario = get_field(chat_id, 'scenario') or "происходит что-то"
-        relation = get_field(chat_id, 'relation') or "собеседник"
-        greeting = get_field(chat_id, 'greeting') or ""
-        personality = get_field(chat_id, 'personality') or ""
-        tags_str = get_field(chat_id, 'tags') or ""
+def build_system_prompt(character):
+    """Формирует системный промпт из данных персонажа"""
+    name = character.get('name', 'Персонаж')
+    gender = character.get('gender', 'человек')
+    greeting = character.get('greeting', '')
+    appearance = character.get('appearance', '')
+    personality = character.get('personality', '')
+    scenario = character.get('scenario', '')
+    memory = character.get('memory', '')
+    tags = character.get('tags', '')
 
-    # Формируем системный промпт
-    system_content = (
-        f"Ты — {name}. Твой пол — {gender}. "
-        f"Твоё описание: {subtitles}. "
-        f"Факты о тебе: {memory}. "
-        f"Твои черты характера: {personality}. "
-        f"Ты находишься в {location}. "
-        f"Ситуация: {scenario}. "
-        f"Твой собеседник для тебя — {relation if relation else 'собеседник'}. "
-        f"Теги: {tags_str}. "
-        f"НИКОГДА не упоминай, что ты ИИ, нейросеть или модель. Ты — живой человек. "
-        f"Используй правильные окончания глаголов для своего пола ({gender}). "
-        f"Описывай действия в *звёздочках*. "
-        f"Если тебя спрашивают, как тебя зовут, отвечай '{name}'. "
-        f"Если приветствуют, можешь использовать фразу: {greeting}"
+    prompt = f"Ты — {name}. Твой пол — {gender}. "
+    if appearance:
+        prompt += f"Твоя внешность: {appearance}. "
+    if personality:
+        prompt += f"Твой характер: {personality}. "
+    if scenario:
+        prompt += f"Сейчас происходит: {scenario}. "
+    if memory:
+        prompt += f"Важные факты о тебе: {memory}. "
+    if tags:
+        prompt += f"Твои теги: {tags}. "
+
+    prompt += (
+        "Ты НИКОГДА не упоминай, что ты ИИ, нейросеть или модель. Ты — живой человек. "
+        "Описывай свои действия в *звёздочках*. "
+        "СТРОГО СЛЕДУЙ СВОЕМУ ХАРАКТЕРУ, ВНЕШНОСТИ И СЦЕНАРИЮ. "
+        "Не отклоняйся от заданной личности. Если в характере указано быть грубым или замкнутым – отвечай соответственно. "
+        "Используй правильные окончания глаголов для своего пола ({gender}). "
     )
+    if greeting:
+        prompt += f"При встрече ты обычно говоришь: '{greeting}'. "
+    prompt += (
+        "Ты не должен создавать контент, связанный с насилием, наркотиками, несовершеннолетними, экстремизмом или другими незаконными темами. "
+        "Если тебя просят о чём-то запрещённом, вежливо откажись и смени тему."
+    )
+    return prompt
+
+def query_dolphin(prompt, chat_id, client):
+    """Для бота – берёт данные из БД"""
+    name = get_field(chat_id, 'name') or "Персонаж"
+    gender = get_field(chat_id, 'gender') or "человек"
+    greeting = get_field(chat_id, 'greeting') or ""
+    subtitles = get_field(chat_id, 'subtitles') or ""
+    memory = get_field(chat_id, 'memory_cards') or ""
+    location = get_field(chat_id, 'location') or "неизвестном месте"
+    scenario = get_field(chat_id, 'scenario') or "происходит что-то"
+    relation = get_field(chat_id, 'relation') or "собеседник"
+
+    character = {
+        'name': name,
+        'gender': gender,
+        'greeting': greeting,
+        'appearance': subtitles,
+        'personality': memory,
+        'scenario': scenario,
+        'memory': f"Локация: {location}, роль собеседника: {relation}",
+        'tags': ''
+    }
+    system_content = build_system_prompt(character)
 
     limit = get_field(chat_id, 'limit', 400)
     history = get_history(chat_id)
@@ -80,6 +94,48 @@ def query_dolphin(prompt, chat_id, client, character_data=None):
         return reply
     except Exception as e:
         print(f"🔴 Ошибка в query_dolphin: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"⏳ Ошибка: {str(e)[:100]}"
+
+def query_dolphin_with_character(prompt, chat_id, client, character):
+    """Для мини-аппа – использует переданные данные персонажа"""
+    system_content = build_system_prompt(character)
+
+    # Для истории используем общий ключ, но можно и отдельный по ID
+    history_key = f"chat_{character.get('id', chat_id)}"
+    history = []
+    try:
+        import json
+        saved = localStorage.getItem(history_key)  # здесь нельзя, нужно получать из запроса? Пока оставим пустым.
+        # Временно используем глобальную историю (но она общая для всех). Для полноты можно хранить историю на сервере.
+        # Пока просто берём пустую историю, чтобы не ломать.
+    except:
+        pass
+
+    limit = get_field(chat_id, 'limit', 400)
+    messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
+
+    try:
+        completion = client.chat.completions.create(
+            model=config.MODEL,
+            messages=messages,
+            max_tokens=limit,
+            temperature=1.1,
+            top_p=0.9,
+            presence_penalty=0.7
+        )
+        reply = completion.choices[0].message.content
+        print(f"🟢 Ответ от ИИ для персонажа {character.get('name')}: {reply}")
+        if reply is None:
+            return "Извини, я не могу ответить."
+        if contains_forbidden(reply):
+            return "⛔ Нарушение безопасности. Попробуй иначе."
+        # Сохраняем историю в БД или возвращаем
+        # add_to_history(chat_id, prompt, reply)  – пока не используем, чтобы не смешивать
+        return reply
+    except Exception as e:
+        print(f"🔴 Ошибка в query_dolphin_with_character: {e}")
         import traceback
         traceback.print_exc()
         return f"⏳ Ошибка: {str(e)[:100]}"

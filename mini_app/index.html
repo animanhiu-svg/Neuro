@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
+        /* все стили как в предыдущей версии – не меняем, только иконку фотоаппарата сделаем через CSS */
         * {
             margin: 0;
             padding: 0;
@@ -21,7 +22,6 @@
             color: #fff;
             min-height: 100vh;
         }
-
         /* сплэш */
         #splash-screen {
             position: fixed;
@@ -52,7 +52,6 @@
         .splash-quote { font-size: 12px; color: #aaa; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
         .progress-container { width: 200px; height: 2px; background: #333; }
         .progress-fill { height: 100%; width: 0%; background: #fff; transition: width 3s linear; }
-
         /* основной контент */
         #main-content {
             opacity: 0;
@@ -70,8 +69,6 @@
             margin: 0 auto;
             width: 100%;
         }
-
-        /* нижняя панель – овальная */
         .bottom-bar {
             display: flex;
             justify-content: space-around;
@@ -97,7 +94,6 @@
         .bar-item.active { opacity: 1; }
         .bar-item:active { transform: scale(0.92); }
         .bar-item i { width: 24px; height: 24px; margin-bottom: 4px; stroke-width: 1.5; }
-
         /* портал */
         .portal-header { margin-bottom: 24px; }
         .portal-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
@@ -139,7 +135,6 @@
         .card-info { flex: 1; }
         .card-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
         .card-greeting { font-size: 12px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
         /* чат */
         .chat-header {
             display: flex;
@@ -232,7 +227,6 @@
             border-radius: 18px;
             font-size: 14px;
         }
-
         /* конструктор (расширенный) */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
@@ -252,6 +246,11 @@
             justify-content: center;
         }
         .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 48px;
             color: #fff;
         }
@@ -323,8 +322,6 @@
         .btn:active { transform: scale(0.95); }
         .btn-outline { background: transparent; border: 1px solid #fff; color: #fff; }
         .btn-primary { background: #fff; color: #121212; }
-
-        /* кадрирование */
         .crop-modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -353,7 +350,6 @@
         .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
         .crop-btn.primary { background: #fff; color: #000; }
         #file-input { display: none; }
-
         .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
         .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
         .chats-list { display: flex; flex-direction: column; gap: 12px; }
@@ -726,7 +722,7 @@
                 });
             }
 
-            // ---------- Конструктор (с сохранением данных при переключении) ----------
+            // ---------- Конструктор с сохранением данных при переключении ----------
             let currentEditId = null;
             let currentFormData = {
                 name: '',
@@ -742,24 +738,25 @@
 
             function saveCurrentFormData() {
                 if (currentEditId !== null) {
-                    const char = characters.find(c => c.id === currentEditId);
-                    if (char) {
-                        char.name = currentFormData.name;
-                        char.gender = currentFormData.gender;
-                        char.greeting = currentFormData.greeting;
-                        char.appearance = currentFormData.appearance;
-                        char.personality = currentFormData.personality;
-                        char.scenario = currentFormData.scenario;
-                        char.memory = currentFormData.memory;
-                        char.tags = currentFormData.tags;
-                        if (currentFormData.photo) char.photo = currentFormData.photo;
+                    // Обновляем существующего персонажа в списке
+                    const index = characters.findIndex(c => c.id === currentEditId);
+                    if (index !== -1) {
+                        characters[index].name = currentFormData.name;
+                        characters[index].gender = currentFormData.gender;
+                        characters[index].greeting = currentFormData.greeting;
+                        characters[index].appearance = currentFormData.appearance;
+                        characters[index].personality = currentFormData.personality;
+                        characters[index].scenario = currentFormData.scenario;
+                        characters[index].memory = currentFormData.memory;
+                        characters[index].tags = currentFormData.tags;
+                        if (currentFormData.photo) characters[index].photo = currentFormData.photo;
                         saveCharacters();
                     }
                 }
             }
 
             function renderCenter(editId = null) {
-                // Если переключились на другой персонаж, сохраняем текущие данные перед уходом
+                // Сохраняем текущие данные перед уходом
                 if (currentEditId !== null && currentEditId !== editId) {
                     saveCurrentFormData();
                 }
@@ -770,35 +767,37 @@
                     char = characters.find(c => c.id === editId);
                 }
                 if (!char) {
+                    // Если нет персонажа с таким ID, используем currentFormData (для нового или незавершённого)
                     char = {
                         id: null,
-                        name: '',
-                        gender: 'male',
-                        greeting: '',
-                        appearance: '',
-                        personality: '',
-                        scenario: '',
-                        memory: '',
-                        tags: '',
-                        photo: null
+                        name: currentFormData.name,
+                        gender: currentFormData.gender,
+                        greeting: currentFormData.greeting,
+                        appearance: currentFormData.appearance,
+                        personality: currentFormData.personality,
+                        scenario: currentFormData.scenario,
+                        memory: currentFormData.memory,
+                        tags: currentFormData.tags,
+                        photo: currentFormData.photo
+                    };
+                } else {
+                    // Загружаем данные существующего персонажа в форму
+                    currentFormData = {
+                        name: char.name,
+                        gender: char.gender,
+                        greeting: char.greeting,
+                        appearance: char.appearance,
+                        personality: char.personality,
+                        scenario: char.scenario,
+                        memory: char.memory,
+                        tags: char.tags,
+                        photo: char.photo
                     };
                 }
-                // Загружаем данные в форму
-                currentFormData = {
-                    name: char.name,
-                    gender: char.gender,
-                    greeting: char.greeting,
-                    appearance: char.appearance,
-                    personality: char.personality,
-                    scenario: char.scenario,
-                    memory: char.memory,
-                    tags: char.tags,
-                    photo: char.photo
-                };
 
                 const avatarHtml = char.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${char.photo}');"></div>`
-                    : `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">📷</div></div>`;
+                    : `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder"><i data-lucide="camera" style="width: 48px; height: 48px;"></i></div></div>`;
 
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
@@ -886,7 +885,6 @@
                         characters.push(newChar);
                         saveCharacters();
                         currentEditId = newId;
-                        currentFormData.photo = null;
                         renderCenter(newId);
                         setTimeout(() => {
                             const newAvatarCircle = document.getElementById('avatar-circle');
@@ -921,7 +919,6 @@
                             characters.push(newChar);
                             saveCharacters();
                             currentEditId = newId;
-                            currentFormData.photo = null;
                             renderCenter(newId);
                             setTimeout(() => {
                                 const newAvatarCircle = document.getElementById('avatar-circle');
@@ -976,6 +973,18 @@
                         if (index !== -1) characters.splice(index, 1);
                         saveCharacters();
                     }
+                    // Сбрасываем форму
+                    currentFormData = {
+                        name: '',
+                        gender: 'male',
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
                     document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');

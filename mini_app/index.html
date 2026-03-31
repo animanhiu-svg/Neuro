@@ -8,390 +8,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #121212;
-            color: #fff;
-            min-height: 100vh;
-        }
-
-        /* сплэш */
-        #splash-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #121212;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 1;
-            transition: opacity 0.5s;
-        }
-        #splash-screen.hidden { opacity: 0; pointer-events: none; }
-        .splash-avatar {
-            width: 100px; height: 100px;
-            border-radius: 50%;
-            background: #1e1e1e;
-            border: 2px solid #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-        .splash-avatar span { font-size: 48px; color: #fff; }
-        .splash-name { font-size: 32px; font-weight: 600; color: #fff; margin-bottom: 16px; }
-        .splash-quote { font-size: 12px; color: #aaa; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
-        .progress-container { width: 200px; height: 2px; background: #333; }
-        .progress-fill { height: 100%; width: 0%; background: #fff; transition: width 3s linear; }
-
-        /* основной контент */
-        #main-content {
-            opacity: 0;
-            transition: opacity 0.5s;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        #main-content.visible { opacity: 1; }
-        .content-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 16px;
-            max-width: 420px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .bottom-bar {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            background: #000;
-            padding: 8px 0 12px;
-            border-radius: 30px 30px 0 0;
-            border-top: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-        }
-        .bar-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #fff;
-            font-size: 10px;
-            opacity: 0.7;
-            transition: transform 0.1s, opacity 0.2s;
-            cursor: pointer;
-            flex: 1;
-            padding: 4px 0;
-        }
-        .bar-item.active { opacity: 1; }
-        .bar-item:active { transform: scale(0.92); }
-        .bar-item i { width: 24px; height: 24px; margin-bottom: 4px; stroke-width: 1.5; }
-
-        /* портал */
-        .portal-header { margin-bottom: 24px; }
-        .portal-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
-        .portal-header p { font-size: 14px; color: #aaa; margin-bottom: 12px; }
-        .search-box {
-            display: flex; align-items: center;
-            background: #1e1e1e; border-radius: 30px; padding: 12px 18px;
-            margin-bottom: 20px; border: 1px solid #333;
-        }
-        .search-box:focus-within { border-color: #fff; }
-        .search-box i { width: 20px; height: 20px; margin-right: 12px; color: #aaa; }
-        .search-box input {
-            background: transparent; border: none; outline: none;
-            color: #fff; font-size: 16px; width: 100%;
-        }
-        .characters-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .character-card {
-            background: #1a1a1a;
-            border-radius: 24px;
-            padding: 12px;
-            border: 1px solid #2a2a2a;
-            display: flex;
-            gap: 12px;
-            cursor: pointer;
-        }
-        .character-card:active { transform: scale(0.98); }
-        .card-avatar {
-            width: 60px; height: 60px;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-            background-color: #333;
-            flex-shrink: 0;
-        }
-        .card-info { flex: 1; }
-        .card-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-        .card-greeting { font-size: 12px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-        /* чат */
-        .chat-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #333;
-        }
-        .chat-back {
-            background: transparent;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-            padding: 6px 12px;
-            border-radius: 30px;
-        }
-        .chat-back:active { background: rgba(255,255,255,0.1); }
-        .chat-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-        }
-        .chat-name { font-size: 18px; font-weight: 600; }
-        .messages {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
-            overflow-y: auto;
-            max-height: 60vh;
-        }
-        .message {
-            display: flex;
-            flex-direction: column;
-            max-width: 80%;
-        }
-        .message.user {
-            align-self: flex-end;
-            align-items: flex-end;
-        }
-        .message.bot {
-            align-self: flex-start;
-            align-items: flex-start;
-            flex-direction: row;
-            gap: 8px;
-        }
-        .message-bubble {
-            background: #2a2a2a;
-            padding: 8px 12px;
-            border-radius: 18px;
-            font-size: 14px;
-            word-break: break-word;
-        }
-        .message.user .message-bubble {
-            background: #2481cc;
-            color: #fff;
-        }
-        .message-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-            flex-shrink: 0;
-            margin-top: 4px;
-        }
-        .message-content {
-            display: flex;
-            flex-direction: column;
-            max-width: calc(100% - 40px);
-        }
-        .message-time {
-            font-size: 10px;
-            color: #888;
-            margin-top: 4px;
-            margin-left: 8px;
-            margin-right: 8px;
-        }
-        .chat-input-container {
-            display: flex;
-            gap: 10px;
-            margin-top: auto;
-            background: #1e1e1e;
-            border-radius: 30px;
-            padding: 8px 12px;
-            border: 1px solid #333;
-        }
-        .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 14px; }
-        .chat-send { background: transparent; border: none; color: #fff; cursor: pointer; padding: 6px; display: flex; align-items: center; }
-        .typing-indicator {
-            display: inline-block;
-            background: #2a2a2a;
-            padding: 8px 12px;
-            border-radius: 18px;
-            font-size: 14px;
-        }
-
-        /* конструктор (расширенный) */
-        .neuro-header { text-align: center; margin-bottom: 24px; }
-        .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
-        .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
-        .avatar-circle {
-            width: 120px; height: 120px;
-            border-radius: 50%;
-            background: #1e1e1e;
-            border: 2px solid #fff;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            cursor: pointer;
-            margin-bottom: 12px;
+        /* все стили из последней стабильной версии (они уже есть) */
+        /* добавляем стили для иконки фотоаппарата в круге */
+        .avatar-circle .camera-icon {
+            width: 48px;
+            height: 48px;
+            color: #aaa;
         }
         .avatar-placeholder {
-            width: 100%; height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
-            color: #fff;
-            background: #1e1e1e;
-            border-radius: 50%;
-        }
-        .avatar-label {
-            font-size: 14px;
-            color: #aaa;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-        .input-group { margin-bottom: 20px; }
-        .input-label {
-            font-size: 12px;
-            color: #aaa;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .input-field, .input-textarea {
             width: 100%;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid #444;
-            padding: 8px 0;
-            font-size: 16px;
-            color: #fff;
-            outline: none;
-            font-family: 'Inter', sans-serif;
+            height: 100%;
         }
-        .input-textarea {
-            border: 1px solid #444;
-            border-radius: 16px;
-            padding: 10px;
-            margin-top: 4px;
-            resize: vertical;
-        }
-        .input-field:focus, .input-textarea:focus { border-bottom-color: #fff; border-color: #fff; }
-        .gender-chips { display: flex; gap: 16px; margin-top: 8px; }
-        .chip {
-            background: transparent;
-            border: 1px solid #444;
-            border-radius: 30px;
-            padding: 8px 24px;
-            font-size: 15px;
-            color: #aaa;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .chip.active { border-color: #fff; color: #fff; }
-        .char-counter { text-align: right; font-size: 10px; color: #666; margin-top: 4px; }
-        .hint {
-            font-size: 11px;
-            color: #777;
-            margin-top: 4px;
-            line-height: 1.4;
-        }
-        .main-buttons { display: flex; gap: 16px; margin-top: 32px; }
-        .btn {
-            flex: 1;
-            padding: 16px 0;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 15px;
-            text-transform: uppercase;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .btn:active { transform: scale(0.95); }
-        .btn-outline { background: transparent; border: 1px solid #fff; color: #fff; }
-        .btn-primary { background: #fff; color: #121212; }
-
-        .crop-modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 2000;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .crop-modal.show { display: flex; }
-        .crop-container {
-            width: 300px; height: 300px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 2px solid #fff;
-            margin-bottom: 30px;
-        }
-        .crop-image { max-width: 100%; max-height: 100%; }
-        .crop-controls { display: flex; gap: 20px; }
-        .crop-btn {
-            background: transparent; border: 1px solid #fff; color: #fff;
-            padding: 12px 30px; border-radius: 40px; font-size: 16px;
-            cursor: pointer;
-        }
-        .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
-        .crop-btn.primary { background: #fff; color: #000; }
-        #file-input { display: none; }
-
-        .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
-        .chats-list { display: flex; flex-direction: column; gap: 12px; }
-        .chat-item {
-            display: flex; align-items: center; gap: 12px;
-            background: #1a1a1a; border-radius: 20px; padding: 12px;
-            border: 1px solid #2a2a2a; cursor: pointer;
-        }
-        .chat-item:active { transform: scale(0.98); }
-        .chat-item-avatar {
-            width: 50px; height: 50px;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-            flex-shrink: 0;
-        }
-        .chat-item-info { flex: 1; min-width: 0; }
-        .chat-item-name {
-            font-size: 16px; font-weight: 600; margin-bottom: 4px;
-        }
-        .chat-item-last {
-            font-size: 12px; color: #aaa;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .empty-chats { text-align: center; padding: 40px 20px; color: #aaa; }
     </style>
 </head>
 <body>
@@ -434,6 +64,7 @@
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
 
+            // ---------- Список персонажей ----------
             let characters = [];
             try {
                 const saved = localStorage.getItem('characters');
@@ -444,13 +75,28 @@
                 localStorage.setItem('characters', JSON.stringify(characters));
             }
 
+            // ---------- Временные данные для конструктора (пока не сохранён) ----------
+            let tempCharacter = {
+                id: null,
+                name: '',
+                gender: 'male',
+                greeting: '',
+                appearance: '',
+                personality: '',
+                scenario: '',
+                memory: '',
+                tags: '',
+                photo: null
+            };
+
+            // ---------- Кадрирование ----------
             let pendingCharacterId = null;
+            let pendingFile = null;
+            let cropper = null;
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
             const cropApply = document.getElementById('crop-apply');
-            let cropper = null;
-            let pendingFile = null;
 
             function openCrop(file, charId) {
                 const reader = new FileReader();
@@ -489,31 +135,31 @@
                 if (!cropper || !pendingFile || pendingCharacterId === null) return;
                 const canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
                 const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                const charIndex = characters.findIndex(c => c.id === pendingCharacterId);
-                if (charIndex !== -1) {
-                    characters[charIndex].photo = croppedDataUrl;
-                    saveCharacters();
+                // Обновляем фото в нужном месте
+                if (pendingCharacterId === 'temp') {
+                    tempCharacter.photo = croppedDataUrl;
+                } else {
+                    const charIndex = characters.findIndex(c => c.id === pendingCharacterId);
+                    if (charIndex !== -1) {
+                        characters[charIndex].photo = croppedDataUrl;
+                        saveCharacters();
+                    }
                 }
                 cropModal.classList.remove('show');
                 cropper.destroy();
                 pendingFile = null;
-                if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
-                    renderCenter(pendingCharacterId);
-                } else {
-                    renderFeed();
-                }
                 pendingCharacterId = null;
+                // Перерисовываем конструктор
+                renderCenter(pendingCharacterId === 'temp' ? null : pendingCharacterId);
             });
 
+            // ---------- Чат ----------
             function addMessageToUI(container, text, sender, time, avatarUrl) {
+                const div = document.createElement('div');
+                div.className = `message ${sender}`;
                 if (sender === 'user') {
-                    const div = document.createElement('div');
-                    div.className = 'message user';
                     div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
-                    container.appendChild(div);
                 } else {
-                    const div = document.createElement('div');
-                    div.className = 'message bot';
                     div.innerHTML = `
                         <div class="message-avatar" style="background-image: url('${avatarUrl || "https://i.pravatar.cc/150?img=0"}');"></div>
                         <div class="message-content">
@@ -521,8 +167,8 @@
                             <div class="message-time">${time}</div>
                         </div>
                     `;
-                    container.appendChild(div);
                 }
+                container.appendChild(div);
                 container.scrollTop = container.scrollHeight;
             }
 
@@ -618,6 +264,7 @@
                 backBtn.addEventListener('click', () => renderFeed());
             }
 
+            // ---------- Портал ----------
             function renderFeed() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -676,6 +323,7 @@
                 renderCharacters();
             }
 
+            // ---------- Список чатов ----------
             function renderChats() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -733,6 +381,7 @@
                 });
             }
 
+            // ---------- Конструктор ----------
             let currentEditId = null;
 
             function renderCenter(editId = null) {
@@ -742,77 +391,69 @@
                     char = characters.find(c => c.id === editId);
                 }
                 if (!char) {
-                    char = {
-                        id: null,
-                        name: '',
-                        gender: 'male',
-                        greeting: '',
-                        appearance: '',
-                        personality: '',
-                        scenario: '',
-                        memory: '',
-                        tags: '',
-                        photo: null
-                    };
+                    char = tempCharacter;
+                } else {
+                    // Если редактируем существующего, копируем его в temp для работы
+                    tempCharacter = { ...char };
                 }
 
-                const avatarHtml = char.photo
-                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${char.photo}');"></div>`
-                    : `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
+                const avatarHtml = tempCharacter.photo
+                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${tempCharacter.photo}');"></div>`
+                    : `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder"><i data-lucide="camera" class="camera-icon" style="width:48px;height:48px;color:#aaa;"></i></div></div>`;
 
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
                     <div class="avatar-block">
                         ${avatarHtml}
-                        <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
+                        <div class="avatar-label" id="upload-label">[ ЗАГРУЗИТЬ ФОТО ]</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ИМЯ ]</div>
-                        <input type="text" class="input-field" id="nameInput" value="${escapeHtml(char.name)}" maxlength="30">
+                        <input type="text" class="input-field" id="nameInput" value="${escapeHtml(tempCharacter.name)}" maxlength="30">
                         <div class="hint">Как будут звать вашего персонажа?</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПОЛ ]</div>
                         <div class="gender-chips" id="genderChips">
-                            <div class="chip ${char.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
-                            <div class="chip ${char.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
-                            <div class="chip ${char.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
+                            <div class="chip ${tempCharacter.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
+                            <div class="chip ${tempCharacter.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
+                            <div class="chip ${tempCharacter.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
                         </div>
                         <div class="hint">Выберите пол для правильных окончаний в речи</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
-                        <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(char.greeting)}" maxlength="200">
-                        <div class="char-counter" id="greetingCounter">${char.greeting?.length || 0}/200</div>
+                        <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(tempCharacter.greeting)}" maxlength="200">
+                        <div class="char-counter" id="greetingCounter">${tempCharacter.greeting?.length || 0}/200</div>
                         <div class="hint">Первая фраза, которую скажет персонаж при встрече</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ВНЕШНОСТЬ ]</div>
-                        <textarea class="input-textarea" id="appearanceInput" rows="2" maxlength="500">${escapeHtml(char.appearance)}</textarea>
-                        <div class="char-counter" id="appearanceCounter">${char.appearance?.length || 0}/500</div>
+                        <textarea class="input-textarea" id="appearanceInput" rows="2" maxlength="500">${escapeHtml(tempCharacter.appearance)}</textarea>
+                        <div class="char-counter" id="appearanceCounter">${tempCharacter.appearance?.length || 0}/500</div>
                         <div class="hint">Волосы, глаза, рост, одежда, особенности внешности</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ХАРАКТЕР / ЛИЧНОСТЬ ]</div>
-                        <textarea class="input-textarea" id="personalityInput" rows="2" maxlength="500">${escapeHtml(char.personality)}</textarea>
-                        <div class="char-counter" id="personalityCounter">${char.personality?.length || 0}/500</div>
+                        <textarea class="input-textarea" id="personalityInput" rows="2" maxlength="500">${escapeHtml(tempCharacter.personality)}</textarea>
+                        <div class="char-counter" id="personalityCounter">${tempCharacter.personality?.length || 0}/500</div>
                         <div class="hint">Черты характера, привычки, манера речи, ценности</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ СЦЕНАРИЙ ]</div>
-                        <textarea class="input-textarea" id="scenarioInput" rows="2" maxlength="500">${escapeHtml(char.scenario)}</textarea>
-                        <div class="char-counter" id="scenarioCounter">${char.scenario?.length || 0}/500</div>
+                        <textarea class="input-textarea" id="scenarioInput" rows="2" maxlength="500">${escapeHtml(tempCharacter.scenario)}</textarea>
+                        <div class="char-counter" id="scenarioCounter">${tempCharacter.scenario?.length || 0}/500</div>
                         <div class="hint">Где находится, что происходит, настроение, обстоятельства</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПАМЯТЬ ]</div>
-                        <textarea class="input-textarea" id="memoryInput" rows="2" maxlength="500">${escapeHtml(char.memory)}</textarea>
-                        <div class="char-counter" id="memoryCounter">${char.memory?.length || 0}/500</div>
+                        <textarea class="input-textarea" id="memoryInput" rows="2" maxlength="500">${escapeHtml(tempCharacter.memory)}</textarea>
+                        <div class="char-counter" id="memoryCounter">${tempCharacter.memory?.length || 0}/500</div>
                         <div class="hint">Важные факты, ключевые события, отношения, секреты</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ТЕГИ ]</div>
-                        <input type="text" class="input-field" id="tagsInput" value="${escapeHtml(char.tags)}" maxlength="100" placeholder="например: киберпанк, магия, детектив">
+                        <input type="text" class="input-field" id="tagsInput" value="${escapeHtml(tempCharacter.tags)}" maxlength="100" placeholder="например: киберпанк, магия, детектив">
                         <div class="hint">Ключевые слова для поиска</div>
                     </div>
                     <div class="main-buttons">
@@ -828,33 +469,7 @@
                 const uploadLabel = document.getElementById('upload-label');
 
                 function handleFileSelect() {
-                    if (currentEditId === null) {
-                        const newId = Date.now();
-                        const newChar = {
-                            id: newId,
-                            name: '',
-                            gender: 'male',
-                            greeting: '',
-                            appearance: '',
-                            personality: '',
-                            scenario: '',
-                            memory: '',
-                            tags: '',
-                            photo: null
-                        };
-                        characters.push(newChar);
-                        saveCharacters();
-                        currentEditId = newId;
-                        renderCenter(newId);
-                        setTimeout(() => {
-                            const newAvatarCircle = document.getElementById('avatar-circle');
-                            const newUploadLabel = document.getElementById('upload-label');
-                            if (newAvatarCircle) newAvatarCircle.click();
-                            else if (newUploadLabel) newUploadLabel.click();
-                        }, 100);
-                    } else {
-                        fileInput.click();
-                    }
+                    fileInput.click();
                 }
                 avatarCircle?.addEventListener('click', handleFileSelect);
                 uploadLabel?.addEventListener('click', handleFileSelect);
@@ -862,31 +477,7 @@
                 fileInput.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        if (currentEditId === null) {
-                            const newId = Date.now();
-                            const newChar = {
-                                id: newId,
-                                name: '',
-                                gender: 'male',
-                                greeting: '',
-                                appearance: '',
-                                personality: '',
-                                scenario: '',
-                                memory: '',
-                                tags: '',
-                                photo: null
-                            };
-                            characters.push(newChar);
-                            saveCharacters();
-                            currentEditId = newId;
-                            renderCenter(newId);
-                            setTimeout(() => {
-                                const newAvatarCircle = document.getElementById('avatar-circle');
-                                if (newAvatarCircle) newAvatarCircle.click();
-                            }, 100);
-                        } else {
-                            openCrop(file, currentEditId);
-                        }
+                        openCrop(file, 'temp');
                     }
                     fileInput.value = '';
                 };
@@ -910,18 +501,20 @@
                     document.getElementById('memoryCounter').textContent = `${memoryInput.value.length}/500`;
                 }
 
-                nameInput.addEventListener('input', () => {});
-                greetingInput.addEventListener('input', updateCounters);
-                appearanceInput.addEventListener('input', updateCounters);
-                personalityInput.addEventListener('input', updateCounters);
-                scenarioInput.addEventListener('input', updateCounters);
-                memoryInput.addEventListener('input', updateCounters);
-                tagsInput.addEventListener('input', () => {});
+                // Сохраняем изменения в tempCharacter
+                nameInput.addEventListener('input', (e) => { tempCharacter.name = e.target.value; });
+                greetingInput.addEventListener('input', (e) => { tempCharacter.greeting = e.target.value; updateCounters(); });
+                appearanceInput.addEventListener('input', (e) => { tempCharacter.appearance = e.target.value; updateCounters(); });
+                personalityInput.addEventListener('input', (e) => { tempCharacter.personality = e.target.value; updateCounters(); });
+                scenarioInput.addEventListener('input', (e) => { tempCharacter.scenario = e.target.value; updateCounters(); });
+                memoryInput.addEventListener('input', (e) => { tempCharacter.memory = e.target.value; updateCounters(); });
+                tagsInput.addEventListener('input', (e) => { tempCharacter.tags = e.target.value; });
 
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         genderChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
+                        tempCharacter.gender = chip.dataset.gender;
                     });
                 });
 
@@ -931,6 +524,19 @@
                         if (index !== -1) characters.splice(index, 1);
                         saveCharacters();
                     }
+                    // Сброс временного персонажа
+                    tempCharacter = {
+                        id: null,
+                        name: '',
+                        gender: 'male',
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
                     document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
@@ -938,7 +544,7 @@
                 });
 
                 activateBtn.addEventListener('click', async () => {
-                    const name = nameInput.value.trim();
+                    const name = tempCharacter.name.trim();
                     if (!name) {
                         tg.showAlert('Введите имя персонажа');
                         return;
@@ -946,25 +552,18 @@
                     const updatedData = {
                         id: currentEditId !== null ? currentEditId : Date.now(),
                         name: name,
-                        gender: document.querySelector('.chip.active')?.dataset.gender || 'male',
-                        greeting: greetingInput.value.trim(),
-                        appearance: appearanceInput.value.trim(),
-                        personality: personalityInput.value.trim(),
-                        scenario: scenarioInput.value.trim(),
-                        memory: memoryInput.value.trim(),
-                        tags: tagsInput.value.trim(),
-                        photo: null
+                        gender: tempCharacter.gender,
+                        greeting: tempCharacter.greeting,
+                        appearance: tempCharacter.appearance,
+                        personality: tempCharacter.personality,
+                        scenario: tempCharacter.scenario,
+                        memory: tempCharacter.memory,
+                        tags: tempCharacter.tags,
+                        photo: tempCharacter.photo
                     };
-                    if (currentEditId !== null) {
-                        const existing = characters.find(c => c.id === currentEditId);
-                        if (existing && existing.photo) {
-                            updatedData.photo = existing.photo;
-                        }
-                    }
                     if (currentEditId === null) {
                         characters.push(updatedData);
                         saveCharacters();
-                        currentEditId = updatedData.id;
                     } else {
                         const index = characters.findIndex(c => c.id === currentEditId);
                         if (index !== -1) {
@@ -988,6 +587,7 @@
                 });
             }
 
+            // ---------- Профиль ----------
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">
@@ -1010,6 +610,18 @@
                     }
                     characters = [];
                     saveCharacters();
+                    tempCharacter = {
+                        id: null,
+                        name: '',
+                        gender: 'male',
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
                     tg.showAlert('Все данные очищены!');
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
@@ -1022,6 +634,7 @@
                 lucide.createIcons();
             }
 
+            // ---------- Переключение вкладок ----------
             const contentArea = document.getElementById('content-area');
             const barItems = document.querySelectorAll('.bar-item');
 
@@ -1039,6 +652,7 @@
                 });
             });
 
+            // Сплэш анимация
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             setTimeout(() => progressFill.style.width = '100%', 100);

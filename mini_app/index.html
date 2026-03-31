@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
+        /* ========== ВСЕ СТИЛИ (те же, что в предыдущей стабильной версии) ========== */
         * {
             margin: 0;
             padding: 0;
@@ -138,7 +139,7 @@
         }
         .card-info { flex: 1; }
         .card-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-        .card-desc { font-size: 12px; color: #aaa; }
+        .card-greeting { font-size: 12px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         /* чат */
         .chat-header {
@@ -183,7 +184,7 @@
             font-size: 14px;
         }
 
-        /* конструктор (базовый) */
+        /* конструктор (расширенный) */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
@@ -215,8 +216,15 @@
             cursor: pointer;
         }
         .input-group { margin-bottom: 20px; }
-        .input-label { font-size: 12px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; }
-        .input-field {
+        .input-label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .input-field, .input-textarea {
             width: 100%;
             background: transparent;
             border: none;
@@ -225,8 +233,16 @@
             font-size: 16px;
             color: #fff;
             outline: none;
+            font-family: 'Inter', sans-serif;
         }
-        .input-field:focus { border-bottom-color: #fff; }
+        .input-textarea {
+            border: 1px solid #444;
+            border-radius: 16px;
+            padding: 10px;
+            margin-top: 4px;
+            resize: vertical;
+        }
+        .input-field:focus, .input-textarea:focus { border-bottom-color: #fff; border-color: #fff; }
         .gender-chips { display: flex; gap: 16px; margin-top: 8px; }
         .chip {
             background: transparent;
@@ -240,6 +256,11 @@
         }
         .chip.active { border-color: #fff; color: #fff; }
         .char-counter { text-align: right; font-size: 10px; color: #666; margin-top: 4px; }
+        .hint {
+            font-size: 11px;
+            color: #777;
+            margin-top: 4px;
+        }
         .main-buttons { display: flex; gap: 16px; margin-top: 32px; }
         .btn {
             flex: 1;
@@ -352,34 +373,21 @@
 
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
-            console.log('chat_id:', chat_id);
 
-            let character = {
-                name: '',
-                gender: 'male',
-                greeting: '',
-                story: '',
-                photo: null
-            };
+            // ---------- Список персонажей ----------
+            let characters = [];
             try {
-                const saved = localStorage.getItem('neuroCharacter');
-                if (saved) Object.assign(character, JSON.parse(saved));
+                const saved = localStorage.getItem('characters');
+                if (saved) characters = JSON.parse(saved);
             } catch(e) {}
-            let photoData = localStorage.getItem('characterPhoto') || null;
-            if (photoData) character.photo = photoData;
 
-            function saveCharacterToLocal() {
-                localStorage.setItem('neuroCharacter', JSON.stringify({
-                    name: character.name,
-                    gender: character.gender,
-                    greeting: character.greeting,
-                    story: character.story
-                }));
-                if (character.photo) localStorage.setItem('characterPhoto', character.photo);
-                else localStorage.removeItem('characterPhoto');
+            // Функция сохранения списка персонажей
+            function saveCharacters() {
+                localStorage.setItem('characters', JSON.stringify(characters));
             }
 
             // ---------- Кадрирование ----------
+            let pendingCharacterId = null; // для временного хранения ID при кадрировании
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
@@ -387,7 +395,7 @@
             let cropper = null;
             let pendingFile = null;
 
-            function openCrop(file) {
+            function openCrop(file, charId) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     cropImage.src = e.target.result;
@@ -408,6 +416,7 @@
                         highlight: false
                     });
                     pendingFile = file;
+                    pendingCharacterId = charId;
                 };
                 reader.readAsDataURL(file);
             }
@@ -416,21 +425,31 @@
                 cropModal.classList.remove('show');
                 if (cropper) cropper.destroy();
                 pendingFile = null;
+                pendingCharacterId = null;
             });
 
             cropApply.addEventListener('click', () => {
-                if (!cropper || !pendingFile) return;
+                if (!cropper || !pendingFile || pendingCharacterId === null) return;
                 const canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
                 const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                character.photo = croppedDataUrl;
-                saveCharacterToLocal();
+                const charIndex = characters.findIndex(c => c.id === pendingCharacterId);
+                if (charIndex !== -1) {
+                    characters[charIndex].photo = croppedDataUrl;
+                    saveCharacters();
+                }
                 cropModal.classList.remove('show');
                 cropper.destroy();
                 pendingFile = null;
-                if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') renderCenter();
+                pendingCharacterId = null;
+                // Если конструктор открыт, обновляем его
+                if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
+                    renderCenter(pendingCharacterId);
+                } else {
+                    renderFeed();
+                }
             });
 
-            // ---------- Чат ----------
+            // ---------- Чат (рабочий) ----------
             function addMessageToUI(container, text, sender, time) {
                 const div = document.createElement('div');
                 div.className = `message ${sender}`;
@@ -439,20 +458,36 @@
                 container.scrollTop = container.scrollHeight;
             }
 
-            async function sendMessageToServer(chatName, chatAvatar, text, messagesContainer, storageKey, onReply) {
+            async function sendMessageToServer(character, text, messagesContainer, storageKey, onReply) {
                 const typingDiv = document.createElement('div');
                 typingDiv.className = 'message bot';
                 typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
                 messagesContainer.appendChild(typingDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+                // Отправляем все поля персонажа + сообщение
+                const payload = {
+                    chat_id: chat_id,
+                    message: text,
+                    character: {
+                        id: character.id,
+                        name: character.name,
+                        gender: character.gender,
+                        greeting: character.greeting,
+                        appearance: character.appearance,
+                        personality: character.personality,
+                        scenario: character.scenario,
+                        memory: character.memory,
+                        tags: character.tags || []
+                    }
+                };
                 try {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 60000);
                     const response = await fetch('/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: chat_id, message: text }),
+                        body: JSON.stringify(payload),
                         signal: controller.signal
                     });
                     clearTimeout(timeoutId);
@@ -474,24 +509,16 @@
                 }
             }
 
-            function ensureChatAvatar(chatName, avatar) {
-                const avatarKey = `chat_avatar_${chatName}`;
-                if (!localStorage.getItem(avatarKey)) {
-                    localStorage.setItem(avatarKey, avatar);
-                }
-            }
-
-            function renderChat(chatName, chatAvatar) {
-                const storageKey = `chat_${chatName}`;
+            function renderChat(character) {
+                const storageKey = `chat_${character.id}`;
                 let messages = [];
                 try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
-                ensureChatAvatar(chatName, chatAvatar);
 
                 const html = `
                     <div class="chat-header">
                         <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
-                        <div class="chat-avatar" style="background-image: url('${chatAvatar}');"></div>
-                        <div class="chat-name">${escapeHtml(chatName)}</div>
+                        <div class="chat-avatar" style="background-image: url('${character.photo || "https://i.pravatar.cc/150?img=0"}');"></div>
+                        <div class="chat-name">${escapeHtml(character.name)}</div>
                     </div>
                     <div class="messages" id="chat-messages"></div>
                     <div class="chat-input-container">
@@ -521,7 +548,7 @@
                     if (!text) return;
                     addUserMessage(text);
                     input.value = '';
-                    await sendMessageToServer(chatName, chatAvatar, text, messagesContainer, storageKey, (reply) => {
+                    await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
                         messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) });
                         localStorage.setItem(storageKey, JSON.stringify(messages));
                     });
@@ -532,43 +559,9 @@
                 backBtn.addEventListener('click', () => renderFeed());
             }
 
-            function getCreatedCharacters() {
-                const chars = [];
-                const saved = localStorage.getItem('neuroCharacter');
-                if (saved) {
-                    try {
-                        const char = JSON.parse(saved);
-                        if (char.name) {
-                            chars.push({
-                                name: char.name,
-                                desc: char.story || 'Нет описания',
-                                avatar: character.photo || "https://i.pravatar.cc/150?img=0"
-                            });
-                        }
-                    } catch(e) {}
-                }
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {
-                        const chatName = key.slice(5);
-                        if (!chars.some(c => c.name === chatName)) {
-                            const avatarKey = `chat_avatar_${chatName}`;
-                            let avatar = localStorage.getItem(avatarKey);
-                            if (!avatar) avatar = "https://i.pravatar.cc/150?img=0";
-                            chars.push({
-                                name: chatName,
-                                desc: 'Персонаж из чата',
-                                avatar: avatar
-                            });
-                        }
-                    }
-                }
-                return chars;
-            }
-
+            // ---------- Портал ----------
             function renderFeed() {
-                const createdChars = getCreatedCharacters();
-                if (createdChars.length === 0) {
+                if (characters.length === 0) {
                     contentArea.innerHTML = `
                         <div class="portal-header">
                             <h2>Портал</h2>
@@ -598,25 +591,25 @@
 
                 function renderCharacters() {
                     const query = searchInput.value.toLowerCase();
-                    let filtered = createdChars.filter(c => c.name.toLowerCase().includes(query));
+                    let filtered = characters.filter(c => c.name.toLowerCase().includes(query));
                     if (filtered.length === 0) {
                         charactersList.innerHTML = '<div class="empty-state">✨ Ничего не найдено</div>';
                         return;
                     }
                     charactersList.innerHTML = filtered.map(c => `
-                        <div class="character-card" data-name="${escapeHtml(c.name)}" data-avatar="${c.avatar}">
-                            <div class="card-avatar" style="background-image: url('${c.avatar}');"></div>
+                        <div class="character-card" data-id="${c.id}">
+                            <div class="card-avatar" style="background-image: url('${c.photo || "https://i.pravatar.cc/150?img=0"}');"></div>
                             <div class="card-info">
                                 <div class="card-name">${escapeHtml(c.name)}</div>
-                                <div class="card-desc">${escapeHtml(c.desc)}</div>
+                                <div class="card-greeting">${escapeHtml(c.greeting || '')}</div>
                             </div>
                         </div>
                     `).join('');
                     document.querySelectorAll('.character-card').forEach(card => {
                         card.addEventListener('click', () => {
-                            const name = card.dataset.name;
-                            const avatar = card.dataset.avatar;
-                            renderChat(name, avatar);
+                            const id = parseInt(card.dataset.id);
+                            const character = characters.find(c => c.id === id);
+                            if (character) renderChat(character);
                         });
                     });
                 }
@@ -625,48 +618,43 @@
                 renderCharacters();
             }
 
+            // ---------- Список чатов ----------
             function renderChats() {
-                const chats = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && key.startsWith('chat_') && !key.startsWith('chat_avatar_')) {
-                        const chatName = key.slice(5);
-                        const avatarKey = `chat_avatar_${chatName}`;
-                        let avatar = localStorage.getItem(avatarKey);
-                        if (!avatar) avatar = "https://i.pravatar.cc/150?img=0";
-                        let lastMessage = "Нет сообщений";
-                        let lastTime = "";
-                        try {
-                            const msgs = JSON.parse(localStorage.getItem(key)) || [];
-                            if (msgs.length > 0) {
-                                const last = msgs[msgs.length-1];
-                                lastMessage = last.text;
-                                lastTime = last.time;
-                            }
-                        } catch(e) {}
-                        chats.push({
-                            name: chatName,
-                            avatar: avatar,
-                            lastMessage: lastMessage,
-                            lastTime: lastTime
-                        });
-                    }
-                }
-                if (chats.length === 0) {
+                if (characters.length === 0) {
                     contentArea.innerHTML = `
                         <div class="empty-chats">
                             <i data-lucide="message-circle" style="width:48px;height:48px;margin-bottom:16px;"></i>
                             <p>Нет чатов</p>
-                            <p style="font-size:12px">Создайте персонажа в центре или начните диалог из портала</p>
+                            <p style="font-size:12px">Создайте персонажа в центре</p>
                         </div>
                     `;
                     lucide.createIcons();
                     return;
                 }
+                const chats = characters.map(c => {
+                    const key = `chat_${c.id}`;
+                    let lastMessage = "Нет сообщений";
+                    let lastTime = "";
+                    try {
+                        const msgs = JSON.parse(localStorage.getItem(key)) || [];
+                        if (msgs.length > 0) {
+                            const last = msgs[msgs.length-1];
+                            lastMessage = last.text;
+                            lastTime = last.time;
+                        }
+                    } catch(e) {}
+                    return {
+                        id: c.id,
+                        name: c.name,
+                        avatar: c.photo || "https://i.pravatar.cc/150?img=0",
+                        lastMessage: lastMessage,
+                        lastTime: lastTime
+                    };
+                });
                 const html = `
                     <div class="chats-list">
                         ${chats.map(chat => `
-                            <div class="chat-item" data-name="${escapeHtml(chat.name)}" data-avatar="${chat.avatar}">
+                            <div class="chat-item" data-id="${chat.id}">
                                 <div class="chat-item-avatar" style="background-image: url('${chat.avatar}');"></div>
                                 <div class="chat-item-info">
                                     <div class="chat-item-name">${escapeHtml(chat.name)}</div>
@@ -680,51 +668,98 @@
                 contentArea.innerHTML = html;
                 lucide.createIcons();
                 document.querySelectorAll('.chat-item').forEach(el => {
-                    const name = el.dataset.name;
-                    const avatar = el.dataset.avatar;
-                    el.addEventListener('click', () => {
-                        renderChat(name, avatar);
-                    });
+                    const id = parseInt(el.dataset.id);
+                    const character = characters.find(c => c.id === id);
+                    if (character) {
+                        el.addEventListener('click', () => renderChat(character));
+                    }
                 });
             }
 
-            // ---------- Конструктор ----------
-            function renderCenter() {
-                const avatarHtml = character.photo
-                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${character.photo}');"></div>`
+            // ---------- Конструктор (создание/редактирование) ----------
+            let currentEditId = null; // если null – создание нового, иначе ID редактируемого
+
+            function renderCenter(editId = null) {
+                currentEditId = editId;
+                let char = null;
+                if (editId !== null) {
+                    char = characters.find(c => c.id === editId);
+                }
+                if (!char) {
+                    char = {
+                        id: null,
+                        name: '',
+                        gender: 'male',
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
+                }
+
+                const avatarHtml = char.photo
+                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${char.photo}');"></div>`
                     : `<div class="avatar-circle" id="avatar-circle"><div class="avatar-placeholder">🧬</div></div>`;
 
                 const html = `
-                    <div class="neuro-header"><h1>СОЗДАТЬ ПЕРСОНАЖА</h1></div>
+                    <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
                     <div class="avatar-block">
                         ${avatarHtml}
                         <div class="avatar-label" id="upload-label">[ ОБРАЗ ]</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ИМЯ ]</div>
-                        <input type="text" class="input-field" id="nameInput" value="${escapeHtml(character.name)}" maxlength="30">
+                        <input type="text" class="input-field" id="nameInput" value="${escapeHtml(char.name)}" maxlength="30">
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПОЛ ]</div>
                         <div class="gender-chips" id="genderChips">
-                            <div class="chip ${character.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
-                            <div class="chip ${character.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
-                            <div class="chip ${character.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
+                            <div class="chip ${char.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
+                            <div class="chip ${char.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
+                            <div class="chip ${char.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
                         </div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
-                        <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(character.greeting)}" maxlength="100">
-                        <div class="char-counter" id="greetingCounter">${character.greeting?.length || 0}/100</div>
+                        <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(char.greeting)}" maxlength="200">
+                        <div class="char-counter" id="greetingCounter">${char.greeting?.length || 0}/200</div>
+                        <div class="hint">Первая фраза персонажа при встрече</div>
                     </div>
                     <div class="input-group">
-                        <div class="input-label">[ ИСТОРИЯ ]</div>
-                        <input type="text" class="input-field" id="storyInput" value="${escapeHtml(character.story)}" maxlength="200">
-                        <div class="char-counter" id="storyCounter">${character.story?.length || 0}/200</div>
+                        <div class="input-label">[ ВНЕШНОСТЬ ]</div>
+                        <textarea class="input-textarea" id="appearanceInput" rows="2" maxlength="500">${escapeHtml(char.appearance)}</textarea>
+                        <div class="char-counter" id="appearanceCounter">${char.appearance?.length || 0}/500</div>
+                        <div class="hint">Волосы, глаза, рост, одежда, особенности</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ХАРАКТЕР / ЛИЧНОСТЬ ]</div>
+                        <textarea class="input-textarea" id="personalityInput" rows="2" maxlength="500">${escapeHtml(char.personality)}</textarea>
+                        <div class="char-counter" id="personalityCounter">${char.personality?.length || 0}/500</div>
+                        <div class="hint">Черты характера, привычки, манера речи, ценности</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ СЦЕНАРИЙ ]</div>
+                        <textarea class="input-textarea" id="scenarioInput" rows="2" maxlength="500">${escapeHtml(char.scenario)}</textarea>
+                        <div class="char-counter" id="scenarioCounter">${char.scenario?.length || 0}/500</div>
+                        <div class="hint">Где находится, что происходит, настроение, обстоятельства</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ПАМЯТЬ ]</div>
+                        <textarea class="input-textarea" id="memoryInput" rows="2" maxlength="500">${escapeHtml(char.memory)}</textarea>
+                        <div class="char-counter" id="memoryCounter">${char.memory?.length || 0}/500</div>
+                        <div class="hint">Важные факты, ключевые события, отношения, секреты</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ТЕГИ ]</div>
+                        <input type="text" class="input-field" id="tagsInput" value="${escapeHtml(char.tags)}" maxlength="100" placeholder="например: киберпанк, магия, детектив">
+                        <div class="hint">Ключевые слова для поиска</div>
                     </div>
                     <div class="main-buttons">
                         <button class="btn btn-outline" id="resetBtn">СБРОС</button>
-                        <button class="btn btn-primary" id="activateBtn">СОЗДАТЬ</button>
+                        <button class="btn btn-primary" id="activateBtn">${editId ? 'СОХРАНИТЬ' : 'СОЗДАТЬ'}</button>
                     </div>
                 `;
                 contentArea.innerHTML = html;
@@ -735,100 +770,172 @@
                 const uploadLabel = document.getElementById('upload-label');
 
                 function handleFileSelect() {
-                    fileInput.click();
+                    if (currentEditId === null) {
+                        // Сначала создадим временного персонажа, чтобы было к чему привязать фото
+                        const newId = Date.now();
+                        const newChar = {
+                            id: newId,
+                            name: '',
+                            gender: 'male',
+                            greeting: '',
+                            appearance: '',
+                            personality: '',
+                            scenario: '',
+                            memory: '',
+                            tags: '',
+                            photo: null
+                        };
+                        characters.push(newChar);
+                        saveCharacters();
+                        currentEditId = newId;
+                        // Перерисовываем с новым ID
+                        renderCenter(newId);
+                        // После перерисовки нужно снова привязать обработчик выбора файла
+                        // и открыть кадрирование для нового персонажа
+                        setTimeout(() => {
+                            const newAvatarCircle = document.getElementById('avatar-circle');
+                            const newUploadLabel = document.getElementById('upload-label');
+                            if (newAvatarCircle) newAvatarCircle.click();
+                            else if (newUploadLabel) newUploadLabel.click();
+                        }, 100);
+                    } else {
+                        openCrop(fileInput.files[0], currentEditId);
+                    }
                 }
-                avatarCircle?.addEventListener('click', handleFileSelect);
-                uploadLabel?.addEventListener('click', handleFileSelect);
+                avatarCircle?.addEventListener('click', () => fileInput.click());
+                uploadLabel?.addEventListener('click', () => fileInput.click());
 
                 fileInput.onchange = (e) => {
                     const file = e.target.files[0];
-                    if (file) openCrop(file);
+                    if (file) {
+                        if (currentEditId === null) {
+                            // Сначала создадим персонажа
+                            const newId = Date.now();
+                            const newChar = {
+                                id: newId,
+                                name: '',
+                                gender: 'male',
+                                greeting: '',
+                                appearance: '',
+                                personality: '',
+                                scenario: '',
+                                memory: '',
+                                tags: '',
+                                photo: null
+                            };
+                            characters.push(newChar);
+                            saveCharacters();
+                            currentEditId = newId;
+                            renderCenter(newId);
+                            setTimeout(() => {
+                                const newAvatarCircle = document.getElementById('avatar-circle');
+                                const newUploadLabel = document.getElementById('upload-label');
+                                if (newAvatarCircle) newAvatarCircle.click();
+                                else if (newUploadLabel) newUploadLabel.click();
+                            }, 100);
+                        } else {
+                            openCrop(file, currentEditId);
+                        }
+                    }
                     fileInput.value = '';
                 };
 
                 const nameInput = document.getElementById('nameInput');
                 const greetingInput = document.getElementById('greetingInput');
-                const storyInput = document.getElementById('storyInput');
+                const appearanceInput = document.getElementById('appearanceInput');
+                const personalityInput = document.getElementById('personalityInput');
+                const scenarioInput = document.getElementById('scenarioInput');
+                const memoryInput = document.getElementById('memoryInput');
+                const tagsInput = document.getElementById('tagsInput');
                 const genderChips = document.querySelectorAll('.chip');
                 const resetBtn = document.getElementById('resetBtn');
                 const activateBtn = document.getElementById('activateBtn');
 
                 function updateCounters() {
-                    document.getElementById('greetingCounter').textContent = `${greetingInput.value.length}/100`;
-                    document.getElementById('storyCounter').textContent = `${storyInput.value.length}/200`;
+                    document.getElementById('greetingCounter').textContent = `${greetingInput.value.length}/200`;
+                    document.getElementById('appearanceCounter').textContent = `${appearanceInput.value.length}/500`;
+                    document.getElementById('personalityCounter').textContent = `${personalityInput.value.length}/500`;
+                    document.getElementById('scenarioCounter').textContent = `${scenarioInput.value.length}/500`;
+                    document.getElementById('memoryCounter').textContent = `${memoryInput.value.length}/500`;
                 }
 
-                nameInput.addEventListener('input', (e) => {
-                    character.name = e.target.value;
-                    saveCharacterToLocal();
-                });
-                greetingInput.addEventListener('input', (e) => {
-                    character.greeting = e.target.value;
-                    saveCharacterToLocal();
-                    updateCounters();
-                });
-                storyInput.addEventListener('input', (e) => {
-                    character.story = e.target.value;
-                    saveCharacterToLocal();
-                    updateCounters();
-                });
-
+                // Если редактируем, заполняем поля (они уже заполнены при рендере, но подписываем события)
+                nameInput.addEventListener('input', () => {});
+                greetingInput.addEventListener('input', updateCounters);
+                appearanceInput.addEventListener('input', updateCounters);
+                personalityInput.addEventListener('input', updateCounters);
+                scenarioInput.addEventListener('input', updateCounters);
+                memoryInput.addEventListener('input', updateCounters);
+                tagsInput.addEventListener('input', () => {});
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         genderChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
-                        character.gender = chip.dataset.gender;
-                        saveCharacterToLocal();
                     });
                 });
 
                 resetBtn.addEventListener('click', () => {
-                    character = { name: '', gender: 'male', greeting: '', story: '', photo: null };
-                    saveCharacterToLocal();
-                    renderCenter();
+                    if (currentEditId !== null) {
+                        const index = characters.findIndex(c => c.id === currentEditId);
+                        if (index !== -1) characters.splice(index, 1);
+                        saveCharacters();
+                    }
+                    renderFeed();
+                    document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
+                    document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
                     tg.HapticFeedback?.impactOccurred('light');
                 });
 
                 activateBtn.addEventListener('click', async () => {
-                    if (!character.name.trim()) {
+                    const name = nameInput.value.trim();
+                    if (!name) {
                         tg.showAlert('Введите имя персонажа');
                         return;
                     }
-                    const dataToSend = {
-                        chat_id: chat_id,
-                        name: character.name,
-                        gender: character.gender,
-                        greeting: character.greeting,
-                        story: character.story,
-                        photo: character.photo || null
+                    const data = {
+                        id: currentEditId !== null ? currentEditId : Date.now(),
+                        name: name,
+                        gender: document.querySelector('.chip.active')?.dataset.gender || 'male',
+                        greeting: greetingInput.value.trim(),
+                        appearance: appearanceInput.value.trim(),
+                        personality: personalityInput.value.trim(),
+                        scenario: scenarioInput.value.trim(),
+                        memory: memoryInput.value.trim(),
+                        tags: tagsInput.value.trim(),
+                        photo: null // фото будет сохранено отдельно при кадрировании
                     };
+                    // Если это новый персонаж (currentEditId === null) или редактирование существующего, обновляем список
+                    if (currentEditId === null) {
+                        // Новый
+                        characters.push(data);
+                        saveCharacters();
+                    } else {
+                        const index = characters.findIndex(c => c.id === currentEditId);
+                        if (index !== -1) {
+                            characters[index] = { ...characters[index], ...data };
+                            saveCharacters();
+                        }
+                    }
+                    // Отправляем на сервер (сохраняем в боте)
                     try {
-                        const response = await fetch('/save_character', {
+                        await fetch('/save_character', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(dataToSend)
+                            body: JSON.stringify({ chat_id: chat_id, character: data })
                         });
-                        if (response.ok) {
-                            // Сохраняем аватар
-                            const avatar = character.photo || "https://i.pravatar.cc/150?img=0";
-                            ensureChatAvatar(character.name, avatar);
-                            // Создаём пустой чат, чтобы он появился в списке
-                            const chatKey = `chat_${character.name}`;
-                            if (!localStorage.getItem(chatKey)) {
-                                localStorage.setItem(chatKey, JSON.stringify([]));
-                            }
-                            // Открываем чат (без уведомления)
-                            renderChat(character.name, avatar);
-                        } else {
-                            tg.showAlert('Ошибка при сохранении персонажа');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        tg.showAlert('Ошибка соединения с сервером');
+                    } catch(e) { console.error(e); }
+
+                    // Создаём пустой чат в localStorage
+                    const chatKey = `chat_${data.id}`;
+                    if (!localStorage.getItem(chatKey)) {
+                        localStorage.setItem(chatKey, JSON.stringify([]));
                     }
+                    // Открываем чат
+                    renderChat(data);
                 });
             }
 
+            // ---------- Профиль с кнопкой очистки ----------
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">
@@ -849,8 +956,8 @@
                             localStorage.removeItem(key);
                         }
                     }
-                    character = { name: '', gender: 'male', greeting: '', story: '', photo: null };
-                    saveCharacterToLocal();
+                    characters = [];
+                    saveCharacters();
                     tg.showAlert('Все данные очищены!');
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
@@ -863,7 +970,7 @@
                 lucide.createIcons();
             }
 
-            // Переключение вкладок
+            // ---------- Переключение вкладок ----------
             const contentArea = document.getElementById('content-area');
             const barItems = document.querySelectorAll('.bar-item');
 

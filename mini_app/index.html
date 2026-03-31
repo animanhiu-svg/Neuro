@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        /* ========== ВСЕ СТИЛИ (те же, что в предыдущей стабильной версии) ========== */
+        /* ========== СТИЛИ (те же, что в предыдущей версии) ========== */
         * {
             margin: 0;
             padding: 0;
@@ -22,7 +22,6 @@
             color: #fff;
             min-height: 100vh;
         }
-
         /* сплэш */
         #splash-screen {
             position: fixed;
@@ -53,7 +52,6 @@
         .splash-quote { font-size: 12px; color: #aaa; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
         .progress-container { width: 200px; height: 2px; background: #333; }
         .progress-fill { height: 100%; width: 0%; background: #fff; transition: width 3s linear; }
-
         /* основной контент */
         #main-content {
             opacity: 0;
@@ -71,8 +69,6 @@
             margin: 0 auto;
             width: 100%;
         }
-
-        /* нижняя панель – овальная */
         .bottom-bar {
             display: flex;
             justify-content: space-around;
@@ -98,7 +94,6 @@
         .bar-item.active { opacity: 1; }
         .bar-item:active { transform: scale(0.92); }
         .bar-item i { width: 24px; height: 24px; margin-bottom: 4px; stroke-width: 1.5; }
-
         /* портал */
         .portal-header { margin-bottom: 24px; }
         .portal-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
@@ -140,7 +135,6 @@
         .card-info { flex: 1; }
         .card-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
         .card-greeting { font-size: 12px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
         /* чат */
         .chat-header {
             display: flex; align-items: center; gap: 12px;
@@ -175,7 +169,6 @@
         }
         .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 14px; }
         .chat-send { background: transparent; border: none; color: #fff; cursor: pointer; padding: 6px; display: flex; align-items: center; }
-
         .typing-indicator {
             display: inline-block;
             background: #2a2a2a;
@@ -183,7 +176,6 @@
             border-radius: 18px;
             font-size: 14px;
         }
-
         /* конструктор (расширенный) */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
@@ -260,6 +252,7 @@
             font-size: 11px;
             color: #777;
             margin-top: 4px;
+            line-height: 1.4;
         }
         .main-buttons { display: flex; gap: 16px; margin-top: 32px; }
         .btn {
@@ -276,8 +269,6 @@
         .btn:active { transform: scale(0.95); }
         .btn-outline { background: transparent; border: 1px solid #fff; color: #fff; }
         .btn-primary { background: #fff; color: #121212; }
-
-        /* кадрирование */
         .crop-modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -306,7 +297,6 @@
         .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
         .crop-btn.primary { background: #fff; color: #000; }
         #file-input { display: none; }
-
         .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
         .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
         .chats-list { display: flex; flex-direction: column; gap: 12px; }
@@ -381,13 +371,12 @@
                 if (saved) characters = JSON.parse(saved);
             } catch(e) {}
 
-            // Функция сохранения списка персонажей
             function saveCharacters() {
                 localStorage.setItem('characters', JSON.stringify(characters));
             }
 
             // ---------- Кадрирование ----------
-            let pendingCharacterId = null; // для временного хранения ID при кадрировании
+            let pendingCharacterId = null;
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
             const cropCancel = document.getElementById('crop-cancel');
@@ -440,16 +429,16 @@
                 cropModal.classList.remove('show');
                 cropper.destroy();
                 pendingFile = null;
-                pendingCharacterId = null;
-                // Если конструктор открыт, обновляем его
+                // Обновляем конструктор, чтобы показать новое фото
                 if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
                     renderCenter(pendingCharacterId);
                 } else {
                     renderFeed();
                 }
+                pendingCharacterId = null;
             });
 
-            // ---------- Чат (рабочий) ----------
+            // ---------- Чат ----------
             function addMessageToUI(container, text, sender, time) {
                 const div = document.createElement('div');
                 div.className = `message ${sender}`;
@@ -465,21 +454,10 @@
                 messagesContainer.appendChild(typingDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-                // Отправляем все поля персонажа + сообщение
                 const payload = {
                     chat_id: chat_id,
                     message: text,
-                    character: {
-                        id: character.id,
-                        name: character.name,
-                        gender: character.gender,
-                        greeting: character.greeting,
-                        appearance: character.appearance,
-                        personality: character.personality,
-                        scenario: character.scenario,
-                        memory: character.memory,
-                        tags: character.tags || []
-                    }
+                    character: character
                 };
                 try {
                     const controller = new AbortController();
@@ -676,8 +654,8 @@
                 });
             }
 
-            // ---------- Конструктор (создание/редактирование) ----------
-            let currentEditId = null; // если null – создание нового, иначе ID редактируемого
+            // ---------- Конструктор ----------
+            let currentEditId = null;
 
             function renderCenter(editId = null) {
                 currentEditId = editId;
@@ -713,6 +691,7 @@
                     <div class="input-group">
                         <div class="input-label">[ ИМЯ ]</div>
                         <input type="text" class="input-field" id="nameInput" value="${escapeHtml(char.name)}" maxlength="30">
+                        <div class="hint">Как будут звать вашего персонажа?</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПОЛ ]</div>
@@ -721,18 +700,19 @@
                             <div class="chip ${char.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
                             <div class="chip ${char.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
                         </div>
+                        <div class="hint">Выберите пол для правильных окончаний в речи</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
                         <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(char.greeting)}" maxlength="200">
                         <div class="char-counter" id="greetingCounter">${char.greeting?.length || 0}/200</div>
-                        <div class="hint">Первая фраза персонажа при встрече</div>
+                        <div class="hint">Первая фраза, которую скажет персонаж при встрече</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ВНЕШНОСТЬ ]</div>
                         <textarea class="input-textarea" id="appearanceInput" rows="2" maxlength="500">${escapeHtml(char.appearance)}</textarea>
                         <div class="char-counter" id="appearanceCounter">${char.appearance?.length || 0}/500</div>
-                        <div class="hint">Волосы, глаза, рост, одежда, особенности</div>
+                        <div class="hint">Волосы, глаза, рост, одежда, особенности внешности</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ХАРАКТЕР / ЛИЧНОСТЬ ]</div>
@@ -771,7 +751,7 @@
 
                 function handleFileSelect() {
                     if (currentEditId === null) {
-                        // Сначала создадим временного персонажа, чтобы было к чему привязать фото
+                        // Сначала создаём временного персонажа
                         const newId = Date.now();
                         const newChar = {
                             id: newId,
@@ -788,10 +768,7 @@
                         characters.push(newChar);
                         saveCharacters();
                         currentEditId = newId;
-                        // Перерисовываем с новым ID
                         renderCenter(newId);
-                        // После перерисовки нужно снова привязать обработчик выбора файла
-                        // и открыть кадрирование для нового персонажа
                         setTimeout(() => {
                             const newAvatarCircle = document.getElementById('avatar-circle');
                             const newUploadLabel = document.getElementById('upload-label');
@@ -799,17 +776,17 @@
                             else if (newUploadLabel) newUploadLabel.click();
                         }, 100);
                     } else {
-                        openCrop(fileInput.files[0], currentEditId);
+                        fileInput.click();
                     }
                 }
-                avatarCircle?.addEventListener('click', () => fileInput.click());
-                uploadLabel?.addEventListener('click', () => fileInput.click());
+                avatarCircle?.addEventListener('click', handleFileSelect);
+                uploadLabel?.addEventListener('click', handleFileSelect);
 
                 fileInput.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
                         if (currentEditId === null) {
-                            // Сначала создадим персонажа
+                            // Аналогично создаём временного
                             const newId = Date.now();
                             const newChar = {
                                 id: newId,
@@ -829,9 +806,7 @@
                             renderCenter(newId);
                             setTimeout(() => {
                                 const newAvatarCircle = document.getElementById('avatar-circle');
-                                const newUploadLabel = document.getElementById('upload-label');
                                 if (newAvatarCircle) newAvatarCircle.click();
-                                else if (newUploadLabel) newUploadLabel.click();
                             }, 100);
                         } else {
                             openCrop(file, currentEditId);
@@ -859,7 +834,6 @@
                     document.getElementById('memoryCounter').textContent = `${memoryInput.value.length}/500`;
                 }
 
-                // Если редактируем, заполняем поля (они уже заполнены при рендере, но подписываем события)
                 nameInput.addEventListener('input', () => {});
                 greetingInput.addEventListener('input', updateCounters);
                 appearanceInput.addEventListener('input', updateCounters);
@@ -867,6 +841,7 @@
                 scenarioInput.addEventListener('input', updateCounters);
                 memoryInput.addEventListener('input', updateCounters);
                 tagsInput.addEventListener('input', () => {});
+
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         genderChips.forEach(c => c.classList.remove('active'));
@@ -902,13 +877,12 @@
                         scenario: scenarioInput.value.trim(),
                         memory: memoryInput.value.trim(),
                         tags: tagsInput.value.trim(),
-                        photo: null // фото будет сохранено отдельно при кадрировании
+                        photo: null // фото сохранится отдельно
                     };
-                    // Если это новый персонаж (currentEditId === null) или редактирование существующего, обновляем список
                     if (currentEditId === null) {
-                        // Новый
                         characters.push(data);
                         saveCharacters();
+                        currentEditId = data.id;
                     } else {
                         const index = characters.findIndex(c => c.id === currentEditId);
                         if (index !== -1) {
@@ -916,7 +890,7 @@
                             saveCharacters();
                         }
                     }
-                    // Отправляем на сервер (сохраняем в боте)
+                    // Отправляем на сервер
                     try {
                         await fetch('/save_character', {
                             method: 'POST',
@@ -925,7 +899,7 @@
                         });
                     } catch(e) { console.error(e); }
 
-                    // Создаём пустой чат в localStorage
+                    // Создаём чат, если ещё нет
                     const chatKey = `chat_${data.id}`;
                     if (!localStorage.getItem(chatKey)) {
                         localStorage.setItem(chatKey, JSON.stringify([]));
@@ -935,7 +909,7 @@
                 });
             }
 
-            // ---------- Профиль с кнопкой очистки ----------
+            // ---------- Профиль ----------
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">

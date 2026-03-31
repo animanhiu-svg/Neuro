@@ -8,7 +8,8 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# utils.start_pinger()  # убрали
+# Отключаем пингер, чтобы не конфликтовать с gunicorn
+# utils.start_pinger()
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
@@ -21,7 +22,7 @@ app = Flask(__name__, static_folder='mini_app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
 
-# --- Эндпоинт для чата мини-аппа ---
+# --- Эндпоинт для чата мини-аппа (расширенный) ---
 @app.route('/chat', methods=['POST'])
 def chat():
     print("🔔 POST /chat вызван")
@@ -30,30 +31,71 @@ def chat():
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
     message = data.get('message')
+    character_data = data.get('character')  # может быть None
+
     if not chat_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
-    try:
-        reply = query_dolphin(message, chat_id, client)
-        return jsonify({'reply': reply})
-    except Exception as e:
-        print(f"❌ Ошибка в /chat: {e}")
-        return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
 
-# --- Новый эндпоинт для сохранения персонажа (без закрытия мини-аппа) ---
+    # Если передан персонаж из мини-аппа, используем его данные, иначе – из БД
+    if character_data:
+        # Данные уже в виде словаря
+        char = character_data
+        # Преобразуем теги из строки в список, если нужно
+        tags = char.get('tags', '')
+        if isinstance(tags, str) and tags:
+            tags = [t.strip() for t in tags.split(',')]
+        else:
+            tags = []
+        # Собираем словарь для передачи в query_dolphin
+        char_info = {
+            'name': char.get('name', 'Персонаж'),
+            'gender': char.get('gender', 'человек'),
+            'greeting': char.get('greeting', ''),
+            'subtitles': char.get('appearance', ''),
+            'memory_cards': char.get('memory', ''),
+            'location': char.get('scenario', ''),   # сценарий может содержать локацию, но можно отдельно
+            'scenario': char.get('scenario', ''),
+            'relation': char.get('relation', ''),    # пока нет, можно добавить позже
+            'personality': char.get('personality', ''),
+            'tags': tags
+        }
+        try:
+            reply = query_dolphin(message, chat_id, client, char_info)
+            print(f"✅ Ответ от ИИ: {reply}")
+            return jsonify({'reply': reply})
+        except Exception as e:
+            print(f"❌ Ошибка в /chat: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
+    else:
+        # Старая логика (из БД)
+        try:
+            reply = query_dolphin(message, chat_id, client)
+            print(f"✅ Ответ от ИИ (БД): {reply}")
+            return jsonify({'reply': reply})
+        except Exception as e:
+            print(f"❌ Ошибка в /chat: {e}")
+            return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
+
+# --- Эндпоинт для сохранения персонажа (просто логируем) ---
 @app.route('/save_character', methods=['POST'])
 def save_character():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
-    if not chat_id:
-        return jsonify({'error': 'Missing chat_id'}), 400
-    init_user(chat_id)
-    for key, value in data.items():
-        if key != 'chat_id' and value:
-            update_field(chat_id, key, value)
+    character = data.get('character')
+    if not chat_id or not character:
+        return jsonify({'error': 'Missing parameters'}), 400
+
+    # Логируем полученные данные (для отладки)
+    print(f"📝 Сохранение персонажа для {chat_id}: {character.get('name')} (ID: {character.get('id')})")
+    # Здесь можно сохранять в БД, если нужно
+    # update_field(chat_id, 'characters', ...) – но пока не будем усложнять
+
     return jsonify({'status': 'ok'})
 
 # --- Вебхук для бота ---
@@ -64,7 +106,7 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
-# --- Обработчики бота (те же) ---
+# --- Обработчики бота (оставляем без изменений) ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -98,11 +140,20 @@ def handle_web_app_data(message):
         return
     try:
         data = json.loads(message.web_app_data.data)
-        for key, value in data.items():
-            if value:
-                update_field(cid, key, value)
+        # Если приходят данные из старого формата (без 'character'), сохраняем как раньше
+        if 'character' in data:
+            char = data['character']
+            # Сохраняем все поля в БД (можно обновлять user_settings)
+            for key, value in char.items():
+                if value and key != 'id':
+                    update_field(cid, key, value)
+        else:
+            for key, value in data.items():
+                if value:
+                    update_field(cid, key, value)
         bot.send_message(cid, "✅ Персонаж сохранён! Теперь можно общаться.")
     except Exception as e:
+        print(f"❌ Ошибка при сохранении: {e}")
         bot.send_message(cid, f"❌ Ошибка при сохранении: {e}")
 
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/'))

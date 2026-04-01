@@ -556,54 +556,68 @@
             }
 
             async function sendMessageToServer(character, text, messagesContainer, storageKey, onReply) {
-                const typingDiv = document.createElement('div');
-                typingDiv.className = 'message bot';
-                typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
-                messagesContainer.appendChild(typingDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message bot';
+    typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
+    messagesContainer.appendChild(typingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-                let history = [];
-                try {
-                    const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
-                    history = stored.slice(-10).map(msg => ({
-                        role: msg.sender === 'user' ? 'user' : 'assistant',
-                        content: msg.text
-                    }));
-                } catch(e) {}
+    // Формируем user_prompt из полей персонажа (без приветствия)
+    let userPromptParts = [];
+    if (character.name) userPromptParts.push(`Имя: ${character.name}.`);
+    if (character.gender) userPromptParts.push(`Пол: ${character.gender}.`);
+    if (character.age) userPromptParts.push(`Возраст: ${character.age}.`);
+    if (character.personality) userPromptParts.push(`Характер: ${character.personality}.`);
+    if (character.scenario) userPromptParts.push(`Сейчас происходит: ${character.scenario}.`);
+    const userPrompt = userPromptParts.join('\n');
 
-                const payload = {
-                    chat_id: chat_id,
-                    message: text,
-                    character: character,
-                    history: history
-                };
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 60000);
-                    const response = await fetch('/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                        signal: controller.signal
-                    });
-                    clearTimeout(timeoutId);
-                    const data = await response.json();
-                    const replyText = data.reply || '⚠️ Пустой ответ от сервера';
-                    typingDiv.remove();
-                    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                    addMessageToUI(messagesContainer, replyText, 'bot', time, character.photo);
-                    let messages = [];
-                    try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
-                    messages.push({ text: replyText, sender: 'bot', time, avatar: character.photo });
-                    localStorage.setItem(storageKey, JSON.stringify(messages));
-                    if (onReply) onReply(replyText);
-                } catch (err) {
-                    console.error(err);
-                    typingDiv.remove();
-                    const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
-                    addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), character.photo);
-                }
-            }
+    // Готовим данные для отправки
+    const payload = {
+        chat_id: chat_id,
+        message: text,
+        character: {
+            nsfw_mode: character.nsfwMode,
+            user_prompt: userPrompt
+        },
+        history: []
+    };
+
+    // Получаем историю из localStorage (последние 5 сообщений)
+    try {
+        const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
+        payload.history = stored.slice(-10).map(msg => ({
+            role: msg.sender === 'user' ? 'user' : 'assistant',
+            content: msg.text
+        }));
+    } catch(e) {}
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const response = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        const replyText = data.reply || '⚠️ Пустой ответ от сервера';
+        typingDiv.remove();
+        const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        addMessageToUI(messagesContainer, replyText, 'bot', time, character.photo);
+        let messages = [];
+        try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
+        messages.push({ text: replyText, sender: 'bot', time, avatar: character.photo });
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+        if (onReply) onReply(replyText);
+    } catch (err) {
+        console.error(err);
+        typingDiv.remove();
+        const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
+        addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), character.photo);
+    }
+}
 
             function renderChat(character) {
                 const storageKey = `chat_${character.id}`;

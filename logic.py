@@ -22,7 +22,6 @@ def build_system_prompt(character):
     except:
         age = None
 
-    # По умолчанию SFW, если возраст < 18 – принудительно SFW
     if nsfw_mode is None:
         nsfw_mode = False
     if age is not None and age < 18:
@@ -47,7 +46,6 @@ def build_system_prompt(character):
     return prompt
 
 def query_dolphin(prompt, chat_id, client):
-    """Для бота – берёт данные из БД"""
     name = get_field(chat_id, 'name') or "Персонаж"
     gender = get_field(chat_id, 'gender') or "человек"
     age = get_field(chat_id, 'age') or ""
@@ -88,7 +86,6 @@ def query_dolphin(prompt, chat_id, client):
             frequency_penalty=0.5
         )
         reply = completion.choices[0].message.content
-        print(f"🟢 Ответ от ИИ для {chat_id}: {reply}")
         if reply is None:
             return "Извини, я не могу ответить."
         if contains_forbidden(reply):
@@ -96,18 +93,12 @@ def query_dolphin(prompt, chat_id, client):
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:
-        print(f"🔴 Ошибка в query_dolphin: {e}")
-        import traceback
-        traceback.print_exc()
         return f"⏳ Ошибка: {str(e)[:100]}"
 
-def query_dolphin_with_character(prompt, chat_id, client, character):
-    """Для мини-аппа – использует переданные данные персонажа"""
+def query_dolphin_with_character(prompt, chat_id, client, character, history=None):
     system_content = build_system_prompt(character)
-
-    # Для мини-аппа история пока не передаётся, но повторений не будет из‑за штрафов
-    history = []
-
+    if history is None:
+        history = []
     limit = get_field(chat_id, 'limit', 400)
     messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
 
@@ -122,14 +113,10 @@ def query_dolphin_with_character(prompt, chat_id, client, character):
             frequency_penalty=0.5
         )
         reply = completion.choices[0].message.content
-        print(f"🟢 Ответ от ИИ для персонажа {character.get('name')}: {reply}")
         if reply is None:
             return "Извини, я не могу ответить."
         if contains_forbidden(reply):
             return "Эй, давай не будем об этом 😅"
         return reply
     except Exception as e:
-        print(f"🔴 Ошибка в query_dolphin_with_character: {e}")
-        import traceback
-        traceback.print_exc()
         return f"⏳ Ошибка: {str(e)[:100]}"

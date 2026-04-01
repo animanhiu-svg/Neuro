@@ -233,7 +233,7 @@
             font-size: 14px;
         }
 
-        /* конструктор */
+        /* конструктор (расширенный) */
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
@@ -251,8 +251,12 @@
             align-items: center;
             justify-content: center;
         }
+        .avatar-circle.no-photo {
+            background-image: none;
+        }
         .avatar-placeholder {
-            display: none; /* убрали заглушку */
+            font-size: 48px;
+            color: #fff;
         }
         .avatar-label {
             font-size: 14px;
@@ -288,7 +292,11 @@
             resize: vertical;
         }
         .input-field:focus, .input-textarea:focus { border-bottom-color: #fff; border-color: #fff; }
-        .gender-chips { display: flex; gap: 16px; margin-top: 8px; }
+        .gender-chips, .mode-chips {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+        }
         .chip {
             background: transparent;
             border: 1px solid #444;
@@ -300,10 +308,6 @@
             transition: all 0.2s;
         }
         .chip.active { border-color: #fff; color: #fff; }
-        .chip.disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
         .char-counter { text-align: right; font-size: 10px; color: #666; margin-top: 4px; }
         .hint {
             font-size: 11px;
@@ -489,6 +493,7 @@
                 cropModal.classList.remove('show');
                 cropper.destroy();
                 pendingFile = null;
+                // Обновляем конструктор, чтобы показать новое фото
                 if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
                     renderCenter(pendingCharacterId);
                 } else {
@@ -650,7 +655,7 @@
                     }
                     charactersList.innerHTML = filtered.map(c => `
                         <div class="character-card" data-id="${c.id}">
-                            <div class="card-avatar" style="background-image: url('${c.photo || ""}');"></div>
+                            <div class="card-avatar" style="background-image: url('${c.photo || "https://i.pravatar.cc/150?img=0"}');"></div>
                             <div class="card-info">
                                 <div class="card-name">${escapeHtml(c.name)}</div>
                                 <div class="card-greeting">${escapeHtml(c.greeting || '')}</div>
@@ -698,7 +703,7 @@
                     return {
                         id: c.id,
                         name: c.name,
-                        avatar: c.photo || "",
+                        avatar: c.photo || "https://i.pravatar.cc/150?img=0",
                         lastMessage: lastMessage,
                         lastTime: lastTime
                     };
@@ -728,13 +733,13 @@
                 });
             }
 
-            // ---------- Конструктор с возрастом и NSFW/SFW ----------
+            // ---------- Конструктор ----------
             let currentEditId = null;
             let currentFormData = {
                 name: '',
                 gender: 'male',
                 age: '',
-                nsfwMode: null,
+                nsfwMode: false,
                 greeting: '',
                 appearance: '',
                 personality: '',
@@ -746,29 +751,16 @@
 
             function saveCurrentFormData() {
                 if (currentEditId !== null) {
-                    const charIndex = characters.findIndex(c => c.id === currentEditId);
-                    if (charIndex !== -1) {
-                        characters[charIndex] = {
-                            ...characters[charIndex],
-                            name: currentFormData.name,
-                            gender: currentFormData.gender,
-                            age: currentFormData.age,
-                            nsfwMode: currentFormData.nsfwMode,
-                            greeting: currentFormData.greeting,
-                            appearance: currentFormData.appearance,
-                            personality: currentFormData.personality,
-                            scenario: currentFormData.scenario,
-                            memory: currentFormData.memory,
-                            tags: currentFormData.tags,
-                            photo: currentFormData.photo
-                        };
+                    const idx = characters.findIndex(c => c.id === currentEditId);
+                    if (idx !== -1) {
+                        characters[idx] = { ...characters[idx], ...currentFormData };
                         saveCharacters();
                     }
                 }
             }
 
             function renderCenter(editId = null) {
-                // Сохраняем текущие данные перед уходом, если редактируем
+                // Сохраняем предыдущие данные, если редактировали другого персонажа
                 if (currentEditId !== null && currentEditId !== editId) {
                     saveCurrentFormData();
                 }
@@ -784,7 +776,7 @@
                         name: '',
                         gender: 'male',
                         age: '',
-                        nsfwMode: null,
+                        nsfwMode: false,
                         greeting: '',
                         appearance: '',
                         personality: '',
@@ -794,11 +786,12 @@
                         photo: null
                     };
                 }
+
                 currentFormData = {
                     name: char.name,
                     gender: char.gender,
-                    age: char.age || '',
-                    nsfwMode: char.nsfwMode,
+                    age: char.age,
+                    nsfwMode: char.nsfwMode === true,
                     greeting: char.greeting,
                     appearance: char.appearance,
                     personality: char.personality,
@@ -810,7 +803,7 @@
 
                 const avatarHtml = char.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${char.photo}');"></div>`
-                    : `<div class="avatar-circle" id="avatar-circle"><i data-lucide="camera" style="width: 48px; height: 48px; stroke: white;"></i></div>`;
+                    : `<div class="avatar-circle" id="avatar-circle" style="background-image: none;"></div>`;
 
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
@@ -833,21 +826,17 @@
                         <div class="hint">Выберите пол для правильных окончаний в речи</div>
                     </div>
                     <div class="input-group">
-                        <div class="input-label">[ ВОЗРАСТ ] <span style="color:#ff5e5e;">*</span></div>
-                        <input type="number" class="input-field" id="ageInput" value="${escapeHtml(currentFormData.age)}" min="1" max="120" placeholder="укажите возраст">
+                        <div class="input-label">[ ВОЗРАСТ ]</div>
+                        <input type="number" class="input-field" id="ageInput" value="${escapeHtml(currentFormData.age)}" min="1" max="120" placeholder="лет">
                         <div class="hint">(укажите возраст персонажа)</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ РЕЖИМ ]</div>
-                        <div class="gender-chips" id="nsfwToggle">
+                        <div class="mode-chips" id="nsfwToggle">
                             <div class="chip nsfw-chip ${currentFormData.nsfwMode === false ? 'active' : ''}" data-mode="sfw">🔒 SFW</div>
                             <div class="chip nsfw-chip ${currentFormData.nsfwMode === true ? 'active' : ''}" data-mode="nsfw">🔞 NSFW</div>
                         </div>
-                        <div class="hint">
-                            SFW — Режим с включёнными фильтрами безопасности. Фокус на сюжетных линиях и приключениях.<br>
-                            NSFW — Режим без ограничений по типу контента. Предназначен для зрелой аудитории.<br>
-                            Система автоматически применяет SFW-фильтры для всех персонажей, чей возраст ниже 18 лет.
-                        </div>
+                        <div class="hint">SFW — Режим с включёнными фильтрами безопасности. Фокус на сюжетных линиях и приключениях.<br>NSFW — Режим без ограничений по типу контента. Предназначен для зрелой аудитории.<br>Система автоматически применяет SFW-фильтры для всех персонажей, чей возраст ниже 18 лет.</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
@@ -898,7 +887,7 @@
 
                 function handleFileSelect() {
                     if (currentEditId === null) {
-                        // Создаём временного персонажа для фото
+                        // Создаём временного персонажа
                         const newId = Date.now();
                         const newChar = {
                             id: newId,
@@ -973,7 +962,7 @@
                 const scenarioInput = document.getElementById('scenarioInput');
                 const memoryInput = document.getElementById('memoryInput');
                 const tagsInput = document.getElementById('tagsInput');
-                const genderChips = document.querySelectorAll('.chip');
+                const genderChips = document.querySelectorAll('.gender-chips .chip');
                 const nsfwChips = document.querySelectorAll('.nsfw-chip');
                 const resetBtn = document.getElementById('resetBtn');
                 const activateBtn = document.getElementById('activateBtn');
@@ -986,12 +975,31 @@
                     document.getElementById('memoryCounter').textContent = `${memoryInput.value.length}/500`;
                 }
 
-                // Обновление данных формы при вводе
+                function updateNsfwFromAge() {
+                    const age = parseInt(ageInput.value, 10);
+                    if (!isNaN(age) && age < 18) {
+                        // Блокируем NSFW, ставим SFW
+                        nsfwChips.forEach(chip => {
+                            chip.style.pointerEvents = 'none';
+                            chip.style.opacity = '0.5';
+                            if (chip.dataset.mode === 'sfw') chip.classList.add('active');
+                            else chip.classList.remove('active');
+                        });
+                        currentFormData.nsfwMode = false;
+                    } else {
+                        // Разблокируем, но не меняем активный чип (оставляем как есть)
+                        nsfwChips.forEach(chip => {
+                            chip.style.pointerEvents = 'auto';
+                            chip.style.opacity = '1';
+                        });
+                    }
+                }
+
+                // Обновляем currentFormData при вводе
                 nameInput.addEventListener('input', (e) => { currentFormData.name = e.target.value; });
                 ageInput.addEventListener('input', (e) => {
                     currentFormData.age = e.target.value;
-                    // Обновляем активность переключателя в зависимости от возраста
-                    updateNsfwLock();
+                    updateNsfwFromAge();
                 });
                 greetingInput.addEventListener('input', (e) => { currentFormData.greeting = e.target.value; updateCounters(); });
                 appearanceInput.addEventListener('input', (e) => { currentFormData.appearance = e.target.value; updateCounters(); });
@@ -1008,52 +1016,18 @@
                     });
                 });
 
-                function updateNsfwLock() {
-                    const age = parseInt(ageInput.value, 10);
-                    const isUnderAge = !isNaN(age) && age < 18;
-                    if (isUnderAge) {
-                        // Блокируем переключатель на SFW
-                        nsfwChips.forEach(chip => {
-                            chip.classList.remove('active');
-                            if (chip.dataset.mode === 'sfw') chip.classList.add('active');
-                            chip.classList.add('disabled');
-                        });
-                        currentFormData.nsfwMode = false;
-                    } else {
-                        // Разблокируем, но не меняем активный режим (оставляем SFW по умолчанию, если не было выбора)
-                        nsfwChips.forEach(chip => {
-                            chip.classList.remove('disabled');
-                        });
-                        // Если режим не задан, ставим SFW
-                        if (currentFormData.nsfwMode === null) {
-                            currentFormData.nsfwMode = false;
-                            nsfwChips.forEach(chip => {
-                                chip.classList.remove('active');
-                                if (chip.dataset.mode === 'sfw') chip.classList.add('active');
-                            });
-                        } else {
-                            // Синхронизируем активный чип
-                            nsfwChips.forEach(chip => {
-                                chip.classList.remove('active');
-                                if ((currentFormData.nsfwMode && chip.dataset.mode === 'nsfw') ||
-                                    (!currentFormData.nsfwMode && chip.dataset.mode === 'sfw')) {
-                                    chip.classList.add('active');
-                                }
-                            });
-                        }
-                    }
-                }
-
                 nsfwChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         const age = parseInt(ageInput.value, 10);
-                        if (!isNaN(age) && age < 18) return; // заблокировано
-                        const mode = chip.dataset.mode === 'nsfw';
+                        if (!isNaN(age) && age < 18) return;
                         nsfwChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
-                        currentFormData.nsfwMode = mode;
+                        currentFormData.nsfwMode = chip.dataset.mode === 'nsfw';
                     });
                 });
+
+                // Инициализируем блокировку NSFW
+                updateNsfwFromAge();
 
                 resetBtn.addEventListener('click', () => {
                     if (currentEditId !== null) {
@@ -1069,21 +1043,15 @@
 
                 activateBtn.addEventListener('click', async () => {
                     const name = nameInput.value.trim();
-                    const ageVal = ageInput.value.trim();
                     if (!name) {
                         tg.showAlert('Введите имя персонажа');
                         return;
                     }
+                    const ageVal = ageInput.value.trim();
                     if (!ageVal) {
                         tg.showAlert('Пожалуйста, укажите возраст');
                         return;
                     }
-                    const ageNum = parseInt(ageVal, 10);
-                    if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
-                        tg.showAlert('Возраст должен быть числом от 1 до 120');
-                        return;
-                    }
-
                     const updatedData = {
                         id: currentEditId !== null ? currentEditId : Date.now(),
                         name: name,
@@ -1124,10 +1092,6 @@
                     }
                     renderChat(updatedData);
                 });
-
-                // Инициализация блокировки NSFW по возрасту
-                updateNsfwLock();
-                updateCounters();
             }
 
             // ---------- Профиль ----------
@@ -1171,8 +1135,8 @@
 
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    // Сохраняем текущие данные конструктора перед уходом
-                    if (document.querySelector('.bar-item.active')?.dataset.tab === 'center' && currentEditId !== null) {
+                    // Сохраняем данные, если уходим с вкладки «Центр»
+                    if (currentEditId !== null && document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
                         saveCurrentFormData();
                     }
                     barItems.forEach(i => i.classList.remove('active'));

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · портал</title>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
@@ -234,8 +233,8 @@
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
         .avatar-circle {
-            width: 120px !important;
-            height: 120px !important;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             background: #1e1e1e;
             border: 2px solid #fff;
@@ -244,17 +243,16 @@
             background-repeat: no-repeat;
             cursor: pointer;
             margin-bottom: 12px;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .avatar-circle svg,
-        .avatar-circle i {
-            width: 80px !important;
-            height: 80px !important;
-            min-width: 80px !important;
-            min-height: 80px !important;
-            color: #fff;
+        .avatar-circle svg {
+            width: 80px;
+            height: 80px;
+            stroke: #fff;
+            stroke-width: 1.8;
+            fill: none;
         }
         .avatar-label {
             font-size: 14px;
@@ -426,7 +424,6 @@
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
 
-            // ----- Хранилище персонажей -----
             let characters = [];
             try {
                 const saved = localStorage.getItem('characters');
@@ -437,7 +434,7 @@
                 localStorage.setItem('characters', JSON.stringify(characters));
             }
 
-            // ----- Временное хранилище черновика -----
+            // Черновик
             let draft = {
                 id: null,
                 name: '',
@@ -473,7 +470,9 @@
                 saveDraft();
             }
 
-            // ----- Кадрирование -----
+            loadDraft();
+
+            // Кадрирование
             let pendingCharacterId = null;
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
@@ -521,7 +520,6 @@
                 const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
                 draft.photo = croppedDataUrl;
                 saveDraft();
-                // Если персонаж уже есть в списке, обновляем
                 if (pendingCharacterId !== null) {
                     const idx = characters.findIndex(c => c.id === pendingCharacterId);
                     if (idx !== -1) {
@@ -538,7 +536,7 @@
                 pendingCharacterId = null;
             });
 
-            // ----- Чат (без изменений) -----
+            // Чат
             function addMessageToUI(container, text, sender, time, avatarUrl) {
                 if (sender === 'user') {
                     const div = document.createElement('div');
@@ -662,7 +660,7 @@
                 backBtn.addEventListener('click', () => renderFeed());
             }
 
-            // ----- Портал -----
+            // Портал
             function renderFeed() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -721,7 +719,7 @@
                 renderCharacters();
             }
 
-            // ----- Список чатов -----
+            // Список чатов
             function renderChats() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -779,13 +777,11 @@
                 });
             }
 
-            // ----- Конструктор -----
+            // Конструктор
             let currentEditId = null;
 
             function renderCenter(editId = null) {
                 currentEditId = editId;
-                loadDraft();
-
                 if (editId !== null) {
                     const char = characters.find(c => c.id === editId);
                     if (char) {
@@ -793,25 +789,26 @@
                         saveDraft();
                     }
                 } else if (!draft.id) {
-                    // Если нет ID, создаём новый для черновика
-                    draft.id = null;
-                    draft.name = '';
-                    draft.gender = 'male';
-                    draft.age = '';
-                    draft.nsfwMode = false;
-                    draft.greeting = '';
-                    draft.appearance = '';
-                    draft.personality = '';
-                    draft.scenario = '';
-                    draft.memory = '';
-                    draft.tags = '';
-                    draft.photo = null;
+                    draft = {
+                        id: null,
+                        name: '',
+                        gender: 'male',
+                        age: '',
+                        nsfwMode: false,
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
                     saveDraft();
                 }
 
                 const avatarHtml = draft.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${draft.photo}');"></div>`
-                    : `<div class="avatar-circle" id="avatar-circle"><i data-lucide="camera"></i></div>`;
+                    : `<div class="avatar-circle" id="avatar-circle"><svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="13" r="3.2" stroke="white" stroke-width="1.8"/><path d="M9 5.5C9 4.67157 9.67157 4 10.5 4H13.5C14.3284 4 15 4.67157 15 5.5V6H9V5.5Z" fill="white"/><path d="M7 7H6C4.89543 7 4 7.89543 4 9V11" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M17 7H18C19.1046 7 20 7.89543 20 9V11" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M4 15V17C4 18.1046 4.89543 19 6 19H8" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 15V17C20 18.1046 19.1046 19 18 19H16" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>`;
 
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
@@ -889,7 +886,6 @@
                 contentArea.innerHTML = html;
                 lucide.createIcons();
 
-                // Сохранение при вводе
                 const nameInput = document.getElementById('name');
                 const ageInput = document.getElementById('age');
                 const greetingInput = document.getElementById('greeting');
@@ -900,6 +896,11 @@
                 const tagsInput = document.getElementById('tags');
                 const genderChips = document.querySelectorAll('.gender-chips .chip');
                 const nsfwChips = document.querySelectorAll('.nsfw-chip');
+                const fileInput = document.getElementById('file-input');
+                const avatarCircle = document.getElementById('avatar-circle');
+                const uploadLabel = document.getElementById('upload-label');
+                const resetBtn = document.getElementById('resetBtn');
+                const activateBtn = document.getElementById('activateBtn');
 
                 function updateCounters() {
                     document.getElementById('greetingCounter').textContent = `${greetingInput.value.length}/200`;
@@ -963,28 +964,21 @@
 
                 updateNsfwFromAge();
 
-                // Загрузка фото
-                const fileInput = document.getElementById('file-input');
-                const avatarCircle = document.getElementById('avatar-circle');
-                const uploadLabel = document.getElementById('upload-label');
-
                 function handleFileSelect() {
                     if (currentEditId === null && draft.id === null) {
-                        // Создаём временный ID для черновика
                         draft.id = Date.now();
                         saveDraft();
                         currentEditId = draft.id;
                         renderCenter(draft.id);
                         setTimeout(() => {
                             const newAvatarCircle = document.getElementById('avatar-circle');
-                            const newUploadLabel = document.getElementById('upload-label');
                             if (newAvatarCircle) newAvatarCircle.click();
-                            else if (newUploadLabel) newUploadLabel.click();
                         }, 100);
                     } else {
                         fileInput.click();
                     }
                 }
+
                 avatarCircle?.addEventListener('click', handleFileSelect);
                 uploadLabel?.addEventListener('click', handleFileSelect);
 
@@ -1003,16 +997,12 @@
                     fileInput.value = '';
                 };
 
-                const resetBtn = document.getElementById('resetBtn');
-                const activateBtn = document.getElementById('activateBtn');
-
                 resetBtn.addEventListener('click', () => {
                     if (currentEditId !== null) {
                         const idx = characters.findIndex(c => c.id === currentEditId);
                         if (idx !== -1) characters.splice(idx, 1);
                         saveCharacters();
                     }
-                    // Очищаем черновик
                     draft = {
                         id: null,
                         name: '',
@@ -1068,7 +1058,6 @@
                         characters[idx] = { ...characters[idx], ...updatedData };
                     }
                     saveCharacters();
-                    // Очищаем черновик
                     draft = {
                         id: null,
                         name: '',
@@ -1085,8 +1074,6 @@
                     };
                     saveDraft();
                     currentEditId = null;
-
-                    // Отправляем на сервер
                     try {
                         await fetch('/save_character', {
                             method: 'POST',
@@ -1094,7 +1081,6 @@
                             body: JSON.stringify({ chat_id: chat_id, character: updatedData })
                         });
                     } catch(e) { console.error(e); }
-
                     const chatKey = `chat_${updatedData.id}`;
                     if (!localStorage.getItem(chatKey)) {
                         localStorage.setItem(chatKey, JSON.stringify([]));
@@ -1103,7 +1089,7 @@
                 });
             }
 
-            // ----- Профиль -----
+            // Профиль
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">
@@ -1126,7 +1112,6 @@
                     }
                     characters = [];
                     saveCharacters();
-                    // Очищаем черновик
                     draft = {
                         id: null,
                         name: '',
@@ -1154,13 +1139,12 @@
                 lucide.createIcons();
             }
 
-            // ----- Переключение вкладок -----
+            // Переключение вкладок
             const contentArea = document.getElementById('content-area');
             const barItems = document.querySelectorAll('.bar-item');
 
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    // Сохраняем черновик перед уходом
                     if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
                         saveDraft();
                     }
@@ -1176,9 +1160,6 @@
                 });
             });
 
-            // Сплэш анимация
-            const splash = document.getElementById('splash-screen');
-            const progressFill = document.getElementById('progress-fill');
             setTimeout(() => progressFill.style.width = '100%', 100);
             setTimeout(() => {
                 splash.classList.add('hidden');
@@ -1186,8 +1167,6 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
 
-            // Загружаем черновик при старте
-            loadDraft();
             renderFeed();
             barItems[0].classList.add('active');
 

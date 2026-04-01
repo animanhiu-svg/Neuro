@@ -238,7 +238,8 @@
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
         .avatar-circle {
-            width: 120px; height: 120px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             background: #1e1e1e;
             border: 2px solid #fff;
@@ -252,9 +253,10 @@
             justify-content: center;
         }
         .avatar-circle i {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             color: #fff;
+            stroke-width: 1.5;
         }
         .avatar-label {
             font-size: 14px;
@@ -527,7 +529,6 @@
                 messagesContainer.appendChild(typingDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-                // Получаем последние 10 сообщений из истории
                 let history = [];
                 try {
                     const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
@@ -763,16 +764,6 @@
                         characters[idx] = { ...characters[idx], ...currentFormData };
                         saveCharacters();
                     }
-                } else if (currentFormData.name.trim() !== '' || currentFormData.age !== '') {
-                    // Если персонаж ещё не создан, но есть данные – создаём временный
-                    const newId = Date.now();
-                    const newChar = {
-                        id: newId,
-                        ...currentFormData
-                    };
-                    characters.push(newChar);
-                    saveCharacters();
-                    currentEditId = newId;
                 }
             }
 

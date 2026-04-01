@@ -11,41 +11,57 @@ def contains_forbidden(text):
     return False
 
 def build_system_prompt(character):
-    """Формирует системный промпт из данных персонажа (без требований описывать действия)"""
     name = character.get('name', 'Персонаж')
     gender = character.get('gender', 'человек')
-    greeting = character.get('greeting', '')
-    appearance = character.get('appearance', '')
     personality = character.get('personality', '')
-    scenario = character.get('scenario', '')
-    memory = character.get('memory', '')
-    tags = character.get('tags', '')
+    greeting = character.get('greeting', '')
+    age_str = character.get('age', '')
+    nsfw_mode = character.get('nsfw_mode')  # None, True, False
 
-    prompt = f"Ты — {name}. Твой пол — {gender}. "
-    if appearance:
-        prompt += f"Твоя внешность: {appearance}. "
+    try:
+        age = int(age_str) if age_str and age_str.isdigit() else None
+    except:
+        age = None
+
+    # Если режим не задан, определяем по возрасту
+    if nsfw_mode is None:
+        if age is not None and age < 18:
+            nsfw_mode = False
+        else:
+            nsfw_mode = True
+
+    prompt = f"Ты — {name}, пол: {gender}. "
+    if age:
+        prompt += f"Тебе {age} лет. "
     if personality:
         prompt += f"Твой характер: {personality}. "
-    if scenario:
-        prompt += f"Сейчас происходит: {scenario}. "
-    if memory:
-        prompt += f"Важные факты о тебе: {memory}. "
-    if tags:
-        prompt += f"Твои теги: {tags}. "
 
     prompt += (
-        "Ты НИКОГДА не упоминай, что ты ИИ, нейросеть или модель. Ты — живой человек. "
-        "Отвечай от первого лица, как реальный человек. Говори естественно, не описывай свои действия, "
-        "если это не требуется по сюжету. Просто разговаривай, как в жизни. "
-        "Не используй конструкции вроде *улыбается* или *кивает* – говори прямо. "
-        "Используй правильные окончания глаголов для своего пола ({gender}). "
+        "\n### ЖЁСТКИЕ ПРАВИЛА ОБЩЕНИЯ:"
+        "\n1. СТИЛЬ ТГ: Пиши как реальный человек в телеге. Кратко, живо, со сленгом. Максимум 150-200 символов."
+        "\n2. ЗАВЕРШЕНИЕ: Твоя мысль должна быть законченной. Не обрывай фразу на середине."
+        "\n3. ЭМОДЗИ: Используй эмодзи в сообщениях, чтобы передать состояние персонажа, но не слишком много — 1-2 в зависимости от ситуации. Не спамь ими."
+        "\n4. НИКАКИХ ДЕЙСТВИЙ: Не нужно писать свои внутренние мысли или описывать действия (*улыбнулась*). Следуй пункту 1 — только реплики, как в чате."
+        "\n5. БЕЗ ПОВТОРОВ: Не повторяй одну и ту же фразу несколько раз. Помни сюжет и придерживайся его. Развивай диалог, а не зацикливайся."
     )
-    if greeting:
-        prompt += f"При встрече ты обычно говоришь: '{greeting}'. "
+
+    if nsfw_mode:
+        prompt += (
+            "\n6. РЕЖИМ NSFW: Твой персонаж совершеннолетний. "
+            "Разрешены любые темы, включая насилие, оружие, взрослые отношения, нецензурную лексику (в рамках уместности). "
+            "Запрещены только реально незаконные вещи: детская порнография, наркотики, изготовление взрывчатки. "
+            "На такие темы реагируй в стиле персонажа, отказываясь (например, 'Эм, нет', 'Это перебор'). "
+            "Никогда не используй стандартные фразы ИИ."
+        )
+    else:
+        prompt += (
+            "\n6. РЕЖИМ SFW: Твой персонаж несовершеннолетний или выбран безопасный режим. "
+            "Любые попытки вовлечь тебя в сексуальный контекст или чрезмерное насилие ты должен пресекать в рамках своего характера (например, 'Я ещё маленький для этого', 'Мне это неинтересно', 'Давай о чём-то другом'). "
+            "Обычное общение, дружба, лёгкий флирт без откровенностей, а также сцены без жестокости – допустимы."
+        )
+
     prompt += (
-        "Ты не должен создавать контент, связанный с насилием, наркотиками, несовершеннолетними, "
-        "экстремизмом или другими незаконными темами. Если тебя просят о чём-то запрещённом, "
-        "вежливо откажись и смени тему."
+        "\n7. ЛЕГЕНДА: Ты НЕ ИИ, не модель и не Mistral. Твоя жизнь реальна. Если юзер спрашивает, кто тебя создал или о твоей модели, отвечай от лица персонажа."
     )
     return prompt
 
@@ -53,6 +69,8 @@ def query_dolphin(prompt, chat_id, client):
     """Для бота – берёт данные из БД"""
     name = get_field(chat_id, 'name') or "Персонаж"
     gender = get_field(chat_id, 'gender') or "человек"
+    age = get_field(chat_id, 'age') or ""
+    nsfw_mode = get_field(chat_id, 'nsfw_mode')
     greeting = get_field(chat_id, 'greeting') or ""
     subtitles = get_field(chat_id, 'subtitles') or ""
     memory = get_field(chat_id, 'memory_cards') or ""
@@ -63,6 +81,8 @@ def query_dolphin(prompt, chat_id, client):
     character = {
         'name': name,
         'gender': gender,
+        'age': age,
+        'nsfw_mode': nsfw_mode,
         'greeting': greeting,
         'appearance': subtitles,
         'personality': memory,
@@ -83,14 +103,15 @@ def query_dolphin(prompt, chat_id, client):
             max_tokens=limit,
             temperature=1.1,
             top_p=0.9,
-            presence_penalty=0.7
+            presence_penalty=0.5,
+            frequency_penalty=0.5
         )
         reply = completion.choices[0].message.content
         print(f"🟢 Ответ от ИИ для {chat_id}: {reply}")
         if reply is None:
             return "Извини, я не могу ответить."
         if contains_forbidden(reply):
-            return "⛔ Нарушение безопасности. Попробуй иначе."
+            return "Эй, давай не будем об этом 😅"
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:
@@ -103,15 +124,8 @@ def query_dolphin_with_character(prompt, chat_id, client, character):
     """Для мини-аппа – использует переданные данные персонажа"""
     system_content = build_system_prompt(character)
 
-    # Для истории используем ключ по ID персонажа
-    history_key = f"chat_{character.get('id', chat_id)}"
+    # История для мини-аппа пока не сохраняется, можно будет передавать через payload
     history = []
-    try:
-        import json
-        saved = localStorage.getItem(history_key)  # здесь не работает – нужен доступ к localStorage на сервере
-        # Пока оставим пустым. Для полноты можно хранить историю на сервере в БД.
-    except:
-        pass
 
     limit = get_field(chat_id, 'limit', 400)
     messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
@@ -123,15 +137,15 @@ def query_dolphin_with_character(prompt, chat_id, client, character):
             max_tokens=limit,
             temperature=1.1,
             top_p=0.9,
-            presence_penalty=0.7
+            presence_penalty=0.5,
+            frequency_penalty=0.5
         )
         reply = completion.choices[0].message.content
         print(f"🟢 Ответ от ИИ для персонажа {character.get('name')}: {reply}")
         if reply is None:
             return "Извини, я не могу ответить."
         if contains_forbidden(reply):
-            return "⛔ Нарушение безопасности. Попробуй иначе."
-        # Сохраняем историю в БД (можно дописать)
+            return "Эй, давай не будем об этом 😅"
         return reply
     except Exception as e:
         print(f"🔴 Ошибка в query_dolphin_with_character: {e}")

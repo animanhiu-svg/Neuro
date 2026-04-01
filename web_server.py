@@ -8,7 +8,7 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin, query_dolphin_with_character
 
-# Отключаем пингер, чтобы не конфликтовать
+# Отключаем пингер, чтобы не конфликтовать с gunicorn
 # utils.start_pinger()
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
@@ -22,7 +22,7 @@ app = Flask(__name__, static_folder='mini_app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
 
-# --- Эндпоинт для чата (мини-апп и бот) ---
+# --- Эндпоинт для чата (принимает историю) ---
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
@@ -30,8 +30,8 @@ def chat():
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
     message = data.get('message')
-    character = data.get('character')  # для мини-аппа
-    history = data.get('history', [])   # история из мини-аппа
+    character = data.get('character')          # для мини-аппа
+    history = data.get('history', [])          # история из мини-аппа
     if not chat_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 

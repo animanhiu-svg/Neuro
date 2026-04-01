@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        /* ========== ВСЕ СТИЛИ (ТЕ ЖЕ, ЧТО В СТАБИЛЬНОЙ ВЕРСИИ) ========== */
         * {
             margin: 0;
             padding: 0;
@@ -249,8 +248,8 @@
             justify-content: center;
         }
         .avatar-circle i {
-            width: 64px;
-            height: 64px;
+            width: 80px;
+            height: 80px;
             color: #fff;
         }
         .avatar-label {
@@ -752,7 +751,8 @@
                 photo: null
             };
 
-            function saveCurrentFormData() {
+            // Сохраняем данные сразу при изменении любого поля
+            function syncCurrentFormData() {
                 if (currentEditId !== null) {
                     const idx = characters.findIndex(c => c.id === currentEditId);
                     if (idx !== -1) {
@@ -763,8 +763,9 @@
             }
 
             function renderCenter(editId = null) {
+                // Если редактируем другого персонажа, сохраняем предыдущего
                 if (currentEditId !== null && currentEditId !== editId) {
-                    saveCurrentFormData();
+                    syncCurrentFormData();
                 }
                 currentEditId = editId;
                 let char = null;
@@ -993,23 +994,26 @@
                     }
                 }
 
-                nameInput.addEventListener('input', (e) => { currentFormData.name = e.target.value; });
+                // Сохраняем при любом изменении поля
+                nameInput.addEventListener('input', (e) => { currentFormData.name = e.target.value; syncCurrentFormData(); });
                 ageInput.addEventListener('input', (e) => {
                     currentFormData.age = e.target.value;
                     updateNsfwFromAge();
+                    syncCurrentFormData();
                 });
-                greetingInput.addEventListener('input', (e) => { currentFormData.greeting = e.target.value; updateCounters(); });
-                appearanceInput.addEventListener('input', (e) => { currentFormData.appearance = e.target.value; updateCounters(); });
-                personalityInput.addEventListener('input', (e) => { currentFormData.personality = e.target.value; updateCounters(); });
-                scenarioInput.addEventListener('input', (e) => { currentFormData.scenario = e.target.value; updateCounters(); });
-                memoryInput.addEventListener('input', (e) => { currentFormData.memory = e.target.value; updateCounters(); });
-                tagsInput.addEventListener('input', (e) => { currentFormData.tags = e.target.value; });
+                greetingInput.addEventListener('input', (e) => { currentFormData.greeting = e.target.value; updateCounters(); syncCurrentFormData(); });
+                appearanceInput.addEventListener('input', (e) => { currentFormData.appearance = e.target.value; updateCounters(); syncCurrentFormData(); });
+                personalityInput.addEventListener('input', (e) => { currentFormData.personality = e.target.value; updateCounters(); syncCurrentFormData(); });
+                scenarioInput.addEventListener('input', (e) => { currentFormData.scenario = e.target.value; updateCounters(); syncCurrentFormData(); });
+                memoryInput.addEventListener('input', (e) => { currentFormData.memory = e.target.value; updateCounters(); syncCurrentFormData(); });
+                tagsInput.addEventListener('input', (e) => { currentFormData.tags = e.target.value; syncCurrentFormData(); });
 
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         genderChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
                         currentFormData.gender = chip.dataset.gender;
+                        syncCurrentFormData();
                     });
                 });
 
@@ -1020,6 +1024,7 @@
                         nsfwChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
                         currentFormData.nsfwMode = chip.dataset.mode === 'nsfw';
+                        syncCurrentFormData();
                     });
                 });
 
@@ -1130,8 +1135,9 @@
 
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
+                    // При уходе с центра сохраняем текущие данные
                     if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
-                        saveCurrentFormData();
+                        syncCurrentFormData();
                     }
                     barItems.forEach(i => i.classList.remove('active'));
                     item.classList.add('active');

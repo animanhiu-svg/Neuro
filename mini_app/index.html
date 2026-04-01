@@ -248,11 +248,6 @@
             align-items: center;
             justify-content: center;
         }
-        .avatar-circle i {
-            width: 80px;
-            height: 80px;
-            color: #fff;
-        }
         .avatar-label {
             font-size: 14px;
             color: #aaa;
@@ -423,6 +418,15 @@
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
 
+            // ---------- Настройка иконок (большой размер) ----------
+            lucide.createIcons({
+                attrs: {
+                    width: 80,
+                    height: 80,
+                    'stroke-width': 1.5
+                }
+            });
+
             // ---------- Персонажи ----------
             let characters = [];
             try {
@@ -434,9 +438,9 @@
                 localStorage.setItem('characters', JSON.stringify(characters));
             }
 
-            // ---------- Черновик (автосохранение) ----------
-            let draft = {
-                id: null,
+            // ---------- Менеджер черновика (фиксированный ID) ----------
+            let draft = JSON.parse(localStorage.getItem('character_draft')) || {
+                tempId: Date.now(),
                 name: '',
                 gender: 'male',
                 age: '',
@@ -450,22 +454,21 @@
                 photo: null
             };
 
-            function loadDraft() {
-                try {
-                    const saved = localStorage.getItem('character_draft');
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        draft = { ...draft, ...parsed };
-                    }
-                } catch(e) {}
-                if (!draft.id) draft.id = null;
-            }
-
-            function saveDraft() {
+            function syncDraft() {
                 localStorage.setItem('character_draft', JSON.stringify(draft));
             }
 
-            loadDraft();
+            function updateDraftField(field, value) {
+                draft[field] = value;
+                syncDraft();
+            }
+
+            // Автосохранение при скрытии страницы (переключение вкладок в Telegram)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    syncDraft();
+                }
+            });
 
             // ---------- Кадрирование ----------
             let pendingCharacterId = null;
@@ -514,7 +517,7 @@
                 const canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
                 const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
                 draft.photo = croppedDataUrl;
-                saveDraft();
+                syncDraft();
                 if (pendingCharacterId !== null) {
                     const idx = characters.findIndex(c => c.id === pendingCharacterId);
                     if (idx !== -1) {
@@ -531,7 +534,7 @@
                 pendingCharacterId = null;
             });
 
-            // ---------- Чат ----------
+            // ---------- Чат (без изменений) ----------
             function addMessageToUI(container, text, sender, time, avatarUrl) {
                 if (sender === 'user') {
                     const div = document.createElement('div');
@@ -781,24 +784,11 @@
                     const char = characters.find(c => c.id === editId);
                     if (char) {
                         draft = { ...draft, ...char };
-                        saveDraft();
+                        syncDraft();
                     }
-                } else if (!draft.id) {
-                    draft = {
-                        id: null,
-                        name: '',
-                        gender: 'male',
-                        age: '',
-                        nsfwMode: false,
-                        greeting: '',
-                        appearance: '',
-                        personality: '',
-                        scenario: '',
-                        memory: '',
-                        tags: '',
-                        photo: null
-                    };
-                    saveDraft();
+                } else if (!draft.tempId) {
+                    draft.tempId = Date.now();
+                    syncDraft();
                 }
 
                 const avatarHtml = draft.photo
@@ -881,6 +871,7 @@
                 contentArea.innerHTML = html;
                 lucide.createIcons();
 
+                // Привязываем обработчики к полям
                 const nameInput = document.getElementById('name');
                 const ageInput = document.getElementById('age');
                 const greetingInput = document.getElementById('greeting');
@@ -915,7 +906,7 @@
                             else chip.classList.remove('active');
                         });
                         draft.nsfwMode = false;
-                        saveDraft();
+                        syncDraft();
                     } else {
                         nsfwChips.forEach(chip => {
                             chip.style.pointerEvents = 'auto';
@@ -924,25 +915,26 @@
                     }
                 }
 
-                nameInput.addEventListener('input', (e) => { draft.name = e.target.value; saveDraft(); });
+                // Мгновенное сохранение в draft
+                nameInput.addEventListener('input', (e) => { draft.name = e.target.value; syncDraft(); });
                 ageInput.addEventListener('input', (e) => {
                     draft.age = e.target.value;
                     updateNsfwFromAge();
-                    saveDraft();
+                    syncDraft();
                 });
-                greetingInput.addEventListener('input', (e) => { draft.greeting = e.target.value; updateCounters(); saveDraft(); });
-                appearanceInput.addEventListener('input', (e) => { draft.appearance = e.target.value; updateCounters(); saveDraft(); });
-                personalityInput.addEventListener('input', (e) => { draft.personality = e.target.value; updateCounters(); saveDraft(); });
-                scenarioInput.addEventListener('input', (e) => { draft.scenario = e.target.value; updateCounters(); saveDraft(); });
-                memoryInput.addEventListener('input', (e) => { draft.memory = e.target.value; updateCounters(); saveDraft(); });
-                tagsInput.addEventListener('input', (e) => { draft.tags = e.target.value; saveDraft(); });
+                greetingInput.addEventListener('input', (e) => { draft.greeting = e.target.value; updateCounters(); syncDraft(); });
+                appearanceInput.addEventListener('input', (e) => { draft.appearance = e.target.value; updateCounters(); syncDraft(); });
+                personalityInput.addEventListener('input', (e) => { draft.personality = e.target.value; updateCounters(); syncDraft(); });
+                scenarioInput.addEventListener('input', (e) => { draft.scenario = e.target.value; updateCounters(); syncDraft(); });
+                memoryInput.addEventListener('input', (e) => { draft.memory = e.target.value; updateCounters(); syncDraft(); });
+                tagsInput.addEventListener('input', (e) => { draft.tags = e.target.value; syncDraft(); });
 
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         genderChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
                         draft.gender = chip.dataset.gender;
-                        saveDraft();
+                        syncDraft();
                     });
                 });
 
@@ -953,18 +945,18 @@
                         nsfwChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
                         draft.nsfwMode = chip.dataset.mode === 'nsfw';
-                        saveDraft();
+                        syncDraft();
                     });
                 });
 
                 updateNsfwFromAge();
 
                 function handleFileSelect() {
-                    if (currentEditId === null && draft.id === null) {
-                        draft.id = Date.now();
-                        saveDraft();
-                        currentEditId = draft.id;
-                        renderCenter(draft.id);
+                    if (currentEditId === null && !draft.tempId) {
+                        draft.tempId = Date.now();
+                        syncDraft();
+                        currentEditId = draft.tempId;
+                        renderCenter(draft.tempId);
                         setTimeout(() => {
                             const newAvatarCircle = document.getElementById('avatar-circle');
                             if (newAvatarCircle) newAvatarCircle.click();
@@ -980,10 +972,10 @@
                 fileInput.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        const charId = currentEditId !== null ? currentEditId : (draft.id || Date.now());
-                        if (currentEditId === null && draft.id === null) {
-                            draft.id = charId;
-                            saveDraft();
+                        const charId = currentEditId !== null ? currentEditId : (draft.tempId || Date.now());
+                        if (currentEditId === null && !draft.tempId) {
+                            draft.tempId = charId;
+                            syncDraft();
                             currentEditId = charId;
                             renderCenter(charId);
                         }
@@ -999,7 +991,7 @@
                         saveCharacters();
                     }
                     draft = {
-                        id: null,
+                        tempId: Date.now(),
                         name: '',
                         gender: 'male',
                         age: '',
@@ -1012,7 +1004,7 @@
                         tags: '',
                         photo: null
                     };
-                    saveDraft();
+                    syncDraft();
                     currentEditId = null;
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
@@ -1031,7 +1023,7 @@
                         tg.showAlert('Пожалуйста, укажите возраст');
                         return;
                     }
-                    const id = currentEditId !== null ? currentEditId : (draft.id || Date.now());
+                    const id = currentEditId !== null ? currentEditId : (draft.tempId || Date.now());
                     const updatedData = {
                         id: id,
                         name: name,
@@ -1054,7 +1046,7 @@
                     }
                     saveCharacters();
                     draft = {
-                        id: null,
+                        tempId: Date.now(),
                         name: '',
                         gender: 'male',
                         age: '',
@@ -1067,7 +1059,7 @@
                         tags: '',
                         photo: null
                     };
-                    saveDraft();
+                    syncDraft();
                     currentEditId = null;
                     try {
                         await fetch('/save_character', {
@@ -1108,7 +1100,7 @@
                     characters = [];
                     saveCharacters();
                     draft = {
-                        id: null,
+                        tempId: Date.now(),
                         name: '',
                         gender: 'male',
                         age: '',
@@ -1121,7 +1113,7 @@
                         tags: '',
                         photo: null
                     };
-                    saveDraft();
+                    syncDraft();
                     tg.showAlert('Все данные очищены!');
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
@@ -1141,7 +1133,7 @@
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
                     if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
-                        saveDraft();
+                        syncDraft();
                     }
                     barItems.forEach(i => i.classList.remove('active'));
                     item.classList.add('active');

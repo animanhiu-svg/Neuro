@@ -251,11 +251,9 @@
             align-items: center;
             justify-content: center;
         }
-        .avatar-circle.no-photo {
-            background-image: none;
-        }
-        .avatar-placeholder {
-            font-size: 48px;
+        .avatar-circle i {
+            width: 48px;
+            height: 48px;
             color: #fff;
         }
         .avatar-label {
@@ -428,7 +426,6 @@
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
 
-            // ---------- Список персонажей ----------
             let characters = [];
             try {
                 const saved = localStorage.getItem('characters');
@@ -493,7 +490,6 @@
                 cropModal.classList.remove('show');
                 cropper.destroy();
                 pendingFile = null;
-                // Обновляем конструктор, чтобы показать новое фото
                 if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
                     renderCenter(pendingCharacterId);
                 } else {
@@ -531,10 +527,21 @@
                 messagesContainer.appendChild(typingDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+                // Получаем последние 10 сообщений из истории
+                let history = [];
+                try {
+                    const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
+                    history = stored.slice(-10).map(msg => ({
+                        role: msg.sender === 'user' ? 'user' : 'assistant',
+                        content: msg.text
+                    }));
+                } catch(e) {}
+
                 const payload = {
                     chat_id: chat_id,
                     message: text,
-                    character: character
+                    character: character,
+                    history: history
                 };
                 try {
                     const controller = new AbortController();
@@ -756,15 +763,23 @@
                         characters[idx] = { ...characters[idx], ...currentFormData };
                         saveCharacters();
                     }
+                } else if (currentFormData.name.trim() !== '' || currentFormData.age !== '') {
+                    // Если персонаж ещё не создан, но есть данные – создаём временный
+                    const newId = Date.now();
+                    const newChar = {
+                        id: newId,
+                        ...currentFormData
+                    };
+                    characters.push(newChar);
+                    saveCharacters();
+                    currentEditId = newId;
                 }
             }
 
             function renderCenter(editId = null) {
-                // Сохраняем предыдущие данные, если редактировали другого персонажа
                 if (currentEditId !== null && currentEditId !== editId) {
                     saveCurrentFormData();
                 }
-
                 currentEditId = editId;
                 let char = null;
                 if (editId !== null) {
@@ -803,7 +818,7 @@
 
                 const avatarHtml = char.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${char.photo}');"></div>`
-                    : `<div class="avatar-circle" id="avatar-circle" style="background-image: none;"></div>`;
+                    : `<div class="avatar-circle" id="avatar-circle"><i data-lucide="camera"></i></div>`;
 
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
@@ -887,7 +902,6 @@
 
                 function handleFileSelect() {
                     if (currentEditId === null) {
-                        // Создаём временного персонажа
                         const newId = Date.now();
                         const newChar = {
                             id: newId,
@@ -978,7 +992,6 @@
                 function updateNsfwFromAge() {
                     const age = parseInt(ageInput.value, 10);
                     if (!isNaN(age) && age < 18) {
-                        // Блокируем NSFW, ставим SFW
                         nsfwChips.forEach(chip => {
                             chip.style.pointerEvents = 'none';
                             chip.style.opacity = '0.5';
@@ -987,7 +1000,6 @@
                         });
                         currentFormData.nsfwMode = false;
                     } else {
-                        // Разблокируем, но не меняем активный чип (оставляем как есть)
                         nsfwChips.forEach(chip => {
                             chip.style.pointerEvents = 'auto';
                             chip.style.opacity = '1';
@@ -995,7 +1007,6 @@
                     }
                 }
 
-                // Обновляем currentFormData при вводе
                 nameInput.addEventListener('input', (e) => { currentFormData.name = e.target.value; });
                 ageInput.addEventListener('input', (e) => {
                     currentFormData.age = e.target.value;
@@ -1026,7 +1037,6 @@
                     });
                 });
 
-                // Инициализируем блокировку NSFW
                 updateNsfwFromAge();
 
                 resetBtn.addEventListener('click', () => {
@@ -1077,7 +1087,6 @@
                             saveCharacters();
                         }
                     }
-                    // Отправляем на сервер
                     try {
                         await fetch('/save_character', {
                             method: 'POST',
@@ -1135,8 +1144,7 @@
 
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    // Сохраняем данные, если уходим с вкладки «Центр»
-                    if (currentEditId !== null && document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
+                    if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
                         saveCurrentFormData();
                     }
                     barItems.forEach(i => i.classList.remove('active'));

@@ -6,8 +6,9 @@ from openai import OpenAI
 import config
 import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
-from logic import contains_forbidden, query_dolphin_with_character
+from logic import contains_forbidden, query_dolphin, query_dolphin_with_character
 
+# Отключаем пингер, чтобы не конфликтовать
 # utils.start_pinger()
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
@@ -15,20 +16,22 @@ bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')
 
+# --- Отдача статики ---
 @app.route('/')
 @app.route('/app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
 
+# --- Эндпоинт для чата (мини-апп и бот) ---
 @app.route('/chat', methods=['POST'])
 def chat():
-    print("🔔 POST /chat вызван")
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
     message = data.get('message')
-    character = data.get('character')  # может быть None, если сообщение из бота
+    character = data.get('character')  # для мини-аппа
+    history = data.get('history', [])   # история из мини-аппа
     if not chat_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
@@ -36,11 +39,9 @@ def chat():
 
     try:
         if character:
-            # Используем данные из мини-аппа
-            reply = query_dolphin_with_character(message, chat_id, client, character)
+            reply = query_dolphin_with_character(message, chat_id, client, character, history)
         else:
-            # Для бота (через вебхук) используем данные из БД
-            from logic import query_dolphin
+            # Для сообщений из Telegram (бота)
             reply = query_dolphin(message, chat_id, client)
         return jsonify({'reply': reply})
     except Exception as e:
@@ -49,6 +50,7 @@ def chat():
         traceback.print_exc()
         return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
 
+# --- Эндпоинт для сохранения персонажа из мини-аппа ---
 @app.route('/save_character', methods=['POST'])
 def save_character():
     data = request.get_json()
@@ -59,12 +61,12 @@ def save_character():
     if not chat_id or not character:
         return jsonify({'error': 'Missing data'}), 400
     init_user(chat_id)
-    # Сохраняем все поля персонажа в БД (для бота)
     for key, value in character.items():
         if value:
             update_field(chat_id, key, value)
     return jsonify({'status': 'ok'})
 
+# --- Вебхук для бота ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     json_str = request.get_data().decode('UTF-8')
@@ -72,6 +74,7 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
+# --- Обработчики бота ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -105,7 +108,6 @@ def handle_web_app_data(message):
         return
     try:
         data = json.loads(message.web_app_data.data)
-        # Если пришёл объект character, сохраняем его поля
         if 'character' in data:
             for key, value in data['character'].items():
                 if value:
@@ -129,10 +131,10 @@ def handle_chat(message):
         return
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-    from logic import query_dolphin
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
+# --- Установка вебхука ---
 def setup_webhook():
     base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
     webhook_url = f"https://{base_url}/webhook"

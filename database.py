@@ -1,13 +1,14 @@
 # Хранилища данных
-user_settings = {}      # {chat_id: {name, gender, greeting, subtitles, memory_cards, char_photo, location, scenario, relation, limit?}}
+user_settings = {}      # {chat_id: {name, gender, age, nsfw_mode, greeting, subtitles, memory_cards, char_photo, location, scenario, relation, limit}}
 user_history = {}       # {chat_id: [messages]}
-menu_message_id = {}    # {chat_id: message_id} — текущее открытое меню
 
 def init_user(chat_id):
     if chat_id not in user_settings:
         user_settings[chat_id] = {
             'name': None,
             'gender': None,
+            'age': None,
+            'nsfw_mode': None,
             'greeting': None,
             'subtitles': None,
             'memory_cards': None,
@@ -43,6 +44,8 @@ def reset_all(chat_id):
     user_settings[chat_id] = {
         'name': None,
         'gender': None,
+        'age': None,
+        'nsfw_mode': None,
         'greeting': None,
         'subtitles': None,
         'memory_cards': None,

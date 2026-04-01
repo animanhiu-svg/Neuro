@@ -31,7 +31,7 @@ def build_system_prompt(character):
     if age:
         prompt += f"Тебе {age} лет. "
     if personality:
-        prompt += f"Твой характер: {personality}. "
+        prompt += f"Характер: {personality}. "
 
     prompt += "\nПРАВИЛА:"
     prompt += "\n- Отвечай коротко, как в Telegram. Без описаний действий (*улыбнулась*)."

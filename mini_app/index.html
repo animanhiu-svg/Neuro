@@ -234,7 +234,8 @@
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
         .avatar-circle {
-            width: 120px; height: 120px;
+            width: 120px !important;
+            height: 120px !important;
             border-radius: 50%;
             background: #1e1e1e;
             border: 2px solid #fff;
@@ -243,13 +244,16 @@
             background-repeat: no-repeat;
             cursor: pointer;
             margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
+        .avatar-circle svg,
         .avatar-circle i {
-            width: 80px;
-            height: 80px;
+            width: 80px !important;
+            height: 80px !important;
+            min-width: 80px !important;
+            min-height: 80px !important;
             color: #fff;
         }
         .avatar-label {
@@ -422,6 +426,7 @@
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
 
+            // ----- Хранилище персонажей -----
             let characters = [];
             try {
                 const saved = localStorage.getItem('characters');
@@ -432,7 +437,43 @@
                 localStorage.setItem('characters', JSON.stringify(characters));
             }
 
-            // ---------- Кадрирование ----------
+            // ----- Временное хранилище черновика -----
+            let draft = {
+                id: null,
+                name: '',
+                gender: 'male',
+                age: '',
+                nsfwMode: false,
+                greeting: '',
+                appearance: '',
+                personality: '',
+                scenario: '',
+                memory: '',
+                tags: '',
+                photo: null
+            };
+
+            function loadDraft() {
+                try {
+                    const saved = localStorage.getItem('character_draft');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        draft = { ...draft, ...parsed };
+                    }
+                } catch(e) {}
+                if (!draft.id) draft.id = null;
+            }
+
+            function saveDraft() {
+                localStorage.setItem('character_draft', JSON.stringify(draft));
+            }
+
+            function saveField(id, value) {
+                draft[id] = value;
+                saveDraft();
+            }
+
+            // ----- Кадрирование -----
             let pendingCharacterId = null;
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
@@ -478,23 +519,26 @@
                 if (!cropper || !pendingFile || pendingCharacterId === null) return;
                 const canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
                 const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                const charIndex = characters.findIndex(c => c.id === pendingCharacterId);
-                if (charIndex !== -1) {
-                    characters[charIndex].photo = croppedDataUrl;
-                    saveCharacters();
+                draft.photo = croppedDataUrl;
+                saveDraft();
+                // Если персонаж уже есть в списке, обновляем
+                if (pendingCharacterId !== null) {
+                    const idx = characters.findIndex(c => c.id === pendingCharacterId);
+                    if (idx !== -1) {
+                        characters[idx].photo = croppedDataUrl;
+                        saveCharacters();
+                    }
                 }
                 cropModal.classList.remove('show');
                 cropper.destroy();
                 pendingFile = null;
                 if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
                     renderCenter(pendingCharacterId);
-                } else {
-                    renderFeed();
                 }
                 pendingCharacterId = null;
             });
 
-            // ---------- Чат ----------
+            // ----- Чат (без изменений) -----
             function addMessageToUI(container, text, sender, time, avatarUrl) {
                 if (sender === 'user') {
                     const div = document.createElement('div');
@@ -618,7 +662,7 @@
                 backBtn.addEventListener('click', () => renderFeed());
             }
 
-            // ---------- Портал ----------
+            // ----- Портал -----
             function renderFeed() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -677,7 +721,7 @@
                 renderCharacters();
             }
 
-            // ---------- Список чатов ----------
+            // ----- Список чатов -----
             function renderChats() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -735,76 +779,38 @@
                 });
             }
 
-            // ---------- Конструктор ----------
+            // ----- Конструктор -----
             let currentEditId = null;
-            let currentFormData = {
-                name: '',
-                gender: 'male',
-                age: '',
-                nsfwMode: false,
-                greeting: '',
-                appearance: '',
-                personality: '',
-                scenario: '',
-                memory: '',
-                tags: '',
-                photo: null
-            };
-
-            // Сохраняем данные сразу при изменении любого поля
-            function syncCurrentFormData() {
-                if (currentEditId !== null) {
-                    const idx = characters.findIndex(c => c.id === currentEditId);
-                    if (idx !== -1) {
-                        characters[idx] = { ...characters[idx], ...currentFormData };
-                        saveCharacters();
-                    }
-                }
-            }
 
             function renderCenter(editId = null) {
-                // Если редактируем другого персонажа, сохраняем предыдущего
-                if (currentEditId !== null && currentEditId !== editId) {
-                    syncCurrentFormData();
-                }
                 currentEditId = editId;
-                let char = null;
+                loadDraft();
+
                 if (editId !== null) {
-                    char = characters.find(c => c.id === editId);
-                }
-                if (!char) {
-                    char = {
-                        id: null,
-                        name: '',
-                        gender: 'male',
-                        age: '',
-                        nsfwMode: false,
-                        greeting: '',
-                        appearance: '',
-                        personality: '',
-                        scenario: '',
-                        memory: '',
-                        tags: '',
-                        photo: null
-                    };
+                    const char = characters.find(c => c.id === editId);
+                    if (char) {
+                        draft = { ...draft, ...char };
+                        saveDraft();
+                    }
+                } else if (!draft.id) {
+                    // Если нет ID, создаём новый для черновика
+                    draft.id = null;
+                    draft.name = '';
+                    draft.gender = 'male';
+                    draft.age = '';
+                    draft.nsfwMode = false;
+                    draft.greeting = '';
+                    draft.appearance = '';
+                    draft.personality = '';
+                    draft.scenario = '';
+                    draft.memory = '';
+                    draft.tags = '';
+                    draft.photo = null;
+                    saveDraft();
                 }
 
-                currentFormData = {
-                    name: char.name,
-                    gender: char.gender,
-                    age: char.age,
-                    nsfwMode: char.nsfwMode === true,
-                    greeting: char.greeting,
-                    appearance: char.appearance,
-                    personality: char.personality,
-                    scenario: char.scenario,
-                    memory: char.memory,
-                    tags: char.tags,
-                    photo: char.photo
-                };
-
-                const avatarHtml = char.photo
-                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${char.photo}');"></div>`
+                const avatarHtml = draft.photo
+                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${draft.photo}');"></div>`
                     : `<div class="avatar-circle" id="avatar-circle"><i data-lucide="camera"></i></div>`;
 
                 const html = `
@@ -815,64 +821,64 @@
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ИМЯ ]</div>
-                        <input type="text" class="input-field" id="nameInput" value="${escapeHtml(currentFormData.name)}" maxlength="30">
+                        <input type="text" class="input-field" id="name" value="${escapeHtml(draft.name)}" maxlength="30">
                         <div class="hint">Как будут звать вашего персонажа?</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПОЛ ]</div>
                         <div class="gender-chips" id="genderChips">
-                            <div class="chip ${currentFormData.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
-                            <div class="chip ${currentFormData.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
-                            <div class="chip ${currentFormData.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
+                            <div class="chip ${draft.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
+                            <div class="chip ${draft.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
+                            <div class="chip ${draft.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
                         </div>
                         <div class="hint">Выберите пол для правильных окончаний в речи</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ВОЗРАСТ ]</div>
-                        <input type="number" class="input-field" id="ageInput" value="${escapeHtml(currentFormData.age)}" min="1" max="120" placeholder="лет">
+                        <input type="number" class="input-field" id="age" value="${escapeHtml(draft.age)}" min="1" max="120" placeholder="лет">
                         <div class="hint">(укажите возраст персонажа)</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ РЕЖИМ ]</div>
                         <div class="mode-chips" id="nsfwToggle">
-                            <div class="chip nsfw-chip ${currentFormData.nsfwMode === false ? 'active' : ''}" data-mode="sfw">🔒 SFW</div>
-                            <div class="chip nsfw-chip ${currentFormData.nsfwMode === true ? 'active' : ''}" data-mode="nsfw">🔞 NSFW</div>
+                            <div class="chip nsfw-chip ${draft.nsfwMode === false ? 'active' : ''}" data-mode="sfw">🔒 SFW</div>
+                            <div class="chip nsfw-chip ${draft.nsfwMode === true ? 'active' : ''}" data-mode="nsfw">🔞 NSFW</div>
                         </div>
                         <div class="hint">SFW — Режим с включёнными фильтрами безопасности. Фокус на сюжетных линиях и приключениях.<br>NSFW — Режим без ограничений по типу контента. Предназначен для зрелой аудитории.<br>Система автоматически применяет SFW-фильтры для всех персонажей, чей возраст ниже 18 лет.</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
-                        <input type="text" class="input-field" id="greetingInput" value="${escapeHtml(currentFormData.greeting)}" maxlength="200">
-                        <div class="char-counter" id="greetingCounter">${currentFormData.greeting.length}/200</div>
+                        <input type="text" class="input-field" id="greeting" value="${escapeHtml(draft.greeting)}" maxlength="200">
+                        <div class="char-counter" id="greetingCounter">${draft.greeting.length}/200</div>
                         <div class="hint">Первая фраза, которую скажет персонаж при встрече</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ВНЕШНОСТЬ ]</div>
-                        <textarea class="input-textarea" id="appearanceInput" rows="2" maxlength="500">${escapeHtml(currentFormData.appearance)}</textarea>
-                        <div class="char-counter" id="appearanceCounter">${currentFormData.appearance.length}/500</div>
+                        <textarea class="input-textarea" id="appearance" rows="2" maxlength="500">${escapeHtml(draft.appearance)}</textarea>
+                        <div class="char-counter" id="appearanceCounter">${draft.appearance.length}/500</div>
                         <div class="hint">Волосы, глаза, рост, одежда, особенности внешности</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ХАРАКТЕР / ЛИЧНОСТЬ ]</div>
-                        <textarea class="input-textarea" id="personalityInput" rows="2" maxlength="500">${escapeHtml(currentFormData.personality)}</textarea>
-                        <div class="char-counter" id="personalityCounter">${currentFormData.personality.length}/500</div>
+                        <textarea class="input-textarea" id="personality" rows="2" maxlength="500">${escapeHtml(draft.personality)}</textarea>
+                        <div class="char-counter" id="personalityCounter">${draft.personality.length}/500</div>
                         <div class="hint">Черты характера, привычки, манера речи, ценности</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ СЦЕНАРИЙ ]</div>
-                        <textarea class="input-textarea" id="scenarioInput" rows="2" maxlength="500">${escapeHtml(currentFormData.scenario)}</textarea>
-                        <div class="char-counter" id="scenarioCounter">${currentFormData.scenario.length}/500</div>
+                        <textarea class="input-textarea" id="scenario" rows="2" maxlength="500">${escapeHtml(draft.scenario)}</textarea>
+                        <div class="char-counter" id="scenarioCounter">${draft.scenario.length}/500</div>
                         <div class="hint">Где находится, что происходит, настроение, обстоятельства</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ПАМЯТЬ ]</div>
-                        <textarea class="input-textarea" id="memoryInput" rows="2" maxlength="500">${escapeHtml(currentFormData.memory)}</textarea>
-                        <div class="char-counter" id="memoryCounter">${currentFormData.memory.length}/500</div>
+                        <textarea class="input-textarea" id="memory" rows="2" maxlength="500">${escapeHtml(draft.memory)}</textarea>
+                        <div class="char-counter" id="memoryCounter">${draft.memory.length}/500</div>
                         <div class="hint">Важные факты, ключевые события, отношения, секреты</div>
                     </div>
                     <div class="input-group">
                         <div class="input-label">[ ТЕГИ ]</div>
-                        <input type="text" class="input-field" id="tagsInput" value="${escapeHtml(currentFormData.tags)}" maxlength="100" placeholder="например: киберпанк, магия, детектив">
+                        <input type="text" class="input-field" id="tags" value="${escapeHtml(draft.tags)}" maxlength="100" placeholder="например: киберпанк, магия, детектив">
                         <div class="hint">Ключевые слова для поиска</div>
                     </div>
                     <div class="main-buttons">
@@ -883,90 +889,17 @@
                 contentArea.innerHTML = html;
                 lucide.createIcons();
 
-                const fileInput = document.getElementById('file-input');
-                const avatarCircle = document.getElementById('avatar-circle');
-                const uploadLabel = document.getElementById('upload-label');
-
-                function handleFileSelect() {
-                    if (currentEditId === null) {
-                        const newId = Date.now();
-                        const newChar = {
-                            id: newId,
-                            name: currentFormData.name,
-                            gender: currentFormData.gender,
-                            age: currentFormData.age,
-                            nsfwMode: currentFormData.nsfwMode,
-                            greeting: currentFormData.greeting,
-                            appearance: currentFormData.appearance,
-                            personality: currentFormData.personality,
-                            scenario: currentFormData.scenario,
-                            memory: currentFormData.memory,
-                            tags: currentFormData.tags,
-                            photo: null
-                        };
-                        characters.push(newChar);
-                        saveCharacters();
-                        currentEditId = newId;
-                        renderCenter(newId);
-                        setTimeout(() => {
-                            const newAvatarCircle = document.getElementById('avatar-circle');
-                            const newUploadLabel = document.getElementById('upload-label');
-                            if (newAvatarCircle) newAvatarCircle.click();
-                            else if (newUploadLabel) newUploadLabel.click();
-                        }, 100);
-                    } else {
-                        fileInput.click();
-                    }
-                }
-                avatarCircle?.addEventListener('click', handleFileSelect);
-                uploadLabel?.addEventListener('click', handleFileSelect);
-
-                fileInput.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        if (currentEditId === null) {
-                            const newId = Date.now();
-                            const newChar = {
-                                id: newId,
-                                name: currentFormData.name,
-                                gender: currentFormData.gender,
-                                age: currentFormData.age,
-                                nsfwMode: currentFormData.nsfwMode,
-                                greeting: currentFormData.greeting,
-                                appearance: currentFormData.appearance,
-                                personality: currentFormData.personality,
-                                scenario: currentFormData.scenario,
-                                memory: currentFormData.memory,
-                                tags: currentFormData.tags,
-                                photo: null
-                            };
-                            characters.push(newChar);
-                            saveCharacters();
-                            currentEditId = newId;
-                            renderCenter(newId);
-                            setTimeout(() => {
-                                const newAvatarCircle = document.getElementById('avatar-circle');
-                                if (newAvatarCircle) newAvatarCircle.click();
-                            }, 100);
-                        } else {
-                            openCrop(file, currentEditId);
-                        }
-                    }
-                    fileInput.value = '';
-                };
-
-                const nameInput = document.getElementById('nameInput');
-                const ageInput = document.getElementById('ageInput');
-                const greetingInput = document.getElementById('greetingInput');
-                const appearanceInput = document.getElementById('appearanceInput');
-                const personalityInput = document.getElementById('personalityInput');
-                const scenarioInput = document.getElementById('scenarioInput');
-                const memoryInput = document.getElementById('memoryInput');
-                const tagsInput = document.getElementById('tagsInput');
+                // Сохранение при вводе
+                const nameInput = document.getElementById('name');
+                const ageInput = document.getElementById('age');
+                const greetingInput = document.getElementById('greeting');
+                const appearanceInput = document.getElementById('appearance');
+                const personalityInput = document.getElementById('personality');
+                const scenarioInput = document.getElementById('scenario');
+                const memoryInput = document.getElementById('memory');
+                const tagsInput = document.getElementById('tags');
                 const genderChips = document.querySelectorAll('.gender-chips .chip');
                 const nsfwChips = document.querySelectorAll('.nsfw-chip');
-                const resetBtn = document.getElementById('resetBtn');
-                const activateBtn = document.getElementById('activateBtn');
 
                 function updateCounters() {
                     document.getElementById('greetingCounter').textContent = `${greetingInput.value.length}/200`;
@@ -985,7 +918,8 @@
                             if (chip.dataset.mode === 'sfw') chip.classList.add('active');
                             else chip.classList.remove('active');
                         });
-                        currentFormData.nsfwMode = false;
+                        draft.nsfwMode = false;
+                        saveDraft();
                     } else {
                         nsfwChips.forEach(chip => {
                             chip.style.pointerEvents = 'auto';
@@ -994,26 +928,25 @@
                     }
                 }
 
-                // Сохраняем при любом изменении поля
-                nameInput.addEventListener('input', (e) => { currentFormData.name = e.target.value; syncCurrentFormData(); });
+                nameInput.addEventListener('input', (e) => { draft.name = e.target.value; saveDraft(); });
                 ageInput.addEventListener('input', (e) => {
-                    currentFormData.age = e.target.value;
+                    draft.age = e.target.value;
                     updateNsfwFromAge();
-                    syncCurrentFormData();
+                    saveDraft();
                 });
-                greetingInput.addEventListener('input', (e) => { currentFormData.greeting = e.target.value; updateCounters(); syncCurrentFormData(); });
-                appearanceInput.addEventListener('input', (e) => { currentFormData.appearance = e.target.value; updateCounters(); syncCurrentFormData(); });
-                personalityInput.addEventListener('input', (e) => { currentFormData.personality = e.target.value; updateCounters(); syncCurrentFormData(); });
-                scenarioInput.addEventListener('input', (e) => { currentFormData.scenario = e.target.value; updateCounters(); syncCurrentFormData(); });
-                memoryInput.addEventListener('input', (e) => { currentFormData.memory = e.target.value; updateCounters(); syncCurrentFormData(); });
-                tagsInput.addEventListener('input', (e) => { currentFormData.tags = e.target.value; syncCurrentFormData(); });
+                greetingInput.addEventListener('input', (e) => { draft.greeting = e.target.value; updateCounters(); saveDraft(); });
+                appearanceInput.addEventListener('input', (e) => { draft.appearance = e.target.value; updateCounters(); saveDraft(); });
+                personalityInput.addEventListener('input', (e) => { draft.personality = e.target.value; updateCounters(); saveDraft(); });
+                scenarioInput.addEventListener('input', (e) => { draft.scenario = e.target.value; updateCounters(); saveDraft(); });
+                memoryInput.addEventListener('input', (e) => { draft.memory = e.target.value; updateCounters(); saveDraft(); });
+                tagsInput.addEventListener('input', (e) => { draft.tags = e.target.value; saveDraft(); });
 
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         genderChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
-                        currentFormData.gender = chip.dataset.gender;
-                        syncCurrentFormData();
+                        draft.gender = chip.dataset.gender;
+                        saveDraft();
                     });
                 });
 
@@ -1023,19 +956,79 @@
                         if (!isNaN(age) && age < 18) return;
                         nsfwChips.forEach(c => c.classList.remove('active'));
                         chip.classList.add('active');
-                        currentFormData.nsfwMode = chip.dataset.mode === 'nsfw';
-                        syncCurrentFormData();
+                        draft.nsfwMode = chip.dataset.mode === 'nsfw';
+                        saveDraft();
                     });
                 });
 
                 updateNsfwFromAge();
 
+                // Загрузка фото
+                const fileInput = document.getElementById('file-input');
+                const avatarCircle = document.getElementById('avatar-circle');
+                const uploadLabel = document.getElementById('upload-label');
+
+                function handleFileSelect() {
+                    if (currentEditId === null && draft.id === null) {
+                        // Создаём временный ID для черновика
+                        draft.id = Date.now();
+                        saveDraft();
+                        currentEditId = draft.id;
+                        renderCenter(draft.id);
+                        setTimeout(() => {
+                            const newAvatarCircle = document.getElementById('avatar-circle');
+                            const newUploadLabel = document.getElementById('upload-label');
+                            if (newAvatarCircle) newAvatarCircle.click();
+                            else if (newUploadLabel) newUploadLabel.click();
+                        }, 100);
+                    } else {
+                        fileInput.click();
+                    }
+                }
+                avatarCircle?.addEventListener('click', handleFileSelect);
+                uploadLabel?.addEventListener('click', handleFileSelect);
+
+                fileInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const charId = currentEditId !== null ? currentEditId : (draft.id || Date.now());
+                        if (currentEditId === null && draft.id === null) {
+                            draft.id = charId;
+                            saveDraft();
+                            currentEditId = charId;
+                            renderCenter(charId);
+                        }
+                        openCrop(file, charId);
+                    }
+                    fileInput.value = '';
+                };
+
+                const resetBtn = document.getElementById('resetBtn');
+                const activateBtn = document.getElementById('activateBtn');
+
                 resetBtn.addEventListener('click', () => {
                     if (currentEditId !== null) {
-                        const index = characters.findIndex(c => c.id === currentEditId);
-                        if (index !== -1) characters.splice(index, 1);
+                        const idx = characters.findIndex(c => c.id === currentEditId);
+                        if (idx !== -1) characters.splice(idx, 1);
                         saveCharacters();
                     }
+                    // Очищаем черновик
+                    draft = {
+                        id: null,
+                        name: '',
+                        gender: 'male',
+                        age: '',
+                        nsfwMode: false,
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
+                    saveDraft();
+                    currentEditId = null;
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
                     document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
@@ -1053,31 +1046,47 @@
                         tg.showAlert('Пожалуйста, укажите возраст');
                         return;
                     }
+                    const id = currentEditId !== null ? currentEditId : (draft.id || Date.now());
                     const updatedData = {
-                        id: currentEditId !== null ? currentEditId : Date.now(),
+                        id: id,
                         name: name,
-                        gender: currentFormData.gender,
+                        gender: draft.gender,
                         age: ageVal,
-                        nsfwMode: currentFormData.nsfwMode,
-                        greeting: currentFormData.greeting,
-                        appearance: currentFormData.appearance,
-                        personality: currentFormData.personality,
-                        scenario: currentFormData.scenario,
-                        memory: currentFormData.memory,
-                        tags: currentFormData.tags,
-                        photo: currentFormData.photo
+                        nsfwMode: draft.nsfwMode,
+                        greeting: draft.greeting,
+                        appearance: draft.appearance,
+                        personality: draft.personality,
+                        scenario: draft.scenario,
+                        memory: draft.memory,
+                        tags: draft.tags,
+                        photo: draft.photo
                     };
-                    if (currentEditId === null) {
+                    const idx = characters.findIndex(c => c.id === id);
+                    if (idx === -1) {
                         characters.push(updatedData);
-                        saveCharacters();
-                        currentEditId = updatedData.id;
                     } else {
-                        const index = characters.findIndex(c => c.id === currentEditId);
-                        if (index !== -1) {
-                            characters[index] = { ...characters[index], ...updatedData };
-                            saveCharacters();
-                        }
+                        characters[idx] = { ...characters[idx], ...updatedData };
                     }
+                    saveCharacters();
+                    // Очищаем черновик
+                    draft = {
+                        id: null,
+                        name: '',
+                        gender: 'male',
+                        age: '',
+                        nsfwMode: false,
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
+                    saveDraft();
+                    currentEditId = null;
+
+                    // Отправляем на сервер
                     try {
                         await fetch('/save_character', {
                             method: 'POST',
@@ -1094,7 +1103,7 @@
                 });
             }
 
-            // ---------- Профиль ----------
+            // ----- Профиль -----
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">
@@ -1117,6 +1126,22 @@
                     }
                     characters = [];
                     saveCharacters();
+                    // Очищаем черновик
+                    draft = {
+                        id: null,
+                        name: '',
+                        gender: 'male',
+                        age: '',
+                        nsfwMode: false,
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
+                    saveDraft();
                     tg.showAlert('Все данные очищены!');
                     renderFeed();
                     document.querySelectorAll('.bar-item').forEach(i => i.classList.remove('active'));
@@ -1129,15 +1154,15 @@
                 lucide.createIcons();
             }
 
-            // ---------- Переключение вкладок ----------
+            // ----- Переключение вкладок -----
             const contentArea = document.getElementById('content-area');
             const barItems = document.querySelectorAll('.bar-item');
 
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    // При уходе с центра сохраняем текущие данные
+                    // Сохраняем черновик перед уходом
                     if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
-                        syncCurrentFormData();
+                        saveDraft();
                     }
                     barItems.forEach(i => i.classList.remove('active'));
                     item.classList.add('active');
@@ -1161,6 +1186,8 @@
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
 
+            // Загружаем черновик при старте
+            loadDraft();
             renderFeed();
             barItems[0].classList.add('active');
 

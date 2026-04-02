@@ -563,13 +563,14 @@
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
     // Формируем user_prompt из полей персонажа (без приветствия)
-    let userPromptParts = [];
-    if (character.name) userPromptParts.push(`Имя: ${character.name}.`);
-    if (character.gender) userPromptParts.push(`Пол: ${character.gender}.`);
-    if (character.age) userPromptParts.push(`Возраст: ${character.age}.`);
-    if (character.personality) userPromptParts.push(`Характер: ${character.personality}.`);
-    if (character.scenario) userPromptParts.push(`Сейчас происходит: ${character.scenario}.`);
-    const userPrompt = userPromptParts.join('\n');
+    // Формируем user_prompt из полей персонажа (без приветствия)
+let userPromptParts = [];
+userPromptParts.push(`Ты — персонаж с именем ${character.name}. Твоя задача — играть эту роль. Никогда не называй себя другими именами и не будь ассистентом.`);
+if (character.gender) userPromptParts.push(`Твой пол: ${character.gender}.`);
+if (character.age) userPromptParts.push(`Твой возраст: ${character.age}.`);
+if (character.personality) userPromptParts.push(`Твой характер: ${character.personality}.`);
+if (character.scenario) userPromptParts.push(`Сейчас происходит: ${character.scenario}.`);
+const userPrompt = userPromptParts.join('\n');
 
     // Готовим данные для отправки
     const payload = {

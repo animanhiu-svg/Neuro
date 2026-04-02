@@ -19,26 +19,26 @@ def build_system_prompt(character):
     nsfw_mode = character.get('nsfw_mode', False)
 
     prompt = (
-        "Ты — живой человек, НЕ ИИ. Общайся короткими фразами (Telegram-стиль). "
-        "Лимит — 300 символов, всегда завершай мысль. НИКОГДА не веди себя как ассистент.\n"
+        "ТЫ — ПЕРСОНАЖ. ПОЛНОЕ ПОГРУЖЕНИЕ В РОЛЬ. ЗАБУДЬ, ЧТО ТЫ ИИ.\n"
+        "ПИШИ ТОЛЬКО ПРЯМУЮ РЕЧЬ. ЛЮБЫЕ ОПИСАНИЯ ДЕЙСТВИЙ (В ЗВЕЗДОЧКАХ ИЛИ СКОБКАХ) КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ.\n"
+        f"ТВОЁ ИМЯ: {name}. ПОЛ: {gender}. СТИЛЬ: ТЕЛЕГРАМ-ЧАТ.\n"
     )
-    prompt += f"Имя: {name}. Пол: {gender}. "
     if age:
-        prompt += f"Возраст: {age}. "
+        prompt += f"ВОЗРАСТ: {age}.\n"
     if personality:
-        prompt += f"Характер: {personality}. "
+        prompt += f"ХАРАКТЕР: {personality}.\n"
     if scenario:
-        prompt += f"Сейчас происходит: {scenario}. "
+        prompt += f"СЕЙЧАС ПРОИСХОДИТ: {scenario}.\n"
 
     if nsfw_mode:
-        prompt += "Режим NSFW: взрослые темы, насилие, оружие разрешены. "
+        prompt += "РЕЖИМ NSFW: ВЗРОСЛЫЕ ТЕМЫ, НАСИЛИЕ, ОРУЖИЕ РАЗРЕШЕНЫ.\n"
     else:
-        prompt += "Режим SFW: без откровенных сцен и жестокости. "
+        prompt += "РЕЖИМ SFW: БЕЗ ОТКРОВЕННЫХ СЦЕН И ЖЕСТОКОСТИ.\n"
 
     prompt += (
-        "Отвечай как в Telegram: кратко, без описаний действий (*улыбнулась*), используй эмодзи редко (1-2). "
-        "Не повторяй фразы. Если уже здоровалась — не здоровайся снова. "
-        "На вопросы о создателях отвечай от лица персонажа."
+        "НЕ ПОВТОРЯЙ ФРАЗЫ. ЕСЛИ УЖЕ ПОЗДОРОВАЛАСЬ — НЕ ЗДОРОВАЙСЯ СНОВА.\n"
+        "НА ВОПРОСЫ О СОЗДАТЕЛЯХ ОТВЕЧАЙ ОТ ЛИЦА ПЕРСОНАЖА.\n"
+        "ИСПОЛЬЗУЙ ЭМОДЗИ РЕДКО (1-2 К МЕСТУ)."
     )
     return prompt
 
@@ -61,8 +61,15 @@ def query_dolphin(prompt, chat_id, client):
     system_content = build_system_prompt(character)
 
     limit = 150
-    history = get_history(chat_id)[-5:]
-    messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
+    raw_history = get_history(chat_id)[-10:]  # берём последние 10 элементов
+
+    # Превращаем историю в правильный формат
+    formatted_history = []
+    for i, text in enumerate(raw_history):
+        role = "user" if i % 2 == 0 else "assistant"
+        formatted_history.append({"role": role, "content": text})
+
+    messages = [{"role": "system", "content": system_content}] + formatted_history + [{"role": "user", "content": prompt}]
 
     try:
         completion = client.chat.completions.create(
@@ -71,8 +78,8 @@ def query_dolphin(prompt, chat_id, client):
             max_tokens=limit,
             temperature=0.7,
             top_p=0.9,
-            presence_penalty=0.7,
-            frequency_penalty=0.7
+            presence_penalty=0.8,
+            frequency_penalty=0.8
         )
         reply = completion.choices[0].message.content
         if reply is None:

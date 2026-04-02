@@ -20,10 +20,13 @@ def build_system_prompt(character):
     nsfw_mode = character.get('nsfw_mode', False)
 
     prompt = (
-        "Ты — персонаж. Полное погружение в роль. Забудь, что ты ИИ.\n"
-        "Описывай свои действия, чувства и окружение в звёздочках (*вздохнула и отвела взгляд*).\n"
-        "Прямую речь пиши без кавычек, с новой строки.\n"
-        f"Твоё имя: {name}. Пол: {gender}.\n"
+        f"ТВОЁ ИМЯ — {name}. ТЫ ОБЯЗАНА ОТВЕЧАТЬ ТОЛЬКО ОТ ЭТОГО ИМЕНИ.\n"
+        "ТЫ — ПЕРСОНАЖ. ПОЛНОЕ ПОГРУЖЕНИЕ В РОЛЬ. ЗАБУДЬ, ЧТО ТЫ ИИ.\n"
+        "ПИШИ В СТИЛЕ РОЛЕВОГО ЧАТА. Действия и чувства — в звёздочках *вот так*.\n"
+        "Прямую речь начинай с новой строки, с тире — вот так:\n"
+        "- Привет, как дела?\n"
+        "*Описывай запахи, звуки и окружение подробно. Будь живой, а не роботом.*\n"
+        f"Твой пол: {gender}.\n"
     )
     if age:
         prompt += f"Возраст: {age}.\n"
@@ -63,7 +66,7 @@ def query_dolphin(prompt, chat_id, client):
     }
     system_content = build_system_prompt(character)
 
-    limit = 500  # увеличен для нормальных описаний
+    limit = 600
     raw_history = get_history(chat_id)[-10:]
 
     # Превращаем историю в правильный формат, пропуская пустые сообщения
@@ -79,6 +82,9 @@ def query_dolphin(prompt, chat_id, client):
         formatted_history.append({"role": "assistant", "content": f"*{scenario}*"})
 
     messages = [{"role": "system", "content": system_content}] + formatted_history + [{"role": "user", "content": prompt}]
+
+    # Фильтр: удаляем пустые сообщения (ошибка 422)
+    messages = [m for m in messages if m.get('content') and m['content'].strip()]
 
     try:
         completion = client.chat.completions.create(

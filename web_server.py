@@ -6,9 +6,8 @@ from openai import OpenAI
 import config
 import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
-from logic import contains_forbidden, query_dolphin, query_dolphin_with_character
+from logic import contains_forbidden, query_dolphin
 
-# Отключаем пингер, чтобы не конфликтовать с gunicorn
 # utils.start_pinger()
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
@@ -16,13 +15,11 @@ bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')
 
-# --- Отдача статики ---
 @app.route('/')
 @app.route('/app')
 def serve_app():
     return send_from_directory('mini_app', 'index.html')
 
-# --- Эндпоинт для чата (мини-апп) ---
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
@@ -30,26 +27,16 @@ def chat():
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
     message = data.get('message')
-    character = data.get('character')
-    history = data.get('history', [])
     if not chat_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
-
     try:
-        if character:
-            reply = query_dolphin_with_character(message, chat_id, client, character, history)
-        else:
-            reply = query_dolphin(message, chat_id, client)
+        reply = query_dolphin(message, chat_id, client)
         return jsonify({'reply': reply})
     except Exception as e:
-        print(f"❌ Ошибка в /chat: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
 
-# --- Эндпоинт для сохранения персонажа ---
 @app.route('/save_character', methods=['POST'])
 def save_character():
     data = request.get_json()
@@ -65,7 +52,6 @@ def save_character():
             update_field(chat_id, key, value)
     return jsonify({'status': 'ok'})
 
-# --- Вебхук для бота ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     json_str = request.get_data().decode('UTF-8')
@@ -73,19 +59,6 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
-# --- Ручная установка вебхука (для отладки) ---
-@app.route('/set_webhook')
-def set_webhook():
-    base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
-    webhook_url = f"https://{base_url}/webhook"
-    try:
-        bot.remove_webhook()
-        bot.set_webhook(url=webhook_url)
-        return f"✅ Вебхук установлен: {webhook_url}"
-    except Exception as e:
-        return f"❌ Ошибка: {e}"
-
-# --- Обработчики бота ---
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -134,7 +107,6 @@ def handle_web_app_data(message):
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/'))
 def handle_chat(message):
     if message.chat.id != config.ALLOWED_USER_ID:
-        print(f"⚠️ Доступ запрещён для {message.chat.id}")
         return
     cid = message.chat.id
     text = message.text
@@ -143,19 +115,9 @@ def handle_chat(message):
         return
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-    try:
-        reply = query_dolphin(text, cid, client)
-        if not reply or str(reply).strip() == "":
-            bot.send_message(cid, "⚠️ Нейросеть вернула пустой ответ.")
-        else:
-            bot.send_message(cid, reply)
-    except Exception as e:
-        print(f"💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
-        import traceback
-        traceback.print_exc()
-        bot.send_message(cid, f"❌ Ошибка сервера: {e}")
+    reply = query_dolphin(text, cid, client)
+    bot.send_message(cid, reply)
 
-# --- Установка вебхука при запуске ---
 def setup_webhook():
     base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
     webhook_url = f"https://{base_url}/webhook"

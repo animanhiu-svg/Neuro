@@ -26,19 +26,23 @@ def query_dolphin_with_character(prompt, chat_id, client, character, history=Non
     nsfw_mode = character.get('nsfw_mode', False)
     user_prompt = character.get('user_prompt', '')
 
+    # Системный промпт – общие правила
     system_content = build_core_rules(nsfw_mode) + "\n" + user_prompt
+
+    # Дублируем роль в сообщение пользователя, чтобы модель точно её видела
+    prompt_with_reminder = f"НАПОМИНАНИЕ: Твоя роль — {user_prompt}. Отвечай коротко, как живой человек.\n\n{prompt}"
 
     if history is None:
         history = []
     history = history[-5:] if history else []
-    messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt}]
+    messages = [{"role": "system", "content": system_content}] + history + [{"role": "user", "content": prompt_with_reminder}]
 
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
             max_tokens=150,
-            temperature=1.1,
+            temperature=0.7,  # понизили, чтобы была послушнее
             top_p=0.9,
             presence_penalty=0.7,
             frequency_penalty=0.7

@@ -807,8 +807,8 @@ const userPrompt = userPromptParts.join('\n');
 
                 // Иконка камеры с отдельным классом
                 const avatarHtml = draft.photo
-                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${draft.photo}');"></div>`
-                    : `<div class="avatar-circle" id="avatar-circle"><i data-lucide="camera" class="camera-icon"></i></div>`;
+    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${draft.photo}');"></div>`
+    : `<div class="avatar-circle" id="avatar-circle"></div>`;
 
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>

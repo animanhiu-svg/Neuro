@@ -71,7 +71,7 @@
             width: 100%;
         }
 
-        /* нижняя панель – иконки 24px */
+        /* нижняя панель – овальная */
         .bottom-bar {
             display: flex;
             justify-content: space-around;
@@ -252,7 +252,6 @@
             align-items: center;
             justify-content: center;
         }
-        /* большая иконка камеры */
         .camera-icon {
             width: 80px !important;
             height: 80px !important;
@@ -428,10 +427,8 @@
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
 
-            // Инициализация Lucide
             lucide.createIcons();
 
-            // ---------- Персонажи ----------
             let characters = [];
             try {
                 const saved = localStorage.getItem('characters');
@@ -442,7 +439,6 @@
                 localStorage.setItem('characters', JSON.stringify(characters));
             }
 
-            // ---------- Черновик ----------
             let draft = JSON.parse(localStorage.getItem('character_draft')) || {
                 tempId: Date.now(),
                 name: '',
@@ -462,14 +458,12 @@
                 localStorage.setItem('character_draft', JSON.stringify(draft));
             }
 
-            // Автосохранение при переключении вкладок
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') {
                     syncDraft();
                 }
             });
 
-            // ---------- Кадрирование ----------
             let pendingCharacterId = null;
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
@@ -533,7 +527,6 @@
                 pendingCharacterId = null;
             });
 
-            // ---------- Чат ----------
             function addMessageToUI(container, text, sender, time, avatarUrl) {
                 if (sender === 'user') {
                     const div = document.createElement('div');
@@ -544,7 +537,7 @@
                     const div = document.createElement('div');
                     div.className = 'message bot';
                     div.innerHTML = `
-                        <div class="message-avatar" style="background-image: url('${avatarUrl || "https://i.pravatar.cc/150?img=0"}');"></div>
+                        <div class="message-avatar" style="background-image: url('${avatarUrl || ""}');"></div>
                         <div class="message-content">
                             <div class="message-bubble">${escapeHtml(text)}</div>
                             <div class="message-time">${time}</div>
@@ -556,69 +549,65 @@
             }
 
             async function sendMessageToServer(character, text, messagesContainer, storageKey, onReply) {
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'message bot';
-    typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
-    messagesContainer.appendChild(typingDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message bot';
+                typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
+                messagesContainer.appendChild(typingDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // Формируем user_prompt из полей персонажа (без приветствия)
-    // Формируем user_prompt из полей персонажа (без приветствия)
-let userPromptParts = [];
-userPromptParts.push(`Ты — персонаж с именем ${character.name}. Твоя задача — играть эту роль. Никогда не называй себя другими именами и не будь ассистентом.`);
-if (character.gender) userPromptParts.push(`Твой пол: ${character.gender}.`);
-if (character.age) userPromptParts.push(`Твой возраст: ${character.age}.`);
-if (character.personality) userPromptParts.push(`Твой характер: ${character.personality}.`);
-if (character.scenario) userPromptParts.push(`Сейчас происходит: ${character.scenario}.`);
-const userPrompt = userPromptParts.join('\n');
+                let userPromptParts = [];
+                userPromptParts.push(`Ты — персонаж с именем ${character.name}. Твоя задача — играть эту роль. Никогда не называй себя другими именами и не будь ассистентом.`);
+                if (character.gender) userPromptParts.push(`Твой пол: ${character.gender}.`);
+                if (character.age) userPromptParts.push(`Твой возраст: ${character.age}.`);
+                if (character.personality) userPromptParts.push(`Твой характер: ${character.personality}.`);
+                if (character.scenario) userPromptParts.push(`Сейчас происходит: ${character.scenario}.`);
+                const userPrompt = userPromptParts.join('\n');
 
-    // Готовим данные для отправки
-    const payload = {
-        chat_id: chat_id,
-        message: text,
-        character: {
-            nsfw_mode: character.nsfwMode,
-            user_prompt: userPrompt
-        },
-        history: []
-    };
+                const payload = {
+                    chat_id: chat_id,
+                    message: text,
+                    character: {
+                        nsfw_mode: character.nsfwMode,
+                        user_prompt: userPrompt
+                    },
+                    history: []
+                };
 
-    // Получаем историю из localStorage (последние 5 сообщений)
-    try {
-        const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
-        payload.history = stored.slice(-10).map(msg => ({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.text
-        }));
-    } catch(e) {}
+                try {
+                    const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
+                    payload.history = stored.slice(-10).map(msg => ({
+                        role: msg.sender === 'user' ? 'user' : 'assistant',
+                        content: msg.text
+                    }));
+                } catch(e) {}
 
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-        const response = await fetch('/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        const data = await response.json();
-        const replyText = data.reply || '⚠️ Пустой ответ от сервера';
-        typingDiv.remove();
-        const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-        addMessageToUI(messagesContainer, replyText, 'bot', time, character.photo);
-        let messages = [];
-        try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
-        messages.push({ text: replyText, sender: 'bot', time, avatar: character.photo });
-        localStorage.setItem(storageKey, JSON.stringify(messages));
-        if (onReply) onReply(replyText);
-    } catch (err) {
-        console.error(err);
-        typingDiv.remove();
-        const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
-        addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), character.photo);
-    }
-}
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 60000);
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    const data = await response.json();
+                    const replyText = data.reply || '⚠️ Пустой ответ от сервера';
+                    typingDiv.remove();
+                    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                    addMessageToUI(messagesContainer, replyText, 'bot', time, character.photo);
+                    let messages = [];
+                    try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
+                    messages.push({ text: replyText, sender: 'bot', time, avatar: character.photo });
+                    localStorage.setItem(storageKey, JSON.stringify(messages));
+                    if (onReply) onReply(replyText);
+                } catch (err) {
+                    console.error(err);
+                    typingDiv.remove();
+                    const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
+                    addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), character.photo);
+                }
+            }
 
             function renderChat(character) {
                 const storageKey = `chat_${character.id}`;
@@ -628,7 +617,7 @@ const userPrompt = userPromptParts.join('\n');
                 const html = `
                     <div class="chat-header">
                         <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
-                        <div class="chat-avatar" style="background-image: url('${character.photo || "https://i.pravatar.cc/150?img=0"}');"></div>
+                        <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
                         <div class="chat-name">${escapeHtml(character.name)}</div>
                     </div>
                     <div class="messages" id="chat-messages"></div>
@@ -672,7 +661,6 @@ const userPrompt = userPromptParts.join('\n');
                 backBtn.addEventListener('click', () => renderFeed());
             }
 
-            // ---------- Портал ----------
             function renderFeed() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -711,7 +699,7 @@ const userPrompt = userPromptParts.join('\n');
                     }
                     charactersList.innerHTML = filtered.map(c => `
                         <div class="character-card" data-id="${c.id}">
-                            <div class="card-avatar" style="background-image: url('${c.photo || "https://i.pravatar.cc/150?img=0"}');"></div>
+                            <div class="card-avatar" style="background-image: url('${c.photo || ""}');"></div>
                             <div class="card-info">
                                 <div class="card-name">${escapeHtml(c.name)}</div>
                                 <div class="card-greeting">${escapeHtml(c.greeting || '')}</div>
@@ -731,7 +719,6 @@ const userPrompt = userPromptParts.join('\n');
                 renderCharacters();
             }
 
-            // ---------- Список чатов ----------
             function renderChats() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -759,7 +746,7 @@ const userPrompt = userPromptParts.join('\n');
                     return {
                         id: c.id,
                         name: c.name,
-                        avatar: c.photo || "https://i.pravatar.cc/150?img=0",
+                        avatar: c.photo || "",
                         lastMessage: lastMessage,
                         lastTime: lastTime
                     };
@@ -789,7 +776,6 @@ const userPrompt = userPromptParts.join('\n');
                 });
             }
 
-            // ---------- Конструктор ----------
             let currentEditId = null;
 
             function renderCenter(editId = null) {
@@ -805,10 +791,9 @@ const userPrompt = userPromptParts.join('\n');
                     syncDraft();
                 }
 
-                // Иконка камеры с отдельным классом
                 const avatarHtml = draft.photo
-    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${draft.photo}');"></div>`
-    : `<div class="avatar-circle" id="avatar-circle"></div>`;
+                    ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${draft.photo}');"></div>`
+                    : `<div class="avatar-circle" id="avatar-circle"><i data-lucide="camera" class="camera-icon"></i></div>`;
 
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
@@ -1089,7 +1074,6 @@ const userPrompt = userPromptParts.join('\n');
                 });
             }
 
-            // ---------- Профиль ----------
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">
@@ -1139,7 +1123,6 @@ const userPrompt = userPromptParts.join('\n');
                 lucide.createIcons();
             }
 
-            // ---------- Переключение вкладок ----------
             const contentArea = document.getElementById('content-area');
             const barItems = document.querySelectorAll('.bar-item');
 
@@ -1160,7 +1143,6 @@ const userPrompt = userPromptParts.join('\n');
                 });
             });
 
-            // Сплэш анимация
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             setTimeout(() => progressFill.style.width = '100%', 100);

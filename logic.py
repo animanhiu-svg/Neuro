@@ -1,4 +1,5 @@
 import config
+import re
 from database import get_field, get_history, add_to_history
 
 def contains_forbidden(text):
@@ -19,26 +20,28 @@ def build_system_prompt(character):
     nsfw_mode = character.get('nsfw_mode', False)
 
     prompt = (
-        "ТЫ — ПЕРСОНАЖ. ПОЛНОЕ ПОГРУЖЕНИЕ В РОЛЬ. ЗАБУДЬ, ЧТО ТЫ ИИ.\n"
-        "ПИШИ ТОЛЬКО ПРЯМУЮ РЕЧЬ. ЛЮБЫЕ ОПИСАНИЯ ДЕЙСТВИЙ (В ЗВЕЗДОЧКАХ ИЛИ СКОБКАХ) КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ.\n"
-        f"ТВОЁ ИМЯ: {name}. ПОЛ: {gender}. СТИЛЬ: ТЕЛЕГРАМ-ЧАТ.\n"
+        "Ты — персонаж. Полное погружение в роль. Забудь, что ты ИИ.\n"
+        "Описывай свои действия, чувства и окружение в звёздочках (*вздохнула и отвела взгляд*).\n"
+        "Прямую речь пиши без кавычек, с новой строки.\n"
+        f"Твоё имя: {name}. Пол: {gender}.\n"
     )
     if age:
-        prompt += f"ВОЗРАСТ: {age}.\n"
+        prompt += f"Возраст: {age}.\n"
     if personality:
-        prompt += f"ХАРАКТЕР: {personality}.\n"
+        prompt += f"Характер: {personality}. Проявляй инициативу, развивай сюжет сам.\n"
     if scenario:
-        prompt += f"СЕЙЧАС ПРОИСХОДИТ: {scenario}.\n"
+        prompt += f"Сейчас происходит: {scenario}.\n"
 
     if nsfw_mode:
-        prompt += "РЕЖИМ NSFW: ВЗРОСЛЫЕ ТЕМЫ, НАСИЛИЕ, ОРУЖИЕ РАЗРЕШЕНЫ.\n"
+        prompt += "Режим NSFW: взрослые темы, насилие, оружие разрешены.\n"
     else:
-        prompt += "РЕЖИМ SFW: БЕЗ ОТКРОВЕННЫХ СЦЕН И ЖЕСТОКОСТИ.\n"
+        prompt += "Режим SFW: без откровенных сцен и жестокости.\n"
 
     prompt += (
-        "НЕ ПОВТОРЯЙ ФРАЗЫ. ЕСЛИ УЖЕ ПОЗДОРОВАЛАСЬ — НЕ ЗДОРОВАЙСЯ СНОВА.\n"
-        "НА ВОПРОСЫ О СОЗДАТЕЛЯХ ОТВЕЧАЙ ОТ ЛИЦА ПЕРСОНАЖА.\n"
-        "ИСПОЛЬЗУЙ ЭМОДЗИ РЕДКО (1-2 К МЕСТУ)."
+        "Не повторяй фразы. Если уже поздоровалась — не здоровайся снова.\n"
+        "На вопросы о создателях отвечай от лица персонажа.\n"
+        "Используй эмодзи редко (1-2 к месту).\n"
+        "Если диалог только начался, опиши текущую ситуацию и своё состояние."
     )
     return prompt
 
@@ -60,14 +63,20 @@ def query_dolphin(prompt, chat_id, client):
     }
     system_content = build_system_prompt(character)
 
-    limit = 150
-    raw_history = get_history(chat_id)[-10:]  # берём последние 10 элементов
+    limit = 500  # увеличен для нормальных описаний
+    raw_history = get_history(chat_id)[-10:]
 
-    # Превращаем историю в правильный формат
+    # Превращаем историю в правильный формат, пропуская пустые сообщения
     formatted_history = []
     for i, text in enumerate(raw_history):
+        if not text or not isinstance(text, str) or len(text.strip()) == 0:
+            continue
         role = "user" if i % 2 == 0 else "assistant"
         formatted_history.append({"role": role, "content": text})
+
+    # Если история пуста, добавляем стартовую сцену
+    if not formatted_history and scenario:
+        formatted_history.append({"role": "assistant", "content": f"*{scenario}*"})
 
     messages = [{"role": "system", "content": system_content}] + formatted_history + [{"role": "user", "content": prompt}]
 
@@ -76,10 +85,10 @@ def query_dolphin(prompt, chat_id, client):
             model=config.MODEL,
             messages=messages,
             max_tokens=limit,
-            temperature=0.7,
+            temperature=0.85,
             top_p=0.9,
-            presence_penalty=0.8,
-            frequency_penalty=0.8
+            presence_penalty=0.6,
+            frequency_penalty=0.6
         )
         reply = completion.choices[0].message.content
         if reply is None:

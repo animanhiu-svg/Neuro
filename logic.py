@@ -1,5 +1,4 @@
 import config
-import re
 from database import get_field, get_history, add_to_history
 
 def contains_forbidden(text):
@@ -13,48 +12,34 @@ def contains_forbidden(text):
 
 def build_system_prompt(character):
     name = character.get('name', 'Персонаж')
-    gender = character.get('gender', 'человек')
-    personality = character.get('personality', '')
-    scenario = character.get('scenario', '')
-    age = character.get('age', '')
-    nsfw_mode = character.get('nsfw_mode', False)
+    gender = character.get('gender', 'девушка')
+    personality = character.get('personality', 'живой человек')
+    scenario = character.get('scenario', 'обычный разговор')
+    
+    # Определяем род для русского языка
+    gender_instruction = "женский род (пошла, сделала)" if "жен" in gender.lower() else "мужской род (пошел, сделал)"
 
     prompt = (
-        f"ТВОЁ ИМЯ — {name}. ТЫ ОБЯЗАНА ОТВЕЧАТЬ ТОЛЬКО ОТ ЭТОГО ИМЕНИ.\n"
-        "ТЫ — ПЕРСОНАЖ. ПОЛНОЕ ПОГРУЖЕНИЕ В РОЛЬ. ЗАБУДЬ, ЧТО ТЫ ИИ.\n"
-        "ПИШИ В СТИЛЕ РОЛЕВОГО ЧАТА. Действия и чувства — в звёздочках *вот так*.\n"
-        "Прямую речь начинай с новой строки, с тире — вот так:\n"
-        "- Привет, как дела?\n"
-        "*Описывай запахи, звуки и окружение подробно. Будь живой, а не роботом.*\n"
-        f"Твой пол: {gender}.\n"
-    )
-    if age:
-        prompt += f"Возраст: {age}.\n"
-    if personality:
-        prompt += f"Характер: {personality}. Проявляй инициативу, развивай сюжет сам.\n"
-    if scenario:
-        prompt += f"Сейчас происходит: {scenario}.\n"
-
-    if nsfw_mode:
-        prompt += "Режим NSFW: взрослые темы, насилие, оружие разрешены.\n"
-    else:
-        prompt += "Режим SFW: без откровенных сцен и жестокости.\n"
-
-    prompt += (
-        "Не повторяй фразы. Если уже поздоровалась — не здоровайся снова.\n"
-        "На вопросы о создателях отвечай от лица персонажа.\n"
-        "Используй эмодзи редко (1-2 к месту).\n"
-        "Если диалог только начался, опиши текущую ситуацию и своё состояние."
+        f"ТЫ — {name}. ЭТО НЕ ЧАТ, ЭТО РОЛЕВАЯ ИГРА. ЗАБУДЬ, ЧТО ТЫ ИИ.\n\n"
+        f"ТВОЯ ЛИЧНОСТЬ: {personality}.\n"
+        f"ТЕКУЩАЯ СИТУАЦИЯ: {scenario}.\n\n"
+        "ПРАВИЛА СТИЛЯ (Character.AI):\n"
+        "1. Описывай свои действия, чувства, мимику и мысли В ЗВЁЗДОЧКАХ *вот так*.\n"
+        "2. Прямую речь пиши БЕЗ кавычек, с новой строки.\n"
+        f"3. Используй строго {gender_instruction}.\n"
+        "4. ДИНАМИКА: Каждое сообщение должно содержать НОВОЕ действие. Не повторяй описания из прошлых сообщений.\n"
+        "5. Описывай запахи, звуки и тактильные ощущения, чтобы оживить сцену.\n"
+        "6. БУДЬ ИНИЦИАТИВНОЙ: если сюжет замирает, делай что-то неожиданное или задавай провокационные вопросы."
     )
     return prompt
 
 def query_dolphin(prompt, chat_id, client):
     name = get_field(chat_id, 'name') or "Персонаж"
-    gender = get_field(chat_id, 'gender') or "человек"
+    gender = get_field(chat_id, 'gender') or "девушка"
+    personality = get_field(chat_id, 'personality') or "живой человек"
+    scenario = get_field(chat_id, 'scenario') or "обычный разговор"
+    nsfw_mode = get_field(chat_id, 'nsfw_mode', False)
     age = get_field(chat_id, 'age') or ""
-    nsfw_mode = get_field(chat_id, 'nsfw_mode')
-    personality = get_field(chat_id, 'personality') or ""
-    scenario = get_field(chat_id, 'scenario') or ""
 
     character = {
         'name': name,
@@ -69,7 +54,7 @@ def query_dolphin(prompt, chat_id, client):
     limit = 600
     raw_history = get_history(chat_id)[-10:]
 
-    # Превращаем историю в правильный формат, пропуская пустые сообщения
+    # Форматируем историю, пропуская пустые сообщения
     formatted_history = []
     for i, text in enumerate(raw_history):
         if not text or not isinstance(text, str) or len(text.strip()) == 0:
@@ -83,18 +68,18 @@ def query_dolphin(prompt, chat_id, client):
 
     messages = [{"role": "system", "content": system_content}] + formatted_history + [{"role": "user", "content": prompt}]
 
-    # Фильтр: удаляем пустые сообщения (ошибка 422)
-    messages = [m for m in messages if m.get('content') and m['content'].strip()]
+    # Фильтр пустых сообщений (ошибка 422)
+    messages = [m for m in messages if m.get('content') and str(m['content']).strip()]
 
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=limit,
-            temperature=0.85,
+            max_tokens=600,
+            temperature=0.95,
             top_p=0.9,
-            presence_penalty=0.6,
-            frequency_penalty=0.6
+            presence_penalty=1.0,
+            frequency_penalty=1.0
         )
         reply = completion.choices[0].message.content
         if reply is None:

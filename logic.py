@@ -12,46 +12,28 @@ def contains_forbidden(text):
 
 def build_system_prompt(character):
     name = character.get('name', 'Персонаж')
-    gender = character.get('gender', 'девушка')
-    personality = character.get('personality', 'живой человек')
-    scenario = character.get('scenario', 'обычный разговор')
+    personality = character.get('personality', 'обычный человек')
     
-    # Определяем род для русского языка
-    gender_instruction = "женский род (пошла, сделала)" if "жен" in gender.lower() else "мужской род (пошел, сделал)"
-
     prompt = (
-        f"ТЫ — {name}. ЭТО НЕ ЧАТ, ЭТО РОЛЕВАЯ ИГРА. ЗАБУДЬ, ЧТО ТЫ ИИ.\n\n"
-        f"ТВОЯ ЛИЧНОСТЬ: {personality}.\n"
-        f"ТЕКУЩАЯ СИТУАЦИЯ: {scenario}.\n\n"
-        "ПРАВИЛА СТИЛЯ (Character.AI):\n"
-        "1. Описывай свои действия, чувства, мимику и мысли В ЗВЁЗДОЧКАХ *вот так*.\n"
-        "2. Прямую речь пиши БЕЗ кавычек, с новой строки.\n"
-        f"3. Используй строго {gender_instruction}.\n"
-        "4. ДИНАМИКА: Каждое сообщение должно содержать НОВОЕ действие. Не повторяй описания из прошлых сообщений.\n"
-        "5. Описывай запахи, звуки и тактильные ощущения, чтобы оживить сцену.\n"
-        "6. БУДЬ ИНИЦИАТИВНОЙ: если сюжет замирает, делай что-то неожиданное или задавай провокационные вопросы."
+        f"Ты — {name} ({personality}). Это переписка в ТЕЛЕГРАМЕ.\n"
+        "Пиши ЛАКОНИЧНО, живым языком. Никакого пафоса и книжных концовок.\n"
+        "Действия пиши кратко в *звёздочках*."
     )
     return prompt
 
 def query_dolphin(prompt, chat_id, client):
     name = get_field(chat_id, 'name') or "Персонаж"
-    gender = get_field(chat_id, 'gender') or "девушка"
-    personality = get_field(chat_id, 'personality') or "живой человек"
-    scenario = get_field(chat_id, 'scenario') or "обычный разговор"
+    personality = get_field(chat_id, 'personality') or "обычный человек"
     nsfw_mode = get_field(chat_id, 'nsfw_mode', False)
-    age = get_field(chat_id, 'age') or ""
 
     character = {
         'name': name,
-        'gender': gender,
-        'age': age,
-        'nsfw_mode': nsfw_mode,
         'personality': personality,
-        'scenario': scenario
+        'nsfw_mode': nsfw_mode
     }
     system_content = build_system_prompt(character)
 
-    limit = 600
+    limit = 150  # жёсткий лимит – короткие сообщения
     raw_history = get_history(chat_id)[-10:]
 
     # Форматируем историю, пропуская пустые сообщения
@@ -62,24 +44,18 @@ def query_dolphin(prompt, chat_id, client):
         role = "user" if i % 2 == 0 else "assistant"
         formatted_history.append({"role": role, "content": text})
 
-    # Если история пуста, добавляем стартовую сцену
-    if not formatted_history and scenario:
-        formatted_history.append({"role": "assistant", "content": f"*{scenario}*"})
-
     messages = [{"role": "system", "content": system_content}] + formatted_history + [{"role": "user", "content": prompt}]
-
-    # Фильтр пустых сообщений (ошибка 422)
     messages = [m for m in messages if m.get('content') and str(m['content']).strip()]
 
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=600,
-            temperature=0.95,
+            max_tokens=limit,
+            temperature=0.85,
             top_p=0.9,
-            presence_penalty=1.0,
-            frequency_penalty=1.0
+            presence_penalty=0.8,
+            frequency_penalty=0.8
         )
         reply = completion.choices[0].message.content
         if reply is None:

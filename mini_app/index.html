@@ -926,7 +926,6 @@
                     document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
                     tg.HapticFeedback?.impactOccurred('light');
                 });
-                
                 activateBtn.addEventListener('click', async () => {
     const name = nameInput.value.trim();
     if (!name) {
@@ -939,36 +938,9 @@
         return;
     }
     
-    // БЛОКИРУЕМ КНОПКУ
     activateBtn.disabled = true;
-    activateBtn.style.opacity = '0.5';
     activateBtn.textContent = '⏳ СОЗДАНИЕ...';
-    
-    // ТЁМНЫЙ ЭКРАН С ТОЧКАМИ
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.95);
-        z-index: 10000;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 20px;
-    `;
-    overlay.innerHTML = `
-        <div class="typing-dots" style="transform: scale(1.5);">
-            <span></span>
-            <span class="middle"></span>
-            <span></span>
-        </div>
-        <div style="color: white; font-size: 14px; letter-spacing: 2px;">СОЗДАНИЕ ПЕРСОНАЖА...</div>
-    `;
-    document.body.appendChild(overlay);
+    activateBtn.style.opacity = '0.5';
     
     const id = currentEditId !== null ? currentEditId : Date.now();
     const updatedData = {
@@ -1020,11 +992,32 @@
         localStorage.setItem(chatKey, JSON.stringify([]));
     }
     
-    setTimeout(() => {
-        overlay.remove();
-        renderChat(updatedData);
-    }, 800);
+    renderChat(updatedData);
 });
+                activateBtn.addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+        tg.showAlert('Введите имя персонажа');
+        return;
+    }
+    const ageVal = ageInput.value.trim();
+    if (!ageVal) {
+        tg.showAlert('Пожалуйста, укажите возраст');
+        return;
+    }
+    
+    // БЛОКИРУЕМ КНОПКУ
+    activateBtn.disabled = true;
+    activateBtn.style.opacity = '0.5';
+    activateBtn.textContent = '⏳ СОЗДАНИЕ...';
+    
+    // ТЁМНЫЙ ЭКРАН С ТОЧКАМИ
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+
             
             // ==========================================
             // МОДУЛЬ №14: ПРОФИЛЬ И НАСТРОЙКИ

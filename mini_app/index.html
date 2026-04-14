@@ -518,25 +518,38 @@
             // ==========================================
             function addMessageToUI(container, text, sender, time, avatarUrl, showResendBtn = false, resendText = null) {
                 if (sender === 'user') {
-                    const div = document.createElement('div');
-                    div.className = 'message user';
-                    div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
-                    if (showResendBtn && resendText) {
-                        const btn = document.createElement('button');
-                        btn.className = 'resend-btn';
-                        btn.textContent = '↻ Отправить заново';
-                        btn.onclick = async () => {
-                            btn.textContent = '⟳ Отправка...';
-                            btn.disabled = true;
-                            if (window.currentSendMessage) {
-                                await window.currentSendMessage(resendText);
-                                div.remove();
-                            }
-                        };
-                        div.appendChild(btn);
-                    }
-                    container.appendChild(div);
-                } else {
+    const div = document.createElement('div');
+    div.className = 'message user';
+    div.setAttribute('data-msg-id', Date.now());
+    div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
+    
+    if (window.showResendBtn) {
+        const btnsWrapper = document.createElement('div');
+        btnsWrapper.style.display = 'flex';
+        btnsWrapper.style.gap = '8px';
+        btnsWrapper.style.marginTop = '6px';
+        btnsWrapper.style.justifyContent = 'flex-end';
+        btnsWrapper.style.alignItems = 'center';
+        btnsWrapper.innerHTML = `
+            <span class="reverse-decor" style="background: transparent; color: white; font-size: 11px; cursor: default;">⟳ Реверс</span>
+            <button class="resend-btn" style="background: white; border: 1px solid #888; border-radius: 20px; padding: 4px 12px; font-size: 11px; color: #121212; cursor: pointer;">↻ Отправить заново</button>
+        `;
+        div.appendChild(btnsWrapper);
+        
+        // Только кнопка "Отправить заново" работает
+        btnsWrapper.querySelector('.resend-btn').onclick = async () => {
+            btnsWrapper.innerHTML = '<span style="font-size:11px; color:#888;">⟳ Отправка...</span>';
+            await window.currentSendMessage(text);
+            div.remove();
+            window.showResendBtn = false;
+        };
+        
+        window.showResendBtn = false;
+    }
+    
+    container.appendChild(div);
+}
+                else {
                     const div = document.createElement('div');
                     div.className = 'message bot';
                     div.innerHTML = `

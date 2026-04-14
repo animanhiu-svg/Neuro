@@ -821,14 +821,6 @@
                         <div class="hint">(укажите возраст персонажа)</div>
                     </div>
                     <div class="input-group">
-                        <div class="input-label">[ РЕЖИМ ]</div>
-                        <div class="mode-chips" id="nsfwToggle">
-                            <div class="chip nsfw-chip ${draft.nsfwMode === false ? 'active' : ''}" data-mode="sfw">🔒 SFW</div>
-                            <div class="chip nsfw-chip ${draft.nsfwMode === true ? 'active' : ''}" data-mode="nsfw">🔞 NSFW</div>
-                        </div>
-                        <div class="hint">SFW — Режим с включёнными фильтрами безопасности. Фокус на сюжетных линиях и приключениях.<br>NSFW — Режим без ограничений по типу контента. Предназначен для зрелой аудитории.<br>Система автоматически применяет SFW-фильтры для всех персонажей, чей возраст ниже 18 лет.</div>
-                    </div>
-                    <div class="input-group">
                         <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
                         <input type="text" class="input-field" id="greeting" value="${escapeHtml(draft.greeting)}" maxlength="200">
                         <div class="char-counter" id="greetingCounter">${draft.greeting.length}/200</div>

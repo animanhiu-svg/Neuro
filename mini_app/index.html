@@ -1,36 +1,13 @@
-<!-- ========================================== -->
-<!-- МОДУЛЬ №1: ОГЛАВЛЕНИЕ И НАСТРОЙКИ СТРАНИЦЫ  -->
-<!-- ========================================== -->
-<!-- 
-СОДЕРЖАНИЕ:
-1. CSS стили (дизайн)
-2. HTML-разметка (структура)
-3. Подключение библиотек
-4. Telegram WebApp init
-5. Работа с персонажами (CRUD)
-6. Кадрирование фото
-7. Отправка сообщений (чат)
-8. Анимация печати
-9. Обработка ошибок + кнопка ресенд
-10. Портал (список персонажей)
-11. Чаты (список диалогов)
-12. Конструктор персонажа
-13. Профиль и настройки
-14. Игры (заглушка)
-15. Навигация
-16. Сплэш-экран
--->
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroBro · портал</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
-        /* ========================================== */
-        /* МОДУЛЬ №2: CSS СТИЛИ (ВЕСЬ ДИЗАЙН)         */
-        /* ========================================== */
         * {
             margin: 0;
             padding: 0;
@@ -97,7 +74,6 @@
             padding: 8px 0 12px;
             border-radius: 30px 30px 0 0;
             border-top: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
         }
         .bar-item {
             display: flex;
@@ -175,7 +151,6 @@
             display: flex;
             flex-direction: column;
             max-width: 80%;
-            position: relative;
         }
         .message.user { align-self: flex-end; align-items: flex-end; }
         .message.bot {
@@ -193,8 +168,7 @@
         }
         .message.user .message-bubble { background: #2481cc; color: #fff; }
         .message-avatar {
-            width: 32px;
-            height: 32px;
+            width: 32px; height: 32px;
             border-radius: 50%;
             background-size: cover;
             background-position: center;
@@ -214,47 +188,29 @@
         }
         .chat-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 14px; }
         .chat-send { background: transparent; border: none; color: #fff; cursor: pointer; padding: 6px; display: flex; align-items: center; }
-        
-        /* АНИМАЦИЯ ПЕЧАТИ — ТРИ ТОЧКИ (МАЛЕНЬКИЕ) */
-      
-.typing-dots {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    justify-content: center;
-    background: #2a2a2a;
-    padding: 10px 14px;
-    border-radius: 20px;
-}
-.typing-dots span {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #fff;
-    animation: pulse 1.2s ease-in-out infinite;
-}
-.typing-dots span:nth-child(1) { animation-delay: 0s; }
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.4; }
-    50% { transform: scale(1.3); opacity: 1; }
-}
-        
-        /* КНОПКА РЕСЕНДА (ТОЛЬКО ПРИ ОШИБКЕ) */
-        .resend-btn {
-            background: white;
-            border: none;
+        .typing-dots {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            justify-content: center;
+            background: #2a2a2a;
+            padding: 10px 14px;
             border-radius: 20px;
-            padding: 4px 12px;
-            margin-top: 6px;
-            font-size: 11px;
-            color: #121212;
-            cursor: pointer;
-            font-weight: 500;
         }
-        
-        /* КОНСТРУКТОР ПЕРСОНАЖА */
+        .typing-dots span {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #fff;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: 0s; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
         .neuro-header { text-align: center; margin-bottom: 24px; }
         .neuro-header h1 { font-size: 28px; font-weight: 600; color: #fff; }
         .avatar-block { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
@@ -325,8 +281,6 @@
         .btn:active { transform: scale(0.95); }
         .btn-outline { background: transparent; border: 1px solid #fff; color: #fff; }
         .btn-primary { background: #fff; color: #121212; }
-        
-        /* КАДРИРОВАНИЕ ФОТО */
         .crop-modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -355,8 +309,6 @@
         .crop-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
         .crop-btn.primary { background: #fff; color: #000; }
         #file-input { display: none; }
-        
-        /* ДОПОЛНИТЕЛЬНЫЕ СТИЛИ */
         .placeholder-page { text-align: center; padding: 60px 20px; color: #aaa; }
         .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
         .chats-list { display: flex; flex-direction: column; gap: 12px; }
@@ -377,21 +329,34 @@
         .chat-item-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
         .chat-item-last { font-size: 12px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .empty-chats { text-align: center; padding: 40px 20px; color: #aaa; }
+        .scenario-block {
+            background: #1a1a1a;
+            border-left: 3px solid #fff;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            border-radius: 12px;
+        }
+        .resend-btn {
+            background: white;
+            border: none;
+            border-radius: 20px;
+            padding: 4px 12px;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #121212;
+            cursor: pointer;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
     <input type="file" id="file-input" accept="image/*">
-    
-    <!-- ========================================== -->
-    <!-- МОДУЛЬ №3: HTML-РАЗМЕТКА (СТРУКТУРА)       -->
-    <!-- ========================================== -->
     <div id="splash-screen">
         <div class="splash-avatar"><span>🧬</span></div>
         <div class="splash-name">NEURO BRO</div>
         <div class="splash-quote">ТИШИНА В ЧЕРНО-БЕЛОМ</div>
         <div class="progress-container"><div class="progress-fill" id="progress-fill"></div></div>
     </div>
-    
     <div id="main-content">
         <div class="content-area" id="content-area"></div>
         <div class="bottom-bar">
@@ -402,7 +367,6 @@
             <div class="bar-item" data-tab="profile"><i data-lucide="menu"></i><span>Профиль</span></div>
         </div>
     </div>
-    
     <div class="crop-modal" id="crop-modal">
         <div class="crop-container"><img src="" id="crop-image" class="crop-image"></div>
         <div class="crop-controls">
@@ -410,57 +374,51 @@
             <button class="crop-btn primary" id="crop-apply">Готово</button>
         </div>
     </div>
-    
-    <!-- ========================================== -->
-    <!-- МОДУЛЬ №4: ПОДКЛЮЧЕНИЕ БИБЛИОТЕК          -->
-    <!-- ========================================== -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <script>
-        // ==========================================
-        // МОДУЛЬ №5: ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP
-        // ==========================================
         (function() {
             const tg = window.Telegram.WebApp;
             tg.ready(); tg.expand();
-            
+
             const user_id = tg.initDataUnsafe.user?.id;
             const chat_id = (user_id && user_id !== 0) ? user_id : 7015403070;
+
             lucide.createIcons();
-            
-            // ==========================================
-            // МОДУЛЬ №6: РАБОТА С ПЕРСОНАЖАМИ (CRUD)
-            // ==========================================
+
             let characters = [];
             try {
                 const saved = localStorage.getItem('characters');
                 if (saved) characters = JSON.parse(saved);
             } catch(e) {}
-            
+
             function saveCharacters() {
                 localStorage.setItem('characters', JSON.stringify(characters));
             }
-            
+
             let draft = JSON.parse(localStorage.getItem('character_draft')) || {
                 tempId: Date.now(),
-                name: '', gender: 'male', age: '', greeting: '',
-                appearance: '', personality: '', scenario: '', memory: '', tags: '', photo: null
+                name: '',
+                gender: 'male',
+                age: '',
+                greeting: '',
+                appearance: '',
+                personality: '',
+                scenario: '',
+                memory: '',
+                tags: '',
+                photo: null
             };
-            
+
             function syncDraft() {
                 localStorage.setItem('character_draft', JSON.stringify(draft));
             }
-            
+
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'hidden') syncDraft();
+                if (document.visibilityState === 'hidden') {
+                    syncDraft();
+                }
             });
-            
-            // ==========================================
-            // МОДУЛЬ №7: КАДРИРОВАНИЕ ФОТО
-            // ==========================================
+
             let pendingCharacterId = null;
             const cropModal = document.getElementById('crop-modal');
             const cropImage = document.getElementById('crop-image');
@@ -468,7 +426,7 @@
             const cropApply = document.getElementById('crop-apply');
             let cropper = null;
             let pendingFile = null;
-            
+
             function openCrop(file, charId) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -476,23 +434,32 @@
                     cropModal.classList.add('show');
                     if (cropper) cropper.destroy();
                     cropper = new Cropper(cropImage, {
-                        aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1,
-                        cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false,
-                        background: false, modal: false, guides: false, center: false, highlight: false
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 1,
+                        cropBoxMovable: false,
+                        cropBoxResizable: false,
+                        toggleDragModeOnDblclick: false,
+                        background: false,
+                        modal: false,
+                        guides: false,
+                        center: false,
+                        highlight: false
                     });
                     pendingFile = file;
                     pendingCharacterId = charId;
                 };
                 reader.readAsDataURL(file);
             }
-            
+
             cropCancel.addEventListener('click', () => {
                 cropModal.classList.remove('show');
                 if (cropper) cropper.destroy();
                 pendingFile = null;
                 pendingCharacterId = null;
             });
-            
+
             cropApply.addEventListener('click', () => {
                 if (!cropper || !pendingFile || pendingCharacterId === null) return;
                 const canvas = cropper.getCroppedCanvas({ width: 300, height: 300, imageSmoothingQuality: 'high' });
@@ -501,8 +468,10 @@
                 syncDraft();
                 if (pendingCharacterId !== null) {
                     const idx = characters.findIndex(c => c.id === pendingCharacterId);
-                    if (idx !== -1) characters[idx].photo = croppedDataUrl;
-                    saveCharacters();
+                    if (idx !== -1) {
+                        characters[idx].photo = croppedDataUrl;
+                        saveCharacters();
+                    }
                 }
                 cropModal.classList.remove('show');
                 cropper.destroy();
@@ -512,44 +481,14 @@
                 }
                 pendingCharacterId = null;
             });
-            
-            // ==========================================
-            // МОДУЛЬ №8: ОТПРАВКА СООБЩЕНИЙ (ЧАТ)
-            // ==========================================
-            function addMessageToUI(container, text, sender, time, avatarUrl, showResendBtn = false, resendText = null) {
+
+            function addMessageToUI(container, text, sender, time, avatarUrl) {
                 if (sender === 'user') {
-    const div = document.createElement('div');
-    div.className = 'message user';
-    div.setAttribute('data-msg-id', Date.now());
-    div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
-    
-    if (window.showResendBtn) {
-        const btnsWrapper = document.createElement('div');
-        btnsWrapper.style.display = 'flex';
-        btnsWrapper.style.gap = '8px';
-        btnsWrapper.style.marginTop = '6px';
-        btnsWrapper.style.justifyContent = 'flex-end';
-        btnsWrapper.style.alignItems = 'center';
-        btnsWrapper.innerHTML = `
-            <span class="reverse-decor" style="background: transparent; color: white; font-size: 11px; cursor: default;">⟳ Реверс</span>
-            <button class="resend-btn" style="background: white; border: 1px solid #888; border-radius: 20px; padding: 4px 12px; font-size: 11px; color: #121212; cursor: pointer;">↻ Отправить заново</button>
-        `;
-        div.appendChild(btnsWrapper);
-        
-        // Только кнопка "Отправить заново" работает
-        btnsWrapper.querySelector('.resend-btn').onclick = async () => {
-            btnsWrapper.innerHTML = '<span style="font-size:11px; color:#888;">⟳ Отправка...</span>';
-            await window.currentSendMessage(text);
-            div.remove();
-            window.showResendBtn = false;
-        };
-        
-        window.showResendBtn = false;
-    }
-    
-    container.appendChild(div);
-}
-                else {
+                    const div = document.createElement('div');
+                    div.className = 'message user';
+                    div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
+                    container.appendChild(div);
+                } else {
                     const div = document.createElement('div');
                     div.className = 'message bot';
                     div.innerHTML = `
@@ -563,14 +502,14 @@
                 }
                 container.scrollTop = container.scrollHeight;
             }
-            
+
             async function sendMessageToServer(character, text, messagesContainer, storageKey, onReply) {
                 const typingDiv = document.createElement('div');
                 typingDiv.className = 'message bot';
-                typingDiv.innerHTML = '<div class="typing-dots"><span></span><span class="middle"></span><span></span></div>';
+                typingDiv.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
                 messagesContainer.appendChild(typingDiv);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                
+
                 let userPromptParts = [];
                 userPromptParts.push(`Ты — персонаж с именем ${character.name}. Твоя задача — играть эту роль. Никогда не называй себя другими именами и не будь ассистентом.`);
                 if (character.gender) userPromptParts.push(`Твой пол: ${character.gender}.`);
@@ -578,14 +517,17 @@
                 if (character.personality) userPromptParts.push(`Твой характер: ${character.personality}.`);
                 if (character.scenario) userPromptParts.push(`Сейчас происходит: ${character.scenario}.`);
                 const userPrompt = userPromptParts.join('\n');
-                
+
                 const payload = {
                     chat_id: chat_id,
                     message: text,
-                    character: { nsfw_mode: false, user_prompt: userPrompt },
+                    character: {
+                        nsfw_mode: false,
+                        user_prompt: userPrompt
+                    },
                     history: []
                 };
-                
+
                 try {
                     const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
                     payload.history = stored.slice(-10).map(msg => ({
@@ -593,7 +535,7 @@
                         content: msg.text
                     }));
                 } catch(e) {}
-                
+
                 try {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -626,21 +568,27 @@
                     ];
                     const randomError = errorMessages[Math.floor(Math.random() * errorMessages.length)];
                     const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                    addMessageToUI(messagesContainer, randomError, 'bot', time, character.photo, true, text);
+                    addMessageToUI(messagesContainer, randomError, 'bot', time, character.photo);
                 }
             }
-            
+
             function renderChat(character) {
                 const storageKey = `chat_${character.id}`;
                 let messages = [];
                 try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
-                
+
                 const html = `
                     <div class="chat-header">
                         <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
                         <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
                         <div class="chat-name">${escapeHtml(character.name)}</div>
                     </div>
+                    ${character.scenario ? `
+                    <div class="scenario-block">
+                        <div style="font-size: 11px; color: #888; margin-bottom: 4px;">📜 СЦЕНАРИЙ</div>
+                        <div style="font-size: 13px; color: #ddd; font-style: italic;">${escapeHtml(character.scenario)}</div>
+                    </div>
+                    ` : ''}
                     <div class="messages" id="chat-messages"></div>
                     <div class="chat-input-container">
                         <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">
@@ -649,47 +597,39 @@
                 `;
                 contentArea.innerHTML = html;
                 lucide.createIcons();
-                
+
                 const messagesContainer = document.getElementById('chat-messages');
                 const input = document.getElementById('chat-input');
                 const sendBtn = document.getElementById('chat-send');
                 const backBtn = document.getElementById('chat-back');
-                
+
                 messages.forEach(msg => {
                     addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time, msg.avatar || character.photo);
                 });
-                
+
                 function addUserMessage(text) {
                     const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
                     addMessageToUI(messagesContainer, text, 'user', time);
                     messages.push({ text, sender: 'user', time });
                     localStorage.setItem(storageKey, JSON.stringify(messages));
                 }
-                
-                async function handleSend(optionalText = null) {
-                    const text = optionalText !== null ? optionalText : input.value.trim();
+
+                async function handleSend() {
+                    const text = input.value.trim();
                     if (!text) return;
-                    if (optionalText === null) {
-                        addUserMessage(text);
-                        input.value = '';
-                    } else {
-                        addUserMessage(text);
-                    }
+                    addUserMessage(text);
+                    input.value = '';
                     await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
                         messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
                         localStorage.setItem(storageKey, JSON.stringify(messages));
                     });
                 }
-                
-                window.currentSendMessage = handleSend;
-                sendBtn.addEventListener('click', () => handleSend());
+
+                sendBtn.addEventListener('click', handleSend);
                 input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
                 backBtn.addEventListener('click', () => renderFeed());
             }
-            
-            // ==========================================
-            // МОДУЛЬ №11: ПОРТАЛ (СПИСОК ПЕРСОНАЖЕЙ)
-            // ==========================================
+
             function renderFeed() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -715,10 +655,10 @@
                 `;
                 contentArea.innerHTML = html;
                 lucide.createIcons();
-                
+
                 const searchInput = document.getElementById('searchInput');
                 const charactersList = document.getElementById('charactersList');
-                
+
                 function renderCharacters() {
                     const query = searchInput.value.toLowerCase();
                     let filtered = characters.filter(c => c.name.toLowerCase().includes(query));
@@ -743,13 +683,11 @@
                         });
                     });
                 }
+
                 searchInput.addEventListener('input', renderCharacters);
                 renderCharacters();
             }
-            
-            // ==========================================
-            // МОДУЛЬ №12: ЧАТЫ (СПИСОК ДИАЛОГОВ)
-            // ==========================================
+
             function renderChats() {
                 if (characters.length === 0) {
                     contentArea.innerHTML = `
@@ -774,7 +712,13 @@
                             lastTime = last.time;
                         }
                     } catch(e) {}
-                    return { id: c.id, name: c.name, avatar: c.photo || "", lastMessage, lastTime };
+                    return {
+                        id: c.id,
+                        name: c.name,
+                        avatar: c.photo || "",
+                        lastMessage: lastMessage,
+                        lastTime: lastTime
+                    };
                 });
                 const html = `
                     <div class="chats-list">
@@ -795,49 +739,99 @@
                 document.querySelectorAll('.chat-item').forEach(el => {
                     const id = parseInt(el.dataset.id);
                     const character = characters.find(c => c.id === id);
-                    if (character) el.addEventListener('click', () => renderChat(character));
+                    if (character) {
+                        el.addEventListener('click', () => renderChat(character));
+                    }
                 });
             }
-            
-            // ==========================================
-            // МОДУЛЬ №13: КОНСТРУКТОР ПЕРСОНАЖА
-            // ==========================================
+
             let currentEditId = null;
-            
+
             function renderCenter(editId = null) {
                 currentEditId = editId;
                 if (editId !== null) {
                     const char = characters.find(c => c.id === editId);
-                    if (char) { draft = { ...draft, ...char }; syncDraft(); }
+                    if (char) {
+                        draft = { ...draft, ...char };
+                        syncDraft();
+                    }
                 } else if (!draft.tempId) {
                     draft.tempId = Date.now();
                     syncDraft();
                 }
-                
+
                 const avatarHtml = draft.photo
                     ? `<div class="avatar-circle" id="avatar-circle" style="background-image: url('${draft.photo}');"></div>`
                     : `<div class="avatar-circle" id="avatar-circle"><i data-lucide="camera" class="camera-icon"></i></div>`;
-                
+
                 const html = `
                     <div class="neuro-header"><h1>${editId ? 'РЕДАКТИРОВАТЬ ПЕРСОНАЖА' : 'СОЗДАТЬ ПЕРСОНАЖА'}</h1></div>
                     <div class="avatar-block">
                         ${avatarHtml}
                         <div class="avatar-label" id="upload-label">[ ЗАГРУЗИТЬ ФОТО ]</div>
                     </div>
-                    <div class="input-group"><div class="input-label">[ ИМЯ ]</div><input type="text" class="input-field" id="name" value="${escapeHtml(draft.name)}" maxlength="30"><div class="hint">Как будут звать вашего персонажа?</div></div>
-                    <div class="input-group"><div class="input-label">[ ПОЛ ]</div><div class="gender-chips" id="genderChips"><div class="chip ${draft.gender === 'male' ? 'active' : ''}" data-gender="male">М</div><div class="chip ${draft.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div><div class="chip ${draft.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div></div><div class="hint">Выберите пол для правильных окончаний в речи</div></div>
-                    <div class="input-group"><div class="input-label">[ ВОЗРАСТ ]</div><input type="number" class="input-field" id="age" value="${escapeHtml(draft.age)}" min="1" max="120" placeholder="лет"><div class="hint">(укажите возраст персонажа)</div></div>
-                    <div class="input-group"><div class="input-label">[ ПРИВЕТСТВИЕ ]</div><input type="text" class="input-field" id="greeting" value="${escapeHtml(draft.greeting)}" maxlength="200"><div class="char-counter" id="greetingCounter">${draft.greeting.length}/200</div><div class="hint">Первая фраза, которую скажет персонаж при встрече</div></div>
-                    <div class="input-group"><div class="input-label">[ ВНЕШНОСТЬ ]</div><textarea class="input-textarea" id="appearance" rows="2" maxlength="500">${escapeHtml(draft.appearance)}</textarea><div class="char-counter" id="appearanceCounter">${draft.appearance.length}/500</div><div class="hint">Волосы, глаза, рост, одежда, особенности внешности</div></div>
-                    <div class="input-group"><div class="input-label">[ ХАРАКТЕР / ЛИЧНОСТЬ ]</div><textarea class="input-textarea" id="personality" rows="2" maxlength="500">${escapeHtml(draft.personality)}</textarea><div class="char-counter" id="personalityCounter">${draft.personality.length}/500</div><div class="hint">Черты характера, привычки, манера речи, ценности</div></div>
-                    <div class="input-group"><div class="input-label">[ СЦЕНАРИЙ ]</div><textarea class="input-textarea" id="scenario" rows="2" maxlength="500">${escapeHtml(draft.scenario)}</textarea><div class="char-counter" id="scenarioCounter">${draft.scenario.length}/500</div><div class="hint">Где находится, что происходит, настроение, обстоятельства</div></div>
-                    <div class="input-group"><div class="input-label">[ ПАМЯТЬ ]</div><textarea class="input-textarea" id="memory" rows="2" maxlength="500">${escapeHtml(draft.memory)}</textarea><div class="char-counter" id="memoryCounter">${draft.memory.length}/500</div><div class="hint">Важные факты, ключевые события, отношения, секреты</div></div>
-                    <div class="input-group"><div class="input-label">[ ТЕГИ ]</div><input type="text" class="input-field" id="tags" value="${escapeHtml(draft.tags)}" maxlength="100" placeholder="например: киберпанк, магия, детектив"><div class="hint">Ключевые слова для поиска</div></div>
-                    <div class="main-buttons"><button class="btn btn-outline" id="resetBtn">СБРОС</button><button class="btn btn-primary" id="activateBtn">${editId ? 'СОХРАНИТЬ' : 'СОЗДАТЬ'}</button></div>
+                    <div class="input-group">
+                        <div class="input-label">[ ИМЯ ]</div>
+                        <input type="text" class="input-field" id="name" value="${escapeHtml(draft.name)}" maxlength="30">
+                        <div class="hint">Как будут звать вашего персонажа?</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ПОЛ ]</div>
+                        <div class="gender-chips" id="genderChips">
+                            <div class="chip ${draft.gender === 'male' ? 'active' : ''}" data-gender="male">М</div>
+                            <div class="chip ${draft.gender === 'female' ? 'active' : ''}" data-gender="female">Ж</div>
+                            <div class="chip ${draft.gender === 'other' ? 'active' : ''}" data-gender="other">⚥</div>
+                        </div>
+                        <div class="hint">Выберите пол для правильных окончаний в речи</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ВОЗРАСТ ]</div>
+                        <input type="number" class="input-field" id="age" value="${escapeHtml(draft.age)}" min="1" max="120" placeholder="лет">
+                        <div class="hint">(укажите возраст персонажа)</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ПРИВЕТСТВИЕ ]</div>
+                        <input type="text" class="input-field" id="greeting" value="${escapeHtml(draft.greeting)}" maxlength="200">
+                        <div class="char-counter" id="greetingCounter">${draft.greeting.length}/200</div>
+                        <div class="hint">Первая фраза, которую скажет персонаж при встрече</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ВНЕШНОСТЬ ]</div>
+                        <textarea class="input-textarea" id="appearance" rows="2" maxlength="500">${escapeHtml(draft.appearance)}</textarea>
+                        <div class="char-counter" id="appearanceCounter">${draft.appearance.length}/500</div>
+                        <div class="hint">Волосы, глаза, рост, одежда, особенности внешности</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ХАРАКТЕР / ЛИЧНОСТЬ ]</div>
+                        <textarea class="input-textarea" id="personality" rows="2" maxlength="500">${escapeHtml(draft.personality)}</textarea>
+                        <div class="char-counter" id="personalityCounter">${draft.personality.length}/500</div>
+                        <div class="hint">Черты характера, привычки, манера речи, ценности</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ СЦЕНАРИЙ ]</div>
+                        <textarea class="input-textarea" id="scenario" rows="2" maxlength="500">${escapeHtml(draft.scenario)}</textarea>
+                        <div class="char-counter" id="scenarioCounter">${draft.scenario.length}/500</div>
+                        <div class="hint">Где находится, что происходит, настроение, обстоятельства</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ПАМЯТЬ ]</div>
+                        <textarea class="input-textarea" id="memory" rows="2" maxlength="500">${escapeHtml(draft.memory)}</textarea>
+                        <div class="char-counter" id="memoryCounter">${draft.memory.length}/500</div>
+                        <div class="hint">Важные факты, ключевые события, отношения, секреты</div>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-label">[ ТЕГИ ]</div>
+                        <input type="text" class="input-field" id="tags" value="${escapeHtml(draft.tags)}" maxlength="100" placeholder="например: киберпанк, магия, детектив">
+                        <div class="hint">Ключевые слова для поиска</div>
+                    </div>
+                    <div class="main-buttons">
+                        <button class="btn btn-outline" id="resetBtn">СБРОС</button>
+                        <button class="btn btn-primary" id="activateBtn">${editId ? 'СОХРАНИТЬ' : 'СОЗДАТЬ'}</button>
+                    </div>
                 `;
                 contentArea.innerHTML = html;
                 lucide.createIcons();
-                
+
                 const nameInput = document.getElementById('name');
                 const ageInput = document.getElementById('age');
                 const greetingInput = document.getElementById('greeting');
@@ -852,7 +846,7 @@
                 const uploadLabel = document.getElementById('upload-label');
                 const resetBtn = document.getElementById('resetBtn');
                 const activateBtn = document.getElementById('activateBtn');
-                
+
                 function updateCounters() {
                     document.getElementById('greetingCounter').textContent = `${greetingInput.value.length}/200`;
                     document.getElementById('appearanceCounter').textContent = `${appearanceInput.value.length}/500`;
@@ -860,7 +854,7 @@
                     document.getElementById('scenarioCounter').textContent = `${scenarioInput.value.length}/500`;
                     document.getElementById('memoryCounter').textContent = `${memoryInput.value.length}/500`;
                 }
-                
+
                 nameInput.addEventListener('input', (e) => { draft.name = e.target.value; syncDraft(); });
                 ageInput.addEventListener('input', (e) => { draft.age = e.target.value; syncDraft(); });
                 greetingInput.addEventListener('input', (e) => { draft.greeting = e.target.value; updateCounters(); syncDraft(); });
@@ -869,7 +863,7 @@
                 scenarioInput.addEventListener('input', (e) => { draft.scenario = e.target.value; updateCounters(); syncDraft(); });
                 memoryInput.addEventListener('input', (e) => { draft.memory = e.target.value; updateCounters(); syncDraft(); });
                 tagsInput.addEventListener('input', (e) => { draft.tags = e.target.value; syncDraft(); });
-                
+
                 genderChips.forEach(chip => {
                     chip.addEventListener('click', () => {
                         genderChips.forEach(c => c.classList.remove('active'));
@@ -878,7 +872,7 @@
                         syncDraft();
                     });
                 });
-                
+
                 function handleFileSelect() {
                     if (currentEditId === null && !draft.tempId) {
                         draft.tempId = Date.now();
@@ -893,10 +887,10 @@
                         fileInput.click();
                     }
                 }
-                
+
                 avatarCircle?.addEventListener('click', handleFileSelect);
                 uploadLabel?.addEventListener('click', handleFileSelect);
-                
+
                 fileInput.onchange = (e) => {
                     const file = e.target.files[0];
                     if (file) {
@@ -911,14 +905,26 @@
                     }
                     fileInput.value = '';
                 };
-                
+
                 resetBtn.addEventListener('click', () => {
                     if (currentEditId !== null) {
                         const idx = characters.findIndex(c => c.id === currentEditId);
                         if (idx !== -1) characters.splice(idx, 1);
                         saveCharacters();
                     }
-                    draft = { tempId: Date.now(), name: '', gender: 'male', age: '', greeting: '', appearance: '', personality: '', scenario: '', memory: '', tags: '', photo: null };
+                    draft = {
+                        tempId: Date.now(),
+                        name: '',
+                        gender: 'male',
+                        age: '',
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
                     syncDraft();
                     currentEditId = null;
                     renderFeed();
@@ -926,102 +932,77 @@
                     document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
                     tg.HapticFeedback?.impactOccurred('light');
                 });
-                activateBtn.addEventListener('click', async () => {
-    const name = nameInput.value.trim();
-    if (!name) {
-        tg.showAlert('Введите имя персонажа');
-        return;
-    }
-    const ageVal = ageInput.value.trim();
-    if (!ageVal) {
-        tg.showAlert('Пожалуйста, укажите возраст');
-        return;
-    }
-    
-    activateBtn.disabled = true;
-    activateBtn.textContent = '⏳ СОЗДАНИЕ...';
-    activateBtn.style.opacity = '0.5';
-    
-    const id = currentEditId !== null ? currentEditId : Date.now();
-    const updatedData = {
-        id: id,
-        name: name,
-        gender: draft.gender,
-        age: ageVal,
-        greeting: draft.greeting,
-        appearance: draft.appearance,
-        personality: draft.personality,
-        scenario: draft.scenario,
-        memory: draft.memory,
-        tags: draft.tags,
-        photo: draft.photo
-    };
-    
-    const idx = characters.findIndex(c => c.id === id);
-    if (idx === -1) {
-        characters.push(updatedData);
-    } else {
-        characters[idx] = { ...characters[idx], ...updatedData };
-    }
-    saveCharacters();
-    
-    draft = {
-        tempId: Date.now(),
-        name: '',
-        gender: 'male',
-        age: '',
-        greeting: '',
-        appearance: '',
-        personality: '',
-        scenario: '',
-        memory: '',
-        tags: '',
-        photo: null
-    };
-    syncDraft();
-    currentEditId = null;
-    
-    fetch('/save_character', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chat_id, character: updatedData })
-    }).catch(e => console.error(e));
-    
-    const chatKey = `chat_${updatedData.id}`;
-    if (!localStorage.getItem(chatKey)) {
-        localStorage.setItem(chatKey, JSON.stringify([]));
-    }
-    
-    renderChat(updatedData);
-});
-                activateBtn.addEventListener('click', async () => {
-    const name = nameInput.value.trim();
-    if (!name) {
-        tg.showAlert('Введите имя персонажа');
-        return;
-    }
-    const ageVal = ageInput.value.trim();
-    if (!ageVal) {
-        tg.showAlert('Пожалуйста, укажите возраст');
-        return;
-    }
-    
-    // БЛОКИРУЕМ КНОПКУ
-    activateBtn.disabled = true;
-    activateBtn.style.opacity = '0.5';
-    activateBtn.textContent = '⏳ СОЗДАНИЕ...';
-    
-    // ТЁМНЫЙ ЭКРАН С ТОЧКАМИ
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
 
-            
-            // ==========================================
-            // МОДУЛЬ №14: ПРОФИЛЬ И НАСТРОЙКИ
-            // ==========================================
+                activateBtn.addEventListener('click', async () => {
+                    const name = nameInput.value.trim();
+                    if (!name) {
+                        tg.showAlert('Введите имя персонажа');
+                        return;
+                    }
+                    const ageVal = ageInput.value.trim();
+                    if (!ageVal) {
+                        tg.showAlert('Пожалуйста, укажите возраст');
+                        return;
+                    }
+                    
+                    activateBtn.disabled = true;
+                    activateBtn.textContent = '⏳ СОЗДАНИЕ...';
+                    activateBtn.style.opacity = '0.5';
+                    
+                    const id = currentEditId !== null ? currentEditId : Date.now();
+                    const updatedData = {
+                        id: id,
+                        name: name,
+                        gender: draft.gender,
+                        age: ageVal,
+                        greeting: draft.greeting,
+                        appearance: draft.appearance,
+                        personality: draft.personality,
+                        scenario: draft.scenario,
+                        memory: draft.memory,
+                        tags: draft.tags,
+                        photo: draft.photo
+                    };
+                    
+                    const idx = characters.findIndex(c => c.id === id);
+                    if (idx === -1) {
+                        characters.push(updatedData);
+                    } else {
+                        characters[idx] = { ...characters[idx], ...updatedData };
+                    }
+                    saveCharacters();
+                    
+                    draft = {
+                        tempId: Date.now(),
+                        name: '',
+                        gender: 'male',
+                        age: '',
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
+                    syncDraft();
+                    currentEditId = null;
+                    
+                    fetch('/save_character', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: chat_id, character: updatedData })
+                    }).catch(e => console.error(e));
+                    
+                    const chatKey = `chat_${updatedData.id}`;
+                    if (!localStorage.getItem(chatKey)) {
+                        localStorage.setItem(chatKey, JSON.stringify([]));
+                    }
+                    
+                    renderChat(updatedData);
+                });
+            }
+
             function renderProfile() {
                 const html = `
                     <div style="text-align: center; padding: 40px 20px;">
@@ -1038,11 +1019,25 @@
                     const keysToKeep = ['tgWebAppData', 'tgWebAppPlatform', 'tgWebAppThemeParams', 'tgWebAppVersion'];
                     for (let i = localStorage.length - 1; i >= 0; i--) {
                         const key = localStorage.key(i);
-                        if (key && !keysToKeep.includes(key)) localStorage.removeItem(key);
+                        if (key && !keysToKeep.includes(key)) {
+                            localStorage.removeItem(key);
+                        }
                     }
                     characters = [];
                     saveCharacters();
-                    draft = { tempId: Date.now(), name: '', gender: 'male', age: '', greeting: '', appearance: '', personality: '', scenario: '', memory: '', tags: '', photo: null };
+                    draft = {
+                        tempId: Date.now(),
+                        name: '',
+                        gender: 'male',
+                        age: '',
+                        greeting: '',
+                        appearance: '',
+                        personality: '',
+                        scenario: '',
+                        memory: '',
+                        tags: '',
+                        photo: null
+                    };
                     syncDraft();
                     tg.showAlert('Все данные очищены!');
                     renderFeed();
@@ -1050,24 +1045,20 @@
                     document.querySelector('.bar-item[data-tab="feed"]').classList.add('active');
                 });
             }
-            
-            // ==========================================
-            // МОДУЛЬ №15: ИГРЫ (ЗАГЛУШКА)
-            // ==========================================
+
             function renderGames() {
                 contentArea.innerHTML = '<div class="placeholder-page"><i data-lucide="layout-grid" style="width:48px;height:48px;margin-bottom:20px;"></i><br>МИНИ-ИГРЫ<br>скоро здесь появятся активности</div>';
                 lucide.createIcons();
             }
-            
-            // ==========================================
-            // МОДУЛЬ №16: НАВИГАЦИЯ (НИЖНЯЯ ПАНЕЛЬ)
-            // ==========================================
+
             const contentArea = document.getElementById('content-area');
             const barItems = document.querySelectorAll('.bar-item');
-            
+
             barItems.forEach(item => {
                 item.addEventListener('click', () => {
-                    if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') syncDraft();
+                    if (document.querySelector('.bar-item.active')?.dataset.tab === 'center') {
+                        syncDraft();
+                    }
                     barItems.forEach(i => i.classList.remove('active'));
                     item.classList.add('active');
                     const tab = item.dataset.tab;
@@ -1079,10 +1070,7 @@
                     tg.HapticFeedback?.impactOccurred('light');
                 });
             });
-            
-            // ==========================================
-            // МОДУЛЬ №17: СПЛЭШ-ЭКРАН (ЗАГРУЗКА)
-            // ==========================================
+
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
             setTimeout(() => progressFill.style.width = '100%', 100);
@@ -1091,13 +1079,10 @@
                 document.getElementById('main-content').classList.add('visible');
                 tg.HapticFeedback?.impactOccurred('medium');
             }, 3200);
-            
+
             renderFeed();
             barItems[0].classList.add('active');
-            
-            // ==========================================
-            // МОДУЛЬ №18: ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-            // ==========================================
+
             function escapeHtml(str) {
                 if (!str) return '';
                 return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));

@@ -1,3 +1,6 @@
+# ==========================================
+# МОДУЛЬ №1: ИМПОРТЫ
+# ==========================================
 import os
 import json
 import telebot
@@ -8,11 +11,15 @@ import utils
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# utils.start_pinger()
-
+# ==========================================
+# МОДУЛЬ №2: ИНИЦИАЛИЗАЦИЯ КЛИЕНТОВ
+# ==========================================
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
+# ==========================================
+# МОДУЛЬ №3: FLASK-ПРИЛОЖЕНИЕ (ДЛЯ MINI APP)
+# ==========================================
 app = Flask(__name__, static_folder='mini_app')
 
 @app.route('/')
@@ -59,6 +66,21 @@ def webhook():
     bot.process_new_updates([update])
     return 'ok', 200
 
+# ==========================================
+# МОДУЛЬ №4: ОТПРАВКА GREETING ПРИ СТАРТЕ
+# ==========================================
+def send_greeting_if_needed(chat_id):
+    """Отправляет приветствие персонажа при первом входе в чат"""
+    history = get_history(chat_id)
+    if len(history) == 0:
+        greeting = get_field(chat_id, 'greeting')
+        if greeting:
+            bot.send_message(chat_id, greeting)
+            add_to_history(chat_id, None, greeting)
+
+# ==========================================
+# МОДУЛЬ №5: ОБРАБОТЧИКИ TELEGRAM БОТА
+# ==========================================
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -110,6 +132,10 @@ def handle_chat(message):
         return
     cid = message.chat.id
     text = message.text
+    
+    # 👇 ОТПРАВЛЯЕМ GREETING ЕСЛИ НУЖНО
+    send_greeting_if_needed(cid)
+    
     if contains_forbidden(text):
         bot.reply_to(message, "⛔ Запрещённая тема.")
         return
@@ -118,6 +144,9 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
+# ==========================================
+# МОДУЛЬ №6: НАСТРОЙКА ВЕБХУКА
+# ==========================================
 def setup_webhook():
     base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
     webhook_url = f"https://{base_url}/webhook"
@@ -130,6 +159,9 @@ def setup_webhook():
 
 setup_webhook()
 
+# ==========================================
+# МОДУЛЬ №7: ЗАПУСК СЕРВЕРА
+# ==========================================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)

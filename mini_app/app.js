@@ -104,12 +104,31 @@
         pendingCharacterId = null;
     });
 
-    function addMessageToUI(container, text, sender, time, avatarUrl) {
+    function addMessageToUI(container, text, sender, time, avatarUrl, isResend = false) {
         if (sender === 'user') {
             const div = document.createElement('div');
             div.className = 'message user';
-            div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
+            const msgId = Date.now() + Math.random();
+            div.setAttribute('data-msg-id', msgId);
+            div.innerHTML = `
+                <div class="message-bubble">${escapeHtml(text)}</div>
+                <div class="message-time">${time}</div>
+                <button class="resend-btn" data-msg-text="${escapeHtml(text)}" style="background: white; border: none; border-radius: 20px; padding: 4px 12px; margin-top: 4px; font-size: 11px; color: #121212; cursor: pointer; font-weight: 500;">↻ Отправить заново</button>
+            `;
             container.appendChild(div);
+            
+            const resendBtn = div.querySelector('.resend-btn');
+            resendBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const originalText = resendBtn.getAttribute('data-msg-text');
+                resendBtn.textContent = '⟳ Отправка...';
+                resendBtn.disabled = true;
+                
+                if (window.currentSendMessage) {
+                    await window.currentSendMessage(originalText);
+                    div.remove();
+                }
+            });
         } else {
             const div = document.createElement('div');
             div.className = 'message bot';
@@ -128,7 +147,7 @@
     async function sendMessageToServer(character, text, messagesContainer, storageKey, onReply) {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'message bot';
-        typingDiv.innerHTML = '<div class="typing-indicator">✎ печатает...</div>';
+        typingDiv.innerHTML = '<div class="typing-dots"><span></span><span class="middle"></span><span></span></div>';
         messagesContainer.appendChild(typingDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -169,7 +188,7 @@
             });
             clearTimeout(timeoutId);
             const data = await response.json();
-            const replyText = data.reply || '⚠️ Пустой ответ от сервера';
+            const replyText = data.reply || '🌫️ Тишина...';
             typingDiv.remove();
             const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
             addMessageToUI(messagesContainer, replyText, 'bot', time, character.photo);
@@ -181,8 +200,15 @@
         } catch (err) {
             console.error(err);
             typingDiv.remove();
-            const errorText = err.name === 'AbortError' ? '⚠️ Сервер не отвечает (таймаут)' : '⚠️ Ошибка соединения с сервером';
-            addMessageToUI(messagesContainer, errorText, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), character.photo);
+            const errorMessages = [
+                '🌫️ Тишина... персонаж задумался',
+                '📡 Сигнал потерян... попробуй ещё раз',
+                '🌀 Магия связи дала сбой',
+                '🔮 Ничего не пришло из пустоты',
+                '⏳ Кажется, персонаж завис в размышлениях'
+            ];
+            const randomError = errorMessages[Math.floor(Math.random() * errorMessages.length)];
+            addMessageToUI(messagesContainer, randomError, 'bot', new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), character.photo);
         }
     }
 
@@ -222,20 +248,34 @@
             localStorage.setItem(storageKey, JSON.stringify(messages));
         }
 
-        async function handleSend() {
-            const text = input.value.trim();
+        async function handleSend(optionalText = null) {
+            const text = optionalText !== null ? optionalText : input.value.trim();
             if (!text) return;
-            addUserMessage(text);
-            input.value = '';
+            
+            if (optionalText === null) {
+                addUserMessage(text);
+                input.value = '';
+            } else {
+                addUserMessage(text);
+            }
+            
             await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
                 messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
                 localStorage.setItem(storageKey, JSON.stringify(messages));
             });
         }
 
-        sendBtn.addEventListener('click', handleSend);
+        window.currentSendMessage = handleSend;
+        window.currentCharacter = character;
+        window.currentStorageKey = storageKey;
+        window.currentMessagesContainer = messagesContainer;
+
+        sendBtn.addEventListener('click', () => handleSend());
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
-        backBtn.addEventListener('click', () => renderFeed());
+        backBtn.addEventListener('click', () => {
+            window.currentSendMessage = null;
+            renderFeed();
+        });
     }
 
     function renderFeed() {

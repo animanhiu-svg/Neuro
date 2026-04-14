@@ -113,7 +113,7 @@
             div.innerHTML = `
                 <div class="message-bubble">${escapeHtml(text)}</div>
                 <div class="message-time">${time}</div>
-                <button class="resend-btn" data-msg-text="${escapeHtml(text)}" style="background: white; border: none; border-radius: 20px; padding: 4px 12px; margin-top: 4px; font-size: 11px; color: #121212; cursor: pointer; font-weight: 500;">↻ Отправить заново</button>
+                <button class="resend-btn" data-msg-text="${escapeHtml(text)}">↻ Отправить заново</button>
             `;
             container.appendChild(div);
             

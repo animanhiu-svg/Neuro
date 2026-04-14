@@ -934,74 +934,115 @@
                 });
 
                 activateBtn.addEventListener('click', async () => {
-                    const name = nameInput.value.trim();
-                    if (!name) {
-                        tg.showAlert('Введите имя персонажа');
-                        return;
-                    }
-                    const ageVal = ageInput.value.trim();
-                    if (!ageVal) {
-                        tg.showAlert('Пожалуйста, укажите возраст');
-                        return;
-                    }
-                    
-                    activateBtn.disabled = true;
-                    activateBtn.textContent = '⏳ СОЗДАНИЕ...';
-                    activateBtn.style.opacity = '0.5';
-                    
-                    const id = currentEditId !== null ? currentEditId : Date.now();
-                    const updatedData = {
-                        id: id,
-                        name: name,
-                        gender: draft.gender,
-                        age: ageVal,
-                        greeting: draft.greeting,
-                        appearance: draft.appearance,
-                        personality: draft.personality,
-                        scenario: draft.scenario,
-                        memory: draft.memory,
-                        tags: draft.tags,
-                        photo: draft.photo
-                    };
-                    
-                    const idx = characters.findIndex(c => c.id === id);
-                    if (idx === -1) {
-                        characters.push(updatedData);
-                    } else {
-                        characters[idx] = { ...characters[idx], ...updatedData };
-                    }
-                    saveCharacters();
-                    
-                    draft = {
-                        tempId: Date.now(),
-                        name: '',
-                        gender: 'male',
-                        age: '',
-                        greeting: '',
-                        appearance: '',
-                        personality: '',
-                        scenario: '',
-                        memory: '',
-                        tags: '',
-                        photo: null
-                    };
-                    syncDraft();
-                    currentEditId = null;
-                    
-                    fetch('/save_character', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: chat_id, character: updatedData })
-                    }).catch(e => console.error(e));
-                    
-                    const chatKey = `chat_${updatedData.id}`;
-                    if (!localStorage.getItem(chatKey)) {
-                        localStorage.setItem(chatKey, JSON.stringify([]));
-                    }
-                    
-                    renderChat(updatedData);
-                });
-            }
+    const name = nameInput.value.trim();
+    if (!name) {
+        tg.showAlert('Введите имя персонажа');
+        return;
+    }
+    const ageVal = ageInput.value.trim();
+    if (!ageVal) {
+        tg.showAlert('Пожалуйста, укажите возраст');
+        return;
+    }
+    
+    // ==========================================
+    // ТЁМНЫЙ ЭКРАН С ТОЧКАМИ
+    // ==========================================
+    activateBtn.disabled = true;
+    activateBtn.style.opacity = '0.5';
+    
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+    `;
+    overlay.innerHTML = `
+        <div style="display: flex; gap: 12px;">
+            <span style="width: 12px; height: 12px; background: white; border-radius: 50%; animation: bounce 1.4s ease-in-out infinite 0s;"></span>
+            <span style="width: 12px; height: 12px; background: white; border-radius: 50%; animation: bounce 1.4s ease-in-out infinite 0.2s;"></span>
+            <span style="width: 12px; height: 12px; background: white; border-radius: 50%; animation: bounce 1.4s ease-in-out infinite 0.4s;"></span>
+        </div>
+        <div style="color: white; font-size: 14px; letter-spacing: 2px;">СОЗДАНИЕ ПЕРСОНАЖА...</div>
+    `;
+    document.body.appendChild(overlay);
+    
+    // Добавляем анимацию прямо здесь
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes bounce {
+            0%, 60%, 100% { transform: scale(1); opacity: 0.4; }
+            30% { transform: scale(1.5); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    const id = currentEditId !== null ? currentEditId : Date.now();
+    const updatedData = {
+        id: id,
+        name: name,
+        gender: draft.gender,
+        age: ageVal,
+        greeting: draft.greeting,
+        appearance: draft.appearance,
+        personality: draft.personality,
+        scenario: draft.scenario,
+        memory: draft.memory,
+        tags: draft.tags,
+        photo: draft.photo
+    };
+    
+    const idx = characters.findIndex(c => c.id === id);
+    if (idx === -1) {
+        characters.push(updatedData);
+    } else {
+        characters[idx] = { ...characters[idx], ...updatedData };
+    }
+    saveCharacters();
+    
+    draft = {
+        tempId: Date.now(),
+        name: '',
+        gender: 'male',
+        age: '',
+        greeting: '',
+        appearance: '',
+        personality: '',
+        scenario: '',
+        memory: '',
+        tags: '',
+        photo: null
+    };
+    syncDraft();
+    currentEditId = null;
+    
+    fetch('/save_character', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chat_id, character: updatedData })
+    }).catch(e => console.error(e));
+    
+    const chatKey = `chat_${updatedData.id}`;
+    if (!localStorage.getItem(chatKey)) {
+        localStorage.setItem(chatKey, JSON.stringify([]));
+    }
+    
+    // ЗАДЕРЖКА 1.5 СЕКУНДЫ ДЛЯ ЭФФЕКТА
+    setTimeout(() => {
+        overlay.remove();
+        renderChat(updatedData);
+    }, 1500);
+});
+            }          
 
             function renderProfile() {
                 const html = `

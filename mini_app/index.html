@@ -631,9 +631,6 @@
                 }
             }
 
-            /* ========================================== */
-            /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА С КАРТОЧКОЙ     */
-            /* ========================================== */
                         /* ========================================== */
             /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА                */
             /* ========================================== */
@@ -685,47 +682,6 @@
                     messages.push({ text: character.scenario, sender: 'bot', time, avatar: character.photo });
                     localStorage.setItem(storageKey, JSON.stringify(messages));
                 }
-
-                function addUserMessage(text) {
-                    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                    addMessageToUI(messagesContainer, text, 'user', time);
-                    messages.push({ text, sender: 'user', time });
-                    localStorage.setItem(storageKey, JSON.stringify(messages));
-                }
-
-                async function handleSend() {
-                    const text = input.value.trim();
-                    if (!text) return;
-                    addUserMessage(text);
-                    input.value = '';
-                    await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
-                        messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
-                        localStorage.setItem(storageKey, JSON.stringify(messages));
-                    });
-                }
-
-                sendBtn.addEventListener('click', handleSend);
-                input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
-                backBtn.addEventListener('click', () => renderFeed());
-            }
-
-                    <div class="messages" id="chat-messages"></div>
-                    <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">
-                        <button class="chat-send" id="chat-send"><i data-lucide="send"></i></button>
-                    </div>
-                `;
-                contentArea.innerHTML = html;
-                lucide.createIcons();
-
-                const messagesContainer = document.getElementById('chat-messages');
-                const input = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('chat-send');
-                const backBtn = document.getElementById('chat-back');
-
-                messages.forEach(msg => {
-                    addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time, msg.avatar || character.photo);
-                });
 
                 function addUserMessage(text) {
                     const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });

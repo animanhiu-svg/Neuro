@@ -1,5 +1,5 @@
 # ==========================================
-# МОДУЛЬ №1: ИМПОРТЫ И НАСТРОЙКИ
+# МОДУЛЬ №1: ИМПОРТЫ
 # ==========================================
 import config
 import random
@@ -10,81 +10,81 @@ from database import get_field, get_history, add_to_history
 # ==========================================
 def contains_forbidden(text):
     if not isinstance(text, str):
-        return False, None
+        return False
     text_lower = text.lower()
     for word in config.FORBIDDEN_WORDS:
         if word in text_lower:
-            return True, word
-    return False, None
+            return True
+    return False
 
 # ==========================================
-# МОДУЛЬ №3: ФОРМИРОВАНИЕ SYSTEM PROMPT (С РАЗДЕЛЕНИЕМ РОЛЕЙ)
+# МОДУЛЬ №3: РОЛЕВОЙ ОТВЕТ НА ЗАПРЕЩЁНКУ
+# ==========================================
+def get_forbidden_response(chat_id):
+    """Возвращает ответ в стиле персонажа, без тупого 'запрещено'"""
+    name = get_field(chat_id, 'name') or 'Персонаж'
+    personality = get_field(chat_id, 'personality') or ''
+    
+    # Базовые ролевые ответы
+    responses = [
+        f"{name} (отвёл взгляд) Не хочу об этом говорить...",
+        f"{name} (нахмурился) Странный вопрос... Давай о другом",
+        f"{name} (пожал плечами) Не понял... Ты о чём?",
+        f"{name} (задумался) Ммм... Неинтересно мне это",
+    ]
+    
+    # Если персонаж раздражительный
+    if 'раздражительн' in personality.lower():
+        responses = [
+            f"{name} (огрызнулась) Что за бред? Не беси",
+            f"{name} (зло) Отстань с такими вопросами",
+        ]
+    
+    # Если персонаж грустный
+    elif 'депресс' in personality.lower() or 'грустн' in personality.lower():
+        responses = [
+            f"{name} (тяжело вздохнула) Зачем ты спрашиваешь? Мне и так плохо...",
+            f"{name} (отвернулась) Не хочу это обсуждать",
+        ]
+    
+    return random.choice(responses)
+
+# ==========================================
+# МОДУЛЬ №4: SYSTEM PROMPT
 # ==========================================
 def build_system_prompt(chat_id, is_first_message=False):
-    """Формирует промпт с ЧЁТКИМ разделением: персонаж (она/он) и игрок (я/ты)"""
-    
     name = get_field(chat_id, 'name') or 'Персонаж'
     gender = get_field(chat_id, 'gender') or 'нейтральный'
-    age = get_field(chat_id, 'age') or 'неизвестно'
+    age = get_field(chat_id, 'age') or ''
     greeting = get_field(chat_id, 'greeting') or ''
-    appearance = get_field(chat_id, 'appearance') or 'не описана'
-    personality = get_field(chat_id, 'personality') or 'обычный человек'
-    scenario = get_field(chat_id, 'scenario') or 'обычный разговор'
-    memory = get_field(chat_id, 'memory_cards') or get_field(chat_id, 'memory') or ''
-    tags = get_field(chat_id, 'tags') or ''
+    appearance = get_field(chat_id, 'appearance') or ''
+    personality = get_field(chat_id, 'personality') or ''
+    scenario = get_field(chat_id, 'scenario') or ''
+    memory = get_field(chat_id, 'memory') or ''
     
     if gender in ['male', 'мужской', 'м']:
         pronoun = 'он'
-        role_text = 'парень'
-    elif gender in ['female', 'женский', 'ж']:
-        pronoun = 'она'
-        role_text = 'девушка'
     else:
-        pronoun = 'оно'
-        role_text = 'персонаж'
+        pronoun = 'она'
     
-    # Автоматическая замена "я" и "она/он" в сценарии
-    scenario_clean = scenario
-    scenario_clean = scenario_clean.replace('я ', 'игрок ')
-    scenario_clean = scenario_clean.replace(' я ', ' игрок ')
-    scenario_clean = scenario_clean.replace('меня', 'игрока')
-    scenario_clean = scenario_clean.replace('мной', 'игроком')
-    scenario_clean = scenario_clean.replace('мне', 'игроку')
-    scenario_clean = scenario_clean.replace('она', name)
-    scenario_clean = scenario_clean.replace('он', name)
-    scenario_clean = scenario_clean.replace('её', name)
-    scenario_clean = scenario_clean.replace('его', name)
-    
-    prompt = f"""Ты — {name}. Ты {role_text} ({pronoun}). Тебе {age} лет.
+    prompt = f"""{name}, {pronoun} {age} лет.
 
-ТВОЯ РОЛЬ (ТЫ НЕ ИГРОК):
-Ты НЕ игрок. Ты — {name}. Игрок — это тот, кто с тобой разговаривает.
+Внешность: {appearance}
+Характер: {personality}
+Сценарий: {scenario}
+Память: {memory}
 
-СЦЕНАРИЙ (где {name} — это ты, а "игрок" — твой собеседник):
-{scenario_clean}
+Следуй своему характеру и сценарию. Отвечай от лица {name}.
 
-ТВОИ ДАННЫЕ:
-- Внешность: {appearance}
-- Характер: {personality}
-- Воспоминания: {memory}
-- Теги: {tags}
-
-ПРАВИЛА (ОБЯЗАТЕЛЬНО):
-1. Ты всегда отвечаешь от лица {name}. Никогда не отвечай от лица игрока.
-2. Игрок — это отдельный человек. Не присваивай себе действия игрока.
-3. Если в сценарии написано "{pronoun} сделал что-то" — это ты. Если "игрок сделал" — это собеседник.
-4. Отвечай ТОЛЬКО по-русски, коротко (1-3 предложения).
-5. Никогда не говори "я ИИ" или "как ассистент". Ты живой {role_text}.
-
-{f'ПЕРВОЕ СООБЩЕНИЕ (скажи ЭТО при встрече): "{greeting}"' if is_first_message and greeting else ''}"""
+{f'Приветствие: "{greeting}"' if is_first_message and greeting else ''}"""
     
     return prompt
 
 # ==========================================
-# МОДУЛЬ №4: ОТПРАВКА ЗАПРОСА К MISTRAL
+# МОДУЛЬ №5: ОСНОВНАЯ ФУНКЦИЯ
 # ==========================================
 def query_dolphin(user_message, chat_id, client):
-    # Проверка на запрещёнку
+    # Проверка на запрещёнку → ролевой ответ
     if contains_forbidden(user_message):
         return get_forbidden_response(chat_id)
     
@@ -92,18 +92,8 @@ def query_dolphin(user_message, chat_id, client):
     raw_history = get_history(chat_id)[-20:]
     is_first = len(raw_history) == 0
     
-    # СТРОГОСТЬ РОЛИ: первые 3 сообщения — строго по роли, дальше мягче
-    if len(raw_history) < 3:
-        # Первые сообщения: строго следуем характеру
-        system_prompt = build_system_prompt(chat_id, is_first) + " Строго следуй своему характеру."
-        temperature_val = 0.1
-    else:
-        # Дальше: можно отходить от роли, но не ломать её
-        system_prompt = build_system_prompt(chat_id, is_first)
-        temperature_val = 0.3
-    
     messages = [
-        {"role": "system", "content": system_prompt}
+        {"role": "system", "content": build_system_prompt(chat_id, is_first)}
     ]
     
     for msg in raw_history:
@@ -117,10 +107,10 @@ def query_dolphin(user_message, chat_id, client):
             model=config.MODEL,
             messages=messages,
             max_tokens=limit,
-            temperature=temperature_val,
-            top_p=0.9,
-            frequency_penalty=0.3,
-            presence_penalty=0.1
+            temperature=0.15,
+            top_p=0.95,
+            frequency_penalty=0.2,
+            presence_penalty=0.2
         )
         
         reply = completion.choices[0].message.content
@@ -128,6 +118,7 @@ def query_dolphin(user_message, chat_id, client):
         if not reply:
             return "🤔 *молчит*"
         
+        # Проверка ответа ИИ
         if contains_forbidden(reply):
             return get_forbidden_response(chat_id)
         

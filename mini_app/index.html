@@ -646,34 +646,8 @@
                         <div class="chat-name">${escapeHtml(character.name)}</div>
                     </div>
                     ${character.scenario ? `
-<div style="position: relative; margin-top: 30px; margin-bottom: 20px;">
-    <!-- ДЕКОР (парит над карточкой) -->
-    <div style="position: absolute; top: -30px; left: 0; right: 0; display: flex; justify-content: center; z-index: 10;">
-        <svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 6px rgba(255,255,255,0.3));">
-            <defs>
-                <linearGradient id="penGradOuter" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
-                    <stop offset="25%" stop-color="#ffffff" stop-opacity="0.6"/>
-                    <stop offset="50%" stop-color="#ffffff" stop-opacity="1"/>
-                    <stop offset="75%" stop-color="#ffffff" stop-opacity="0.6"/>
-                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-                </linearGradient>
-            </defs>
-            <!-- Левый завиток -->
-            <path d="M15 20 C15 10, 25 5, 35 12 C42 17, 38 25, 30 25 C24 25, 20 20, 22 15" stroke="url(#penGradOuter)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-            <!-- Правый завиток -->
-            <path d="M105 20 C105 10, 95 5, 85 12 C78 17, 82 25, 90 25 C96 25, 100 20, 98 15" stroke="url(#penGradOuter)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-            <!-- Перо в центре -->
-            <path d="M60 8 L60 32" stroke="url(#penGradOuter)" stroke-width="1.8" stroke-linecap="round"/>
-            <path d="M55 12 L60 8 L65 12" stroke="url(#penGradOuter)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M57 32 L60 28 L63 32" stroke="url(#penGradOuter)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-    </div>
-    
-    <!-- КАРТОЧКА СЦЕНАРИЯ -->
-    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 32px 20px 20px 20px; backdrop-filter: blur(4px);">
-        <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
-    </div>
+<div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px; margin-bottom: 20px;">
+    <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
 </div>
 ` : ''}
 

@@ -18,35 +18,17 @@ def contains_forbidden(text):
     return False
 
 # ==========================================
-# МОДУЛЬ №3: РОЛЕВОЙ ОТВЕТ НА ЗАПРЕЩЁНКУ
+# МОДУЛЬ №3: РОЛЕВЫЕ ОТВЕТЫ НА ЗАПРЕЩЁНКУ
 # ==========================================
 def get_forbidden_response(chat_id):
-    """Возвращает ответ в стиле персонажа, без тупого 'запрещено'"""
     name = get_field(chat_id, 'name') or 'Персонаж'
-    personality = get_field(chat_id, 'personality') or ''
     
-    # Базовые ролевые ответы
     responses = [
         f"{name} (отвёл взгляд) Не хочу об этом говорить...",
-        f"{name} (нахмурился) Странный вопрос... Давай о другом",
+        f"{name} (нахмурился) Странный вопрос...",
         f"{name} (пожал плечами) Не понял... Ты о чём?",
-        f"{name} (задумался) Ммм... Неинтересно мне это",
+        f"{name} (задумался) Ммм... Давай о чём-то другом",
     ]
-    
-    # Если персонаж раздражительный
-    if 'раздражительн' in personality.lower():
-        responses = [
-            f"{name} (огрызнулась) Что за бред? Не беси",
-            f"{name} (зло) Отстань с такими вопросами",
-        ]
-    
-    # Если персонаж грустный
-    elif 'депресс' in personality.lower() or 'грустн' in personality.lower():
-        responses = [
-            f"{name} (тяжело вздохнула) Зачем ты спрашиваешь? Мне и так плохо...",
-            f"{name} (отвернулась) Не хочу это обсуждать",
-        ]
-    
     return random.choice(responses)
 
 # ==========================================
@@ -54,15 +36,29 @@ def get_forbidden_response(chat_id):
 # ==========================================
 def build_system_prompt(chat_id, is_first_message=False):
     name = get_field(chat_id, 'name') or 'Персонаж'
+    gender = get_field(chat_id, 'gender') or 'нейтральный'
     age = get_field(chat_id, 'age') or ''
+    greeting = get_field(chat_id, 'greeting') or ''
+    appearance = get_field(chat_id, 'appearance') or ''
     personality = get_field(chat_id, 'personality') or ''
     scenario = get_field(chat_id, 'scenario') or ''
-    greeting = get_field(chat_id, 'greeting') or ''
+    memory = get_field(chat_id, 'memory') or ''
     
-    prompt = f"Ты — {name}, {age} лет. {personality}. {scenario}."
+    if gender in ['male', 'мужской', 'м']:
+        pronoun = 'он'
+    else:
+        pronoun = 'она'
     
-    if is_first_message and greeting:
-        prompt += f" Начни с: \"{greeting}\""
+    prompt = f"""{name}, {pronoun} {age} лет.
+
+Внешность: {appearance}
+Характер: {personality}
+Сценарий: {scenario}
+Память: {memory}
+
+Следуй своему характеру и сценарию. Отвечай от лица {name}.
+
+{f'Приветствие: "{greeting}"' if is_first_message and greeting else ''}"""
     
     return prompt
 
@@ -70,7 +66,6 @@ def build_system_prompt(chat_id, is_first_message=False):
 # МОДУЛЬ №5: ОСНОВНАЯ ФУНКЦИЯ
 # ==========================================
 def query_dolphin(user_message, chat_id, client):
-    # Проверка на запрещёнку → ролевой ответ
     if contains_forbidden(user_message):
         return get_forbidden_response(chat_id)
     
@@ -104,7 +99,6 @@ def query_dolphin(user_message, chat_id, client):
         if not reply:
             return "🤔 *молчит*"
         
-        # Проверка ответа ИИ
         if contains_forbidden(reply):
             return get_forbidden_response(chat_id)
         

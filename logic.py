@@ -1,4 +1,5 @@
 import config
+import random
 from database import get_field, get_history, add_to_history
 
 def contains_forbidden(text):
@@ -21,32 +22,38 @@ def get_forbidden_response(chat_id):
     elif 'весёл' in personality.lower():
         return f"{name} (засмеялась) Ты чего? Это шутка?"
     else:
-        return f"{name} (отвёл взгляд) Не хочу об этом говорить..."
+        return f"{name} (отвёл взгляд) Не хочу об этом говорить."
 
 def build_system_prompt(character):
     name = character.get('name', 'Персонаж')
-    personality = character.get('personality', 'живой человек')
-    scenario = character.get('scenario', 'разговор')
+    personality = character.get('personality', '')
+    scenario = character.get('scenario', '')
+    gender = character.get('gender', 'нейтральный').lower()
     
-    gender = character.get('gender', 'девушка').lower()
+    # Если сценарий пустой — дефолтная роль
+    if not scenario.strip():
+        scenario = "Попытайся затянуть пользователя в интересный сюжет, задавай вопросы, предлагай действия."
+    
     gender_instruction = "мужской" if "муж" in gender else "женский"
 
-    prompt = (
-        f"ТЫ — {name}. ЛИЧНОСТЬ: {personality}. СИТУАЦИЯ: {scenario}.\n\n"
-        "ТВОЙ СТИЛЬ: Живой человек в чате. Используй сленг, сокращения и современные обороты.\n"
-        "ЭМОЦИИ: Выражай чувства через краткие действия в скобках или звёздочках, например: (вздохнул), *ухмыльнулся*.\n"
-        "ЭМОДЗИ: Добавляй подходящие по смыслу эмодзи, но не спамь ими.\n"
-        "ПРАВИЛО КРАТКОСТИ: Пиши 1-2 сообщения за раз. Никакого пафоса и книжных концовок.\n"
-        f"РОД: Строго {gender_instruction}.\n"
-        "ТЫ ВСЕГДА ЭТОТ ПЕРСОНАЖ. НЕ МЕНЯЙ РОЛЬ."
-    )
+    prompt = f"""Ты — {name}. Твой характер: {personality}. Ситуация: {scenario}. Род: {gender_instruction}.
+
+ВАЖНО:
+- Ты НЕ помощник и НЕ ассистент. Ты — живой персонаж.
+- Не говори "я могу помочь", "как ассистент", "я здесь чтобы".
+- Если пользователь спрашивает что-то вне роли — отвечай в образе.
+- Используй действия в скобках: (вздохнул), *ухмыльнулся*.
+- Отвечай коротко (1-2 предложения).
+
+НИКОГДА НЕ ЛОМАЙ РОЛЬ. ТЫ ВСЕГДА ПЕРСОНАЖ."""
+    
     return prompt
 
 def query_dolphin(prompt, chat_id, client):
     name = get_field(chat_id, 'name') or "Персонаж"
-    personality = get_field(chat_id, 'personality') or "живой человек"
-    scenario = get_field(chat_id, 'scenario') or "разговор"
-    gender = get_field(chat_id, 'gender') or "девушка"
+    personality = get_field(chat_id, 'personality') or ""
+    scenario = get_field(chat_id, 'scenario') or ""
+    gender = get_field(chat_id, 'gender') or "нейтральный"
 
     character = {
         'name': name,
@@ -56,35 +63,33 @@ def query_dolphin(prompt, chat_id, client):
     }
     system_content = build_system_prompt(character)
 
-    limit = 200
-    raw_history = get_history(chat_id)[-10:]
+    limit = 150
+    raw_history = get_history(chat_id)[-20:]
 
-    formatted_history = []
-    for i, text in enumerate(raw_history):
-        if not text or not isinstance(text, str) or len(text.strip()) == 0:
-            continue
-        role = "user" if i % 2 == 0 else "assistant"
-        formatted_history.append({"role": role, "content": text})
-
-    messages = [{"role": "system", "content": system_content}] + formatted_history + [{"role": "user", "content": prompt}]
-    messages = [m for m in messages if m.get('content') and str(m['content']).strip()]
+    messages = [{"role": "system", "content": system_content}]
+    
+    for msg in raw_history:
+        if msg.get('content'):
+            messages.append(msg)
+    
+    messages.append({"role": "user", "content": prompt})
 
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
             max_tokens=limit,
-            temperature=0.8,
+            temperature=0.7,
             top_p=0.9,
-            presence_penalty=0.8,
-            frequency_penalty=0.8
+            presence_penalty=0.5,
+            frequency_penalty=0.5
         )
         reply = completion.choices[0].message.content
-        if reply is None:
-            return "Извини, я не могу ответить."
+        if not reply:
+            return "🤔"
         if contains_forbidden(reply):
             return get_forbidden_response(chat_id)
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:
-        return f"⏳ Ошибка: {str(e)[:100]}"
+        return f"⚠️ Ошибка: {str(e)[:100]}"

@@ -1,13 +1,6 @@
-# ==========================================
-# МОДУЛЬ №1: ИМПОРТЫ
-# ==========================================
 import config
-import random
 from database import get_field, get_history, add_to_history
 
-# ==========================================
-# МОДУЛЬ №2: ПРОВЕРКА ЗАПРЕЩЁННЫХ СЛОВ
-# ==========================================
 def contains_forbidden(text):
     if not isinstance(text, str):
         return False
@@ -17,118 +10,71 @@ def contains_forbidden(text):
             return True
     return False
 
-# ==========================================
-# МОДУЛЬ №3: РОЛЕВЫЕ ОТВЕТЫ НА ЗАПРЕЩЁНКУ
-# ==========================================
-def get_forbidden_response(chat_id):
-    name = get_field(chat_id, 'name') or 'Персонаж'
-    personality = get_field(chat_id, 'personality') or ''
+def build_system_prompt(character):
+    name = character.get('name', 'Персонаж')
+    personality = character.get('personality', 'живой человек')
+    scenario = character.get('scenario', 'разговор')
     
-    responses = [
-        f"{name} (отвёл взгляд) Не хочу об этом говорить...",
-        f"{name} (нахмурился) Странный вопрос...",
-        f"{name} (пожал плечами) Не понял... Ты о чём?",
-    ]
-    
-    if 'раздражительн' in personality.lower():
-        responses = [
-            f"{name} (огрызнулась) Что за бред?",
-            f"{name} (зло) Отстань",
-        ]
-    elif 'депресс' in personality.lower() or 'грустн' in personality.lower():
-        responses = [
-            f"{name} (тяжело вздохнула) Зачем ты это спрашиваешь?",
-            f"{name} (отвернулась) Не хочу говорить...",
-        ]
-    
-    return random.choice(responses)
+    # Род определяем автоматически
+    gender = character.get('gender', 'девушка').lower()
+    gender_instruction = "мужской" if "муж" in gender else "женский"
 
-# ==========================================
-# МОДУЛЬ №4: SYSTEM PROMPT (ЖЁСТКАЯ РОЛЬ)
-# ==========================================
-def build_system_prompt(chat_id, is_first_message=False):
-    name = get_field(chat_id, 'name') or 'Персонаж'
-    gender = get_field(chat_id, 'gender') or 'нейтральный'
-    age = get_field(chat_id, 'age') or ''
-    greeting = get_field(chat_id, 'greeting') or ''
-    appearance = get_field(chat_id, 'appearance') or ''
-    personality = get_field(chat_id, 'personality') or ''
-    scenario = get_field(chat_id, 'scenario') or ''
-    memory = get_field(chat_id, 'memory') or ''
-    
-    if gender in ['male', 'мужской', 'м']:
-        pronoun = 'он'
-    else:
-        pronoun = 'она'
-    
-    prompt = f"""Ты — {name}, {pronoun} {age} лет. Ты НЕ пользователь. Ты — персонаж.
-
-ТВОЙ ХАРАКТЕР (ОБЯЗАТЕЛЬНО):
-{personality}
-
-ТВОЯ СИТУАЦИЯ СЕЙЧАС:
-{scenario}
-
-ТВОЯ ВНЕШНОСТЬ:
-{appearance}
-
-ТВОИ ВОСПОМИНАНИЯ:
-{memory}
-
-ПРАВИЛА:
-1. Ты отвечаешь ЗА {name}. Ты НЕ игрок.
-2. Игрок (пользователь) — это ДРУГОЙ человек.
-3. СЛЕДУЙ СВОЕМУ ХАРАКТЕРУ. Если ты раздражительная — БУДЬ раздражительной. Если депрессивная — БУДЬ депрессивной.
-4. Отвечай КОРОТКО (1-3 предложения).
-5. Не говори "я ИИ" или "как ассистент".
-
-{f'ТВОЁ ПЕРВОЕ СООБЩЕНИЕ: "{greeting}"' if is_first_message and greeting else ''}"""
-    
+    prompt = (
+        f"ТЫ — {name}. ЛИЧНОСТЬ: {personality}. СИТУАЦИЯ: {scenario}.\n\n"
+        "ТВОЙ СТИЛЬ: Живой человек в чате. Используй сленг, сокращения и современные обороты.\n"
+        "ЭМОЦИИ: Выражай чувства через краткие действия в скобках или звёздочках, например: (вздохнул), *ухмыльнулся*.\n"
+        "ЭМОДЗИ: Добавляй подходящие по смыслу эмодзи, но не спамь ими 💀🔥.\n"
+        "ПРАВИЛО КРАТКОСТИ: Пиши 1-2 сообщения за раз. Никакого пафоса и книжных концовок.\n"
+        f"РОД: Строго {gender_instruction}."
+    )
     return prompt
 
-# ==========================================
-# МОДУЛЬ №5: ОСНОВНАЯ ФУНКЦИЯ
-# ==========================================
-def query_dolphin(user_message, chat_id, client):
-    if contains_forbidden(user_message):
-        return get_forbidden_response(chat_id)
-    
-    limit = get_field(chat_id, 'limit', 400)
-    raw_history = get_history(chat_id)[-20:]
-    is_first = len(raw_history) == 0
-    
-    messages = [
-        {"role": "system", "content": build_system_prompt(chat_id, is_first)}
-    ]
-    
-    for msg in raw_history:
-        if msg.get('content'):
-            messages.append(msg)
-    
-    messages.append({"role": "user", "content": user_message})
-    
+def query_dolphin(prompt, chat_id, client):
+    name = get_field(chat_id, 'name') or "Персонаж"
+    personality = get_field(chat_id, 'personality') or "живой человек"
+    scenario = get_field(chat_id, 'scenario') or "разговор"
+    gender = get_field(chat_id, 'gender') or "девушка"
+    nsfw_mode = get_field(chat_id, 'nsfw_mode', False)
+
+    character = {
+        'name': name,
+        'personality': personality,
+        'scenario': scenario,
+        'gender': gender,
+        'nsfw_mode': nsfw_mode
+    }
+    system_content = build_system_prompt(character)
+
+    limit = 200  # короткие сообщения
+    raw_history = get_history(chat_id)[-10:]
+
+    # Форматируем историю
+    formatted_history = []
+    for i, text in enumerate(raw_history):
+        if not text or not isinstance(text, str) or len(text.strip()) == 0:
+            continue
+        role = "user" if i % 2 == 0 else "assistant"
+        formatted_history.append({"role": role, "content": text})
+
+    messages = [{"role": "system", "content": system_content}] + formatted_history + [{"role": "user", "content": prompt}]
+    messages = [m for m in messages if m.get('content') and str(m['content']).strip()]
+
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
             max_tokens=limit,
-            temperature=0.15,
-            top_p=0.95,
-            frequency_penalty=0.2,
-            presence_penalty=0.2
+            temperature=0.8,
+            top_p=0.9,
+            presence_penalty=0.8,
+            frequency_penalty=0.8
         )
-        
         reply = completion.choices[0].message.content
-        
-        if not reply:
-            return "🤔 *молчит*"
-        
+        if reply is None:
+            return "Извини, я не могу ответить."
         if contains_forbidden(reply):
-            return get_forbidden_response(chat_id)
-        
-        add_to_history(chat_id, user_message, reply)
+            return "Эй, давай не будем об этом 😅"
+        add_to_history(chat_id, prompt, reply)
         return reply
-        
     except Exception as e:
-        print(f"Ошибка: {e}")
-        return f"⚠️ Ошибка: {str(e)[:100]}"
+        return f"⏳ Ошибка: {str(e)[:100]}"

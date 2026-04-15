@@ -646,37 +646,11 @@
                         <div class="chat-name">${escapeHtml(character.name)}</div>
                     </div>
                     ${character.scenario ? `
-<div style="position: relative; margin-top: 20px; margin-bottom: 20px;">
-    <div style="display: flex; justify-content: center; margin-top: -20px; margin-bottom: -10px; position: relative; z-index: 10;">
-        <svg width="200" height="50" viewBox="0 0 200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="swirlGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
-                    <stop offset="15%" stop-color="#ffffff" stop-opacity="0.3"/>
-                    <stop offset="35%" stop-color="#ffffff" stop-opacity="0.8"/>
-                    <stop offset="50%" stop-color="#ffffff" stop-opacity="1"/>
-                    <stop offset="65%" stop-color="#ffffff" stop-opacity="0.8"/>
-                    <stop offset="85%" stop-color="#ffffff" stop-opacity="0.3"/>
-                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-                </linearGradient>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="2" result="blur"/>
-                    <feMerge>
-                        <feMergeNode in="blur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-            </defs>
-            <path d="M 10 30 C 10 15, 25 5, 40 12 C 55 19, 50 35, 35 35 C 25 35, 18 28, 22 22" stroke="url(#swirlGrad)" stroke-width="1.2" fill="none" stroke-linecap="round" filter="url(#glow)"/>
-            <path d="M 190 30 C 190 15, 175 5, 160 12 C 145 19, 150 35, 165 35 C 175 35, 182 28, 178 22" stroke="url(#swirlGrad)" stroke-width="1.2" fill="none" stroke-linecap="round" filter="url(#glow)"/>
-            <g filter="url(#glow)">
-                <path d="M 100 10 L 100 38" stroke="url(#swirlGrad)" stroke-width="1.8" stroke-linecap="round"/>
-                <path d="M 94 15 L 100 10 L 106 15" stroke="url(#swirlGrad)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M 97 38 L 100 34 L 103 38" stroke="url(#swirlGrad)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </g>
-        </svg>
-    </div>
-    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 28px 20px 20px 20px;">
+<div style="position: relative; margin-top: 30px; margin-bottom: 20px;">
+    <img src="feather.png" 
+         style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); width: 180px; z-index: 10;"
+         alt="decor">
+    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 45px 20px 20px 20px;">
         <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
     </div>
 </div>

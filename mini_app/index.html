@@ -647,8 +647,13 @@
                     </div>
                  ${character.scenario ? `
 <div style="position: sticky; top: 0; z-index: 20; margin-bottom: 20px;">
-    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px;">
-        <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
+    <div style="position: relative;">
+        <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
+             style="position: absolute; top: -32px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"
+             alt="decor">
+        <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 52px 20px 20px 20px;">
+            <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
+        </div>
     </div>
 </div>
 ` : ''}

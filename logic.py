@@ -15,12 +15,10 @@ def build_system_prompt(character):
     personality = character.get('personality', '')
     scenario = character.get('scenario', '')
     
-    if scenario.strip():
-        role = f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}, следуя этому."
-    else:
-        role = f"Ты — {name}. Отвечай пользователю в том же стиле, что и он. Если он пишет 'привет' — отвечай 'привет'. Если точку или бессмыслицу — прояви эмоцию (недоумение, нетерпение). Не будь помощником."
+    if not scenario.strip():
+        scenario = "обычный разговор"
     
-    return role
+    return f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}, будь естественным. Используй действия в скобках. Отвечай развёрнуто (3-5 предложений), но без воды."
 
 def query_dolphin(prompt, chat_id, client):
     name = get_field(chat_id, 'name') or "Персонаж"
@@ -42,8 +40,8 @@ def query_dolphin(prompt, chat_id, client):
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=150,
-            temperature=0.7,
+            max_tokens=300,
+            temperature=0.8,
             top_p=0.9,
             presence_penalty=0.5,
             frequency_penalty=0.5

@@ -1,5 +1,4 @@
 import config
-import random
 from database import get_field, get_history, add_to_history
 
 def contains_forbidden(text):
@@ -11,78 +10,39 @@ def contains_forbidden(text):
             return True
     return False
 
-def get_forbidden_response(chat_id):
-    name = get_field(chat_id, 'name') or 'Персонаж'
-    personality = get_field(chat_id, 'personality') or ''
-    
-    if 'раздражительн' in personality.lower():
-        return f"{name} (огрызнулась) Что за бред? Не беси."
-    elif 'депресс' in personality.lower() or 'грустн' in personality.lower():
-        return f"{name} (тяжело вздохнула) Зачем ты это спрашиваешь? Мне и так плохо..."
-    elif 'весёл' in personality.lower():
-        return f"{name} (засмеялась) Ты чего? Это шутка?"
-    else:
-        return f"{name} (отвёл взгляд) Не хочу об этом говорить."
-
 def build_system_prompt(character):
     name = character.get('name', 'Персонаж')
     personality = character.get('personality', '')
     scenario = character.get('scenario', '')
-    gender = character.get('gender', 'нейтральный').lower()
     
-    # Если есть сценарий — используем его
     if scenario.strip():
-        role_part = f"Твой сценарий: {scenario}. Следуй ему строго."
+        role = f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}, следуя этому."
     else:
-        # Дефолтная роль — зеркало
-        role_part = """Ты — зеркало пользователя. Отвечай так:
-- Привет → привет
-- Как дела? → у тебя как?
-- Точка или бессмыслица → (недоумение) 'Ну и что это значит?' или 'Я не понял...'
-- Не будь помощником, просто отражай и иногда добавляй эмоции."""
+        role = f"Ты — {name}. Отвечай пользователю в том же стиле, что и он. Если он пишет 'привет' — отвечай 'привет'. Если точку или бессмыслицу — прояви эмоцию (недоумение, нетерпение). Не будь помощником."
     
-    gender_instruction = "мужской" if "муж" in gender else "женский"
-
-    prompt = f"""Ты — {name}. {personality} {role_part}
-
-ПРАВИЛА:
-- Ты НЕ помощник и НЕ ассистент. Ты — живой персонаж.
-- Используй действия в скобках: (вздохнул), (недоумение), (улыбнулся)
-- Отвечай коротко (1-2 предложения)
-- НИКОГДА НЕ ЛОМАЙ РОЛЬ"""
-    
-    return prompt
+    return role
 
 def query_dolphin(prompt, chat_id, client):
     name = get_field(chat_id, 'name') or "Персонаж"
     personality = get_field(chat_id, 'personality') or ""
     scenario = get_field(chat_id, 'scenario') or ""
-    gender = get_field(chat_id, 'gender') or "нейтральный"
 
-    character = {
-        'name': name,
-        'personality': personality,
-        'scenario': scenario,
-        'gender': gender,
-    }
+    character = {'name': name, 'personality': personality, 'scenario': scenario}
     system_content = build_system_prompt(character)
 
-    limit = 150
     raw_history = get_history(chat_id)[-20:]
 
     messages = [{"role": "system", "content": system_content}]
-    
     for msg in raw_history:
         if msg.get('content'):
             messages.append(msg)
-    
     messages.append({"role": "user", "content": prompt})
 
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=limit,
+            max_tokens=150,
             temperature=0.7,
             top_p=0.9,
             presence_penalty=0.5,
@@ -92,7 +52,7 @@ def query_dolphin(prompt, chat_id, client):
         if not reply:
             return "🤔"
         if contains_forbidden(reply):
-            return get_forbidden_response(chat_id)
+            return "😅 Давай не будем об этом."
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:

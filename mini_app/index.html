@@ -634,77 +634,78 @@
                         /* ========================================== */
             /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА                */
             /* ========================================== */
-            function renderChat(character) {
-                const storageKey = `chat_${character.id}`;
-                let messages = [];
-                try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
+          /* ========================================== */
+/* МОДУЛЬ №14: ОТРИСОВКА ЧАТА С КАРТИНКОЙ     */
+/* ========================================== */
+function renderChat(character) {
+    const storageKey = `chat_${character.id}`;
+    let messages = [];
+    try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
 
-                const html = `
-                    <div class="chat-header">
-                        <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
-                        <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
-                        <div class="chat-name">${escapeHtml(character.name)}</div>
-                    </div>
-                    <div class="messages" id="chat-messages"></div>
-                    <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">
-                        <button class="chat-send" id="chat-send"><i data-lucide="send"></i></button>
-                    </div>
-                `;
-                contentArea.innerHTML = html;
-                lucide.createIcons();
+    const html = `
+        <div class="chat-header">
+            <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
+            <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
+            <div class="chat-name">${escapeHtml(character.name)}</div>
+        </div>
+        <div class="messages" id="chat-messages"></div>
+        <div class="chat-input-container">
+            <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">
+            <button class="chat-send" id="chat-send"><i data-lucide="send"></i></button>
+        </div>
+    `;
+    contentArea.innerHTML = html;
+    lucide.createIcons();
 
-                const messagesContainer = document.getElementById('chat-messages');
-                const input = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('chat-send');
-                const backBtn = document.getElementById('chat-back');
+    const messagesContainer = document.getElementById('chat-messages');
+    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send');
+    const backBtn = document.getElementById('chat-back');
 
-                messages.forEach(msg => {
-                    addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time, msg.avatar || character.photo);
-                });
+    // Добавляем картинку и рамку сценария (первым элементом)
+    if (character.scenario) {
+        const scenarioWrapper = document.createElement('div');
+        scenarioWrapper.style.position = 'relative';
+        scenarioWrapper.style.marginBottom = '20px';
+        scenarioWrapper.style.marginTop = '30px';
+        
+        scenarioWrapper.innerHTML = `
+            <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
+                 style="position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"
+                 alt="decor">
+            <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px;">
+                <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
+            </div>
+        `;
+        messagesContainer.appendChild(scenarioWrapper);
+    }
 
-                // Добавляем сценарий как первое сообщение (только один раз)
-                const scenarioShownKey = `scenario_shown_${character.id}`;
-                if (character.scenario && !localStorage.getItem(scenarioShownKey)) {
-                    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'message bot';
-                    messageDiv.innerHTML = `
-                        <div class="message-avatar" style="background-image: url('${character.photo || ""}');"></div>
-                        <div class="message-content">
-                            <div class="message-bubble">${escapeHtml(character.scenario)}</div>
-                            <div class="message-time">${time}</div>
-                        </div>
-                    `;
-                    messagesContainer.appendChild(messageDiv);
-                    localStorage.setItem(scenarioShownKey, 'true');
-                    
-                    messages.push({ text: character.scenario, sender: 'bot', time, avatar: character.photo });
-                    localStorage.setItem(storageKey, JSON.stringify(messages));
-                }
+    messages.forEach(msg => {
+        addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time, msg.avatar || character.photo);
+    });
 
-                function addUserMessage(text) {
-                    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                    addMessageToUI(messagesContainer, text, 'user', time);
-                    messages.push({ text, sender: 'user', time });
-                    localStorage.setItem(storageKey, JSON.stringify(messages));
-                }
+    function addUserMessage(text) {
+        const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        addMessageToUI(messagesContainer, text, 'user', time);
+        messages.push({ text, sender: 'user', time });
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+    }
 
-                async function handleSend() {
-                    const text = input.value.trim();
-                    if (!text) return;
-                    addUserMessage(text);
-                    input.value = '';
-                    await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
-                        messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
-                        localStorage.setItem(storageKey, JSON.stringify(messages));
-                    });
-                }
+    async function handleSend() {
+        const text = input.value.trim();
+        if (!text) return;
+        addUserMessage(text);
+        input.value = '';
+        await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
+            messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
+            localStorage.setItem(storageKey, JSON.stringify(messages));
+        });
+    }
 
-                sendBtn.addEventListener('click', handleSend);
-                input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
-                backBtn.addEventListener('click', () => renderFeed());
-            }
+    sendBtn.addEventListener('click', handleSend);
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
+    backBtn.addEventListener('click', () => renderFeed());
+}
 
             /* ========================================== */
             /* МОДУЛЬ №18: ПОРТАЛ (СПИСОК ПЕРСОНАЖЕЙ)     */

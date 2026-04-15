@@ -646,34 +646,23 @@
                         <div class="chat-name">${escapeHtml(character.name)}</div>
                     </div>
                     ${character.scenario ? `
-                    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%); border-radius: 28px; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 0 10px rgba(255,255,255,0.05), inset 0 0 5px rgba(255,255,255,0.05); padding: 20px; margin-bottom: 20px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(-10deg);">
-                                <defs>
-                                    <linearGradient id="penGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-                                        <stop offset="100%" stop-color="#b0d4ff" stop-opacity="0.8"/>
-                                    </linearGradient>
-                                    <linearGradient id="penStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-                                        <stop offset="100%" stop-color="#e0e8ff" stop-opacity="0.9"/>
-                                    </linearGradient>
-                                </defs>
-                                <path d="M3 15C3 12 5 10 8 10C11 10 13 12 13 15" stroke="url(#penGrad)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-                                <path d="M3 18C3 20 5 22 8 22" stroke="url(#penGrad)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-                                <path d="M21 15C21 12 19 10 16 10C13 10 11 12 11 15" stroke="url(#penGrad)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-                                <path d="M21 18C21 20 19 22 16 22" stroke="url(#penGrad)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-                                <path d="M17 3L21 7L7 21H3V17L17 3Z" stroke="url(#penStroke)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M12 8L16 12" stroke="url(#penStroke)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="8 8">
-                                    <animate attributeName="stroke-dashoffset" from="16" to="0" dur="1.5s" repeatCount="indefinite" />
-                                </path>
-                            </svg>
-                            <div style="font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 1px;">СЦЕНАРИЙ</div>
-                            <div style="width: 36px;"></div>
-                        </div>
-                        <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
-                    </div>
-                    ` : ''}
+                    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 28px; border: 1px solid rgba(255,255,255,0.2); padding: 20px; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: center; margin-bottom: 16px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="penGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+                    <stop offset="100%" stop-color="#b0d4ff" stop-opacity="0.7"/>
+                </linearGradient>
+            </defs>
+            <path d="M17 3L21 7L7 21H3V17L17 3Z" stroke="url(#penGrad)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 8L16 12" stroke="url(#penGrad)" stroke-width="2" stroke-linecap="round" stroke-dasharray="8 8">
+                <animate attributeName="stroke-dashoffset" from="16" to="0" dur="1.5s" repeatCount="indefinite" />
+            </path>
+        </svg>
+    </div>
+    <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
+</div>` : ''}
                     <div class="messages" id="chat-messages"></div>
                     <div class="chat-input-container">
                         <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">

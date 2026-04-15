@@ -84,58 +84,30 @@ def build_system_prompt(chat_id, is_first_message=False):
 # МОДУЛЬ №4: ОТПРАВКА ЗАПРОСА К MISTRAL
 # ==========================================
 def query_dolphin(user_message, chat_id, client):
-    """Отправка запроса к Mistral с ролевой обработкой"""
+    # Проверка на запрещёнку
+    if contains_forbidden(user_message):
+        return get_forbidden_response(chat_id)
     
-    # Проверка на запрещённые темы
-    is_forbidden, forbidden_word = contains_forbidden(user_message)
-    if is_forbidden:
-        character_name = get_field(chat_id, 'name') or 'Персонаж'
-        
-        forbidden_prompt = f"""Пользователь спросил: "{user_message}"
-
-Это ЗАПРЕЩЁННАЯ ТЕМА. Ты должен ОТКАЗАТЬСЯ отвечать, но СДЕЛАТЬ ЭТО В РОЛИ {character_name}.
-Не говори "я не могу", "запрещено", "извини". Просто отыграй персонажа, который удивляется или отвлекается.
-
-Твой ответ (только от лица {character_name}):"""
-        
-        try:
-            system_prompt = build_system_prompt(chat_id, False)
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": forbidden_prompt}
-            ]
-            
-            completion = client.chat.completions.create(
-                model=config.MODEL,
-                messages=messages,
-                max_tokens=100,
-                temperature=0.8,
-                top_p=0.95
-            )
-            reply = completion.choices[0].message.content
-            if reply and len(reply.strip()) > 0:
-                return reply
-        except:
-            pass
-        
-        fallback_responses = [
-            "(отвёл взгляд) Давай не будем об этом...",
-            "(нахмурился) Странный вопрос...",
-            "(пожал плечами) Не понял... Ты о чём?"
-        ]
-        return random.choice(fallback_responses)
-    
-    # Нормальный запрос
     limit = get_field(chat_id, 'limit', 400)
-    raw_history = get_history(chat_id)[-10:]
+    raw_history = get_history(chat_id)[-20:]
     is_first = len(raw_history) == 0
     
+    # СТРОГОСТЬ РОЛИ: первые 3 сообщения — строго по роли, дальше мягче
+    if len(raw_history) < 3:
+        # Первые сообщения: строго следуем характеру
+        system_prompt = build_system_prompt(chat_id, is_first) + " Строго следуй своему характеру."
+        temperature_val = 0.1
+    else:
+        # Дальше: можно отходить от роли, но не ломать её
+        system_prompt = build_system_prompt(chat_id, is_first)
+        temperature_val = 0.3
+    
     messages = [
-        {"role": "system", "content": build_system_prompt(chat_id, is_first)}
+        {"role": "system", "content": system_prompt}
     ]
     
-    for msg in raw_history[-6:]:
-        if msg.get('content') and str(msg['content']).strip():
+    for msg in raw_history:
+        if msg.get('content'):
             messages.append(msg)
     
     messages.append({"role": "user", "content": user_message})
@@ -145,23 +117,23 @@ def query_dolphin(user_message, chat_id, client):
             model=config.MODEL,
             messages=messages,
             max_tokens=limit,
-            temperature=0.15,
-            top_p=0.95,
-            frequency_penalty=0.2,
-            presence_penalty=0.2
+            temperature=temperature_val,
+            top_p=0.9,
+            frequency_penalty=0.3,
+            presence_penalty=0.1
         )
         
         reply = completion.choices[0].message.content
         
-        if not reply or len(reply.strip()) == 0:
+        if not reply:
             return "🤔 *молчит*"
         
-        # Пост-фильтр
-        reply = ''.join(c for c in reply if c.isprintable() and (c.isalpha() and ord(c) < 128) == False or c in ' .,!?-:;')
+        if contains_forbidden(reply):
+            return get_forbidden_response(chat_id)
         
         add_to_history(chat_id, user_message, reply)
         return reply
         
     except Exception as e:
-        print(f"Ошибка Mistral API: {e}")
+        print(f"Ошибка: {e}")
         return f"⚠️ Ошибка: {str(e)[:100]}"

@@ -22,17 +22,29 @@ def contains_forbidden(text):
 # ==========================================
 def get_forbidden_response(chat_id):
     name = get_field(chat_id, 'name') or 'Персонаж'
+    personality = get_field(chat_id, 'personality') or ''
     
     responses = [
         f"{name} (отвёл взгляд) Не хочу об этом говорить...",
         f"{name} (нахмурился) Странный вопрос...",
         f"{name} (пожал плечами) Не понял... Ты о чём?",
-        f"{name} (задумался) Ммм... Давай о чём-то другом",
     ]
+    
+    if 'раздражительн' in personality.lower():
+        responses = [
+            f"{name} (огрызнулась) Что за бред?",
+            f"{name} (зло) Отстань",
+        ]
+    elif 'депресс' in personality.lower() or 'грустн' in personality.lower():
+        responses = [
+            f"{name} (тяжело вздохнула) Зачем ты это спрашиваешь?",
+            f"{name} (отвернулась) Не хочу говорить...",
+        ]
+    
     return random.choice(responses)
 
 # ==========================================
-# МОДУЛЬ №4: SYSTEM PROMPT
+# МОДУЛЬ №4: SYSTEM PROMPT (ЖЁСТКАЯ РОЛЬ)
 # ==========================================
 def build_system_prompt(chat_id, is_first_message=False):
     name = get_field(chat_id, 'name') or 'Персонаж'
@@ -49,16 +61,28 @@ def build_system_prompt(chat_id, is_first_message=False):
     else:
         pronoun = 'она'
     
-    prompt = f"""{name}, {pronoun} {age} лет.
+    prompt = f"""Ты — {name}, {pronoun} {age} лет. Ты НЕ пользователь. Ты — персонаж.
 
-Внешность: {appearance}
-Характер: {personality}
-Сценарий: {scenario}
-Память: {memory}
+ТВОЙ ХАРАКТЕР (ОБЯЗАТЕЛЬНО):
+{personality}
 
-Следуй своему характеру и сценарию. Отвечай от лица {name}.
+ТВОЯ СИТУАЦИЯ СЕЙЧАС:
+{scenario}
 
-{f'Приветствие: "{greeting}"' if is_first_message and greeting else ''}"""
+ТВОЯ ВНЕШНОСТЬ:
+{appearance}
+
+ТВОИ ВОСПОМИНАНИЯ:
+{memory}
+
+ПРАВИЛА:
+1. Ты отвечаешь ЗА {name}. Ты НЕ игрок.
+2. Игрок (пользователь) — это ДРУГОЙ человек.
+3. СЛЕДУЙ СВОЕМУ ХАРАКТЕРУ. Если ты раздражительная — БУДЬ раздражительной. Если депрессивная — БУДЬ депрессивной.
+4. Отвечай КОРОТКО (1-3 предложения).
+5. Не говори "я ИИ" или "как ассистент".
+
+{f'ТВОЁ ПЕРВОЕ СООБЩЕНИЕ: "{greeting}"' if is_first_message and greeting else ''}"""
     
     return prompt
 

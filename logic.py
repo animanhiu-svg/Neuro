@@ -54,29 +54,15 @@ def get_forbidden_response(chat_id):
 # ==========================================
 def build_system_prompt(chat_id, is_first_message=False):
     name = get_field(chat_id, 'name') or 'Персонаж'
-    gender = get_field(chat_id, 'gender') or 'нейтральный'
     age = get_field(chat_id, 'age') or ''
-    greeting = get_field(chat_id, 'greeting') or ''
-    appearance = get_field(chat_id, 'appearance') or ''
     personality = get_field(chat_id, 'personality') or ''
     scenario = get_field(chat_id, 'scenario') or ''
-    memory = get_field(chat_id, 'memory') or ''
+    greeting = get_field(chat_id, 'greeting') or ''
     
-    if gender in ['male', 'мужской', 'м']:
-        pronoun = 'он'
-    else:
-        pronoun = 'она'
+    prompt = f"Ты — {name}, {age} лет. {personality}. {scenario}."
     
-    prompt = f"""{name}, {pronoun} {age} лет.
-
-Внешность: {appearance}
-Характер: {personality}
-Сценарий: {scenario}
-Память: {memory}
-
-Следуй своему характеру и сценарию. Отвечай от лица {name}.
-
-{f'Приветствие: "{greeting}"' if is_first_message and greeting else ''}"""
+    if is_first_message and greeting:
+        prompt += f" Начни с: \"{greeting}\""
     
     return prompt
 

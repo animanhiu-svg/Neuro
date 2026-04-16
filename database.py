@@ -1,6 +1,6 @@
 # Хранилища данных
-user_settings = {}      # {chat_id: {name, gender, age, nsfw_mode, greeting, subtitles, memory_cards, char_photo, location, scenario, relation, limit}}
-user_history = {}       # {chat_id: [messages]}
+user_settings = {}
+user_history = {}
 
 def init_user(chat_id):
     if chat_id not in user_settings:
@@ -8,14 +8,13 @@ def init_user(chat_id):
             'name': None,
             'gender': None,
             'age': None,
-            'nsfw_mode': None,
             'greeting': None,
-            'subtitles': None,
-            'memory_cards': None,
-            'char_photo': None,
-            'location': None,
+            'appearance': None,
+            'personality': None,
             'scenario': None,
-            'relation': None,
+            'memory': None,
+            'tags': None,
+            'photo': None,
             'limit': 400
         }
 
@@ -29,30 +28,23 @@ def get_field(chat_id, field, default=None):
 def add_to_history(chat_id, user_msg, bot_msg):
     if chat_id not in user_history:
         user_history[chat_id] = []
-    user_history[chat_id].append({"role": "user", "content": user_msg})
-    user_history[chat_id].append({"role": "assistant", "content": bot_msg})
-    if len(user_history[chat_id]) > 40:
-        user_history[chat_id] = user_history[chat_id][-40:]
+    if user_msg:
+        user_history[chat_id].append({"role": "user", "content": user_msg})
+    if bot_msg:
+        user_history[chat_id].append({"role": "assistant", "content": bot_msg})
+    if len(user_history[chat_id]) > 50:
+        user_history[chat_id] = user_history[chat_id][-50:]
 
 def get_history(chat_id):
-    return user_history.get(chat_id, [])[-20:]
+    return user_history.get(chat_id, [])[-40:]
 
 def clear_history(chat_id):
-    user_history[chat_id] = []
+    if chat_id in user_history:
+        user_history[chat_id] = []
 
 def reset_all(chat_id):
-    user_settings[chat_id] = {
-        'name': None,
-        'gender': None,
-        'age': None,
-        'nsfw_mode': None,
-        'greeting': None,
-        'subtitles': None,
-        'memory_cards': None,
-        'char_photo': None,
-        'location': None,
-        'scenario': None,
-        'relation': None,
-        'limit': 400
-    }
-    clear_history(chat_id)
+    if chat_id in user_settings:
+        del user_settings[chat_id]
+    if chat_id in user_history:
+        del user_history[chat_id]
+    init_user(chat_id)

@@ -10,23 +10,18 @@ def contains_forbidden(text):
             return True
     return False
 
-def build_system_prompt(character):
-    name = character.get('name', 'Персонаж')
-    personality = character.get('personality', '')
-    scenario = character.get('scenario', '')
-    
-    if not scenario.strip():
-        scenario = "обычный разговор"
-    
-    return f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}, следуя своему характеру. Коротко. Используй действия в скобках."
-
-def query_dolphin(prompt, chat_id, client):
+def build_system_prompt(chat_id):
     name = get_field(chat_id, 'name') or "Персонаж"
     personality = get_field(chat_id, 'personality') or ""
     scenario = get_field(chat_id, 'scenario') or ""
 
-    character = {'name': name, 'personality': personality, 'scenario': scenario}
-    system_content = build_system_prompt(character)
+    if not scenario:
+        scenario = "обычный разговор"
+
+    return f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}, следуя своему характеру. Коротко. Используй действия в скобках."
+
+def query_dolphin(prompt, chat_id, client):
+    system_content = build_system_prompt(chat_id)
 
     raw_history = get_history(chat_id)[-20:]
 

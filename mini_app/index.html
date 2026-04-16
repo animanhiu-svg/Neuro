@@ -2,45 +2,36 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>NeuroBro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
         body {
             background: #121212;
-            color: #fff;
-            font-family: system-ui, -apple-system, 'Inter', sans-serif;
+            color: white;
+            font-family: system-ui;
             padding: 16px;
             padding-bottom: 80px;
+            margin: 0;
         }
         #chat {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 8px;
         }
         .message {
             max-width: 80%;
             padding: 10px 14px;
             border-radius: 18px;
             font-size: 15px;
-            line-height: 1.4;
-            word-break: break-word;
         }
         .user {
             background: #2481cc;
             align-self: flex-end;
-            border-bottom-right-radius: 4px;
         }
         .bot {
             background: #2a2a2a;
             align-self: flex-start;
-            border-bottom-left-radius: 4px;
         }
         .input-area {
             position: fixed;
@@ -48,52 +39,27 @@
             left: 0;
             right: 0;
             background: #1e1e1e;
-            padding: 12px 16px;
+            padding: 12px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             border-top: 1px solid #333;
         }
         input {
             flex: 1;
             background: #2a2a2a;
             border: none;
-            padding: 12px 16px;
+            padding: 12px;
             border-radius: 24px;
-            color: #fff;
+            color: white;
             font-size: 16px;
-            outline: none;
         }
         button {
             background: #2481cc;
             border: none;
             padding: 12px 20px;
             border-radius: 24px;
-            color: #fff;
+            color: white;
             font-weight: bold;
-            cursor: pointer;
-        }
-        .typing {
-            background: #2a2a2a;
-            align-self: flex-start;
-            padding: 10px 16px;
-            border-radius: 18px;
-            display: flex;
-            gap: 4px;
-        }
-        .typing span {
-            width: 8px;
-            height: 8px;
-            background: #fff;
-            border-radius: 50%;
-            display: inline-block;
-            animation: typingDot 1.4s infinite;
-        }
-        .typing span:nth-child(1) { animation-delay: 0s; }
-        .typing span:nth-child(2) { animation-delay: 0.2s; }
-        .typing span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typingDot {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-6px); opacity: 1; }
         }
     </style>
 </head>
@@ -105,26 +71,15 @@
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-        tg.enableClosingConfirmation();  // ← ВОТ ОН, ЗДЕСЬ
-        
-        console.log('WebApp загружен');
-        tg.sendData(JSON.stringify({ type: 'test', message: 'WebApp loaded' }));
 
-        // Получаем ID пользователя
-        const userId = tg.initDataUnsafe.user?.id;
-        const chatId = (userId && userId !== 0) ? userId : 7015403070;
-        console.log('chatId:', chatId);
-
-        // Элементы DOM
+        const chatId = tg.initDataUnsafe.user?.id || 7015403070;
         const chatDiv = document.getElementById('chat');
         const input = document.getElementById('input');
         const sendBtn = document.getElementById('send');
 
-        // Функция добавления сообщения в чат
         function addMessage(text, sender) {
             const div = document.createElement('div');
             div.className = `message ${sender}`;
@@ -133,57 +88,28 @@
             chatDiv.scrollTop = chatDiv.scrollHeight;
         }
 
-        // Функция показа анимации печати
-        function showTyping() {
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'typing';
-            typingDiv.id = 'typing-indicator';
-            typingDiv.innerHTML = '<span></span><span></span><span></span>';
-            chatDiv.appendChild(typingDiv);
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-        }
-
-        function hideTyping() {
-            const typing = document.getElementById('typing-indicator');
-            if (typing) typing.remove();
-        }
-
-        // Отправка сообщения
         async function sendMessage() {
             const text = input.value.trim();
             if (!text) return;
 
             addMessage(text, 'user');
             input.value = '';
-            input.focus();
-            showTyping();
 
             try {
-                const response = await fetch('/chat', {
+                const res = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ chat_id: chatId, message: text })
                 });
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const data = await response.json();
-                const reply = data.reply || '🌫️ Тишина...';
-
-                hideTyping();
-                addMessage(reply, 'bot');
-
-            } catch (error) {
-                console.error('Ошибка:', error);
-                hideTyping();
-                addMessage('🌫️ Ошибка связи. Попробуй позже.', 'bot');
+                const data = await res.json();
+                addMessage(data.reply || '🌫️ Тишина...', 'bot');
+            } catch(e) {
+                addMessage('🌫️ Ошибка связи', 'bot');
             }
         }
 
         sendBtn.onclick = sendMessage;
-        input.onkeypress = (e) => {
-            if (e.key === 'Enter') sendMessage();
-        };
+        input.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
     </script>
 </body>
 </html>

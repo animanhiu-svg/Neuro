@@ -665,89 +665,140 @@
             /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА                */
             /* ========================================== */
           /* ========================================== */
-function renderChat(character) {
-    const storageKey = `chat_${character.id}`;
-    let messages = [];
-    try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
+            /* ========================================== */
+            /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА                */
+            /* ========================================== */
+            function renderChat(character) {
+                const storageKey = `chat_${character.id}`;
+                let messages = [];
+                try { messages = JSON.parse(localStorage.getItem(storageKey)) || []; } catch(e) {}
 
-    const html = `
-        <div class="chat-header">
-            <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
-            <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
-            <div class="chat-name">${escapeHtml(character.name)}</div>
-            <button id="clearChatBtn" style="background: transparent; border: none; color: #ff4d4d; font-size: 12px; cursor: pointer; margin-left: auto;">🗑️</button>
-        </div>
-        <div class="messages" id="chat-messages"></div>
-        <div class="chat-input-container">
-            <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">
-            <button class="chat-send" id="chat-send"><i data-lucide="send"></i></button>
-        </div>
-    `;
-    contentArea.innerHTML = html;
-    lucide.createIcons();
+                const html = `
+                    <div class="chat-header">
+                        <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
+                        <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
+                        <div class="chat-name">${escapeHtml(character.name)}</div>
+                        <button id="clearChatBtn" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 12px; font-size: 11px; color: #ff4d4d; cursor: pointer; margin-left: auto;">Очистить чат</button>
+                    </div>
+                    <div class="messages" id="chat-messages"></div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Написать...">
+                        <button class="chat-send" id="chat-send"><i data-lucide="send"></i></button>
+                    </div>
+                `;
+                contentArea.innerHTML = html;
+                lucide.createIcons();
 
-    const messagesContainer = document.getElementById('chat-messages');
-    const input = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('chat-send');
-    const backBtn = document.getElementById('chat-back');
+                const messagesContainer = document.getElementById('chat-messages');
+                const input = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('chat-send');
+                const backBtn = document.getElementById('chat-back');
 
-    // Кнопка очистки чата
-    const clearBtn = document.getElementById('clearChatBtn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (confirm('Очистить историю чата с этим персонажем?')) {
-                localStorage.setItem(storageKey, JSON.stringify([]));
-                messages = [];
-                messagesContainer.innerHTML = '';
-                if (tg.showAlert) tg.showAlert('Чат очищен');
+                // Кнопка очистки чата
+                const clearBtn = document.getElementById('clearChatBtn');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        if (confirm('Очистить историю чата с этим персонажем?')) {
+                            // ТЁМНЫЙ ЭКРАН С ТОЧКАМИ
+                            const overlay = document.createElement('div');
+                            overlay.style.cssText = `
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background: rgba(0,0,0,0.95);
+                                z-index: 10000;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 24px;
+                            `;
+                            overlay.innerHTML = `
+                                <div style="display: flex; gap: 12px;">
+                                    <span style="width: 12px; height: 12px; background: white; border-radius: 50%; animation: bounce 1.4s ease-in-out infinite 0s;"></span>
+                                    <span style="width: 12px; height: 12px; background: white; border-radius: 50%; animation: bounce 1.4s ease-in-out infinite 0.2s;"></span>
+                                    <span style="width: 12px; height: 12px; background: white; border-radius: 50%; animation: bounce 1.4s ease-in-out infinite 0.4s;"></span>
+                                </div>
+                                <div style="color: white; font-size: 14px; letter-spacing: 2px;">ОЧИСТКА ЧАТА...</div>
+                            `;
+                            document.body.appendChild(overlay);
+                            
+                            // Очищаем чат
+                            localStorage.setItem(storageKey, JSON.stringify([]));
+                            messages = [];
+                            messagesContainer.innerHTML = '';
+                            
+                            // Добавляем сценарий обратно (если есть)
+                            if (character.scenario) {
+                                const scenarioWrapper = document.createElement('div');
+                                scenarioWrapper.style.position = 'relative';
+                                scenarioWrapper.style.marginBottom = '20px';
+                                scenarioWrapper.style.marginTop = '30px';
+                                scenarioWrapper.innerHTML = `
+                                    <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
+                                         style="position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"
+                                         alt="decor">
+                                    <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px;">
+                                        <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
+                                    </div>
+                                `;
+                                messagesContainer.appendChild(scenarioWrapper);
+                            }
+                            
+                            // Убираем тёмный экран через 1 секунду
+                            setTimeout(() => {
+                                overlay.remove();
+                                if (tg.showAlert) tg.showAlert('Чат очищен');
+                            }, 1000);
+                        }
+                    });
+                }
+
+                // Добавляем картинку и рамку сценария (первым элементом)
+                if (character.scenario) {
+                    const scenarioWrapper = document.createElement('div');
+                    scenarioWrapper.style.position = 'relative';
+                    scenarioWrapper.style.marginBottom = '20px';
+                    scenarioWrapper.style.marginTop = '30px';
+                    scenarioWrapper.innerHTML = `
+                        <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
+                             style="position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"
+                             alt="decor">
+                        <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px;">
+                            <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(scenarioWrapper);
+                }
+
+                messages.forEach(msg => {
+                    addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time, msg.avatar || character.photo);
+                });
+
+                function addUserMessage(text) {
+                    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                    addMessageToUI(messagesContainer, text, 'user', time);
+                    messages.push({ text, sender: 'user', time });
+                    localStorage.setItem(storageKey, JSON.stringify(messages));
+                }
+
+                async function handleSend() {
+                    const text = input.value.trim();
+                    if (!text) return;
+                    addUserMessage(text);
+                    input.value = '';
+                    await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
+                        messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
+                        localStorage.setItem(storageKey, JSON.stringify(messages));
+                    });
+                }
+
+                sendBtn.addEventListener('click', handleSend);
+                input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
+                backBtn.addEventListener('click', () => renderFeed());
             }
-        });
-    }
-
-    // Добавляем картинку и рамку сценария (первым элементом)
-    if (character.scenario) {
-        const scenarioWrapper = document.createElement('div');
-        scenarioWrapper.style.position = 'relative';
-        scenarioWrapper.style.marginBottom = '20px';
-        scenarioWrapper.style.marginTop = '30px';
-        
-        scenarioWrapper.innerHTML = `
-            <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
-                 style="position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"
-                 alt="decor">
-            <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px;">
-                <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
-            </div>
-        `;
-        messagesContainer.appendChild(scenarioWrapper);
-    }
-
-    messages.forEach(msg => {
-        addMessageToUI(messagesContainer, msg.text, msg.sender, msg.time, msg.avatar || character.photo);
-    });
-
-    function addUserMessage(text) {
-        const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-        addMessageToUI(messagesContainer, text, 'user', time);
-        messages.push({ text, sender: 'user', time });
-        localStorage.setItem(storageKey, JSON.stringify(messages));
-    }
-
-    async function handleSend() {
-        const text = input.value.trim();
-        if (!text) return;
-        addUserMessage(text);
-        input.value = '';
-        await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
-            messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
-            localStorage.setItem(storageKey, JSON.stringify(messages));
-        });
-    }
-
-    sendBtn.addEventListener('click', handleSend);
-    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
-    backBtn.addEventListener('click', () => renderFeed());
-}
 
             /* ========================================== */
             /* МОДУЛЬ №18: ПОРТАЛ (СПИСОК ПЕРСОНАЖЕЙ)     */

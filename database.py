@@ -10,8 +10,10 @@ def get_db():
 
 def init_db():
     conn = get_db()
+    conn.execute('DROP TABLE IF EXISTS user_settings')
+    conn.execute('DROP TABLE IF EXISTS user_history')
     conn.execute('''
-        CREATE TABLE IF NOT EXISTS user_settings (
+        CREATE TABLE user_settings (
             chat_id INTEGER PRIMARY KEY,
             name TEXT,
             gender TEXT,
@@ -27,7 +29,7 @@ def init_db():
         )
     ''')
     conn.execute('''
-        CREATE TABLE IF NOT EXISTS user_history (
+        CREATE TABLE user_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             chat_id INTEGER,
             role TEXT,
@@ -57,9 +59,7 @@ def get_field(chat_id, field, default=None):
     cur = conn.execute(f'SELECT "{field}" FROM user_settings WHERE chat_id = ?', (chat_id,))
     row = cur.fetchone()
     conn.close()
-    if row and row[0] is not None:
-        return row[0]
-    return default
+    return row[0] if row and row[0] is not None else default
 
 def add_to_history(chat_id, user_msg, bot_msg):
     conn = get_db()
@@ -91,5 +91,4 @@ def reset_all(chat_id):
     conn.close()
     init_user(chat_id)
 
-# Инициализация БД при старте
 init_db()

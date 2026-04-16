@@ -541,6 +541,8 @@
             /* ========================================== */
             /* МОДУЛЬ №16: ОТПРАВКА СООБЩЕНИЙ В ЧАТ      */
             /* ========================================== */
+                        /* ========================================== */
+        
             function addMessageToUI(container, text, sender, time, avatarUrl) {
                 if (sender === 'user') {
                     const div = document.createElement('div');
@@ -562,6 +564,7 @@
                 container.scrollTop = container.scrollHeight;
             }
 
+            // 13.2: Отправка на сервер (с кнопкой ресенда)
             async function sendMessageToServer(character, text, messagesContainer, storageKey, onReply) {
                 const typingDiv = document.createElement('div');
                 typingDiv.className = 'message bot';
@@ -589,7 +592,7 @@
 
                 try {
                     const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
-                    payload.history = stored.slice(-10).map(msg => ({
+                    payload.history = stored.slice(-15).map(msg => ({
                         role: msg.sender === 'user' ? 'user' : 'assistant',
                         content: msg.text
                     }));
@@ -597,7 +600,7 @@
 
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 60000);
+                    const timeoutId = setTimeout(() => controller.abort(), 90000);
                     const response = await fetch('/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -605,6 +608,11 @@
                         signal: controller.signal
                     });
                     clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
                     const data = await response.json();
                     const replyText = data.reply || '🌫️ Тишина...';
                     typingDiv.remove();
@@ -615,9 +623,33 @@
                     messages.push({ text: replyText, sender: 'bot', time, avatar: character.photo });
                     localStorage.setItem(storageKey, JSON.stringify(messages));
                     if (onReply) onReply(replyText);
+                    
                 } catch (err) {
-    console.error(err);
-    typingDiv.remove();
+                    console.error(err);
+                    typingDiv.remove();
+                    
+                    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'message bot';
+                    errorDiv.innerHTML = `
+                        <div class="message-avatar" style="background-image: url('${character.photo || ""}');"></div>
+                        <div class="message-content">
+                            <div class="message-bubble">🌫️ Ошибка связи</div>
+                            <div class="message-time">${time}</div>
+                            <button class="resend-btn" style="background: white; border: none; border-radius: 16px; padding: 2px 10px; margin-top: 4px; font-size: 10px; color: #121212; cursor: pointer;">↻ Отправить снова</button>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(errorDiv);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    
+                    errorDiv.querySelector('.resend-btn').onclick = async () => {
+                        errorDiv.querySelector('.resend-btn').textContent = '⟳ ...';
+                        errorDiv.querySelector('.resend-btn').disabled = true;
+                        await sendMessageToServer(character, text, messagesContainer, storageKey, onReply);
+                        errorDiv.remove();
+                    };
+                }
+            }
     
     const errorMessages = [
         '🌫️ Тишина... персонаж задумался',
@@ -653,8 +685,6 @@
             /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА                */
             /* ========================================== */
           /* ========================================== */
-/* МОДУЛЬ №14: ОТРИСОВКА ЧАТА С КАРТИНКОЙ     */
-/* ========================================== */
 function renderChat(character) {
     const storageKey = `chat_${character.id}`;
     let messages = [];

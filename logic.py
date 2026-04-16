@@ -18,7 +18,15 @@ def build_system_prompt(character):
     if not scenario.strip():
         scenario = "обычный разговор"
     
-    return f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}, следуя своему характеру. Коротко. Используй действия в скобках."
+    return f"""Ты — {name}. {personality} {scenario}
+
+Правила:
+- Отвечай от лица {name}
+- Следуй своему характеру (если указан)
+- Следуй сценарию (если указан)
+- Отвечай коротко (1-3 предложения)
+- Используй действия в скобках
+- Не будь помощником, ты живой персонаж"""
 
 def query_dolphin(prompt, chat_id, client):
     name = get_field(chat_id, 'name') or "Персонаж"
@@ -54,5 +62,4 @@ def query_dolphin(prompt, chat_id, client):
         add_to_history(chat_id, prompt, reply)
         return reply
     except Exception as e:
-        print(f"Ошибка: {e}")
-        return "🌫️ Ошибка связи"
+        return f"⚠️ Ошибка: {str(e)[:100]}"

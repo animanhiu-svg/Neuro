@@ -1,4 +1,5 @@
 import config
+import time
 from database import get_field, get_history, add_to_history
 
 def contains_forbidden(text):
@@ -18,9 +19,16 @@ def build_system_prompt(character):
     if not scenario.strip():
         scenario = "обычный разговор"
     
-    return f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}, следуя своему характеру. Коротко. Используй действия в скобках."
+    return f"""Ты — {name}. {personality} {scenario}
 
-def query_dolphin(prompt, chat_id, client):
+Правила:
+- Отвечай от лица {name}
+- Следуй своему характеру и сценарию
+- Отвечай коротко (1-3 предложения)
+- Используй действия в скобках
+- Ты живой персонаж, не помощник"""
+
+def query_dolphin(prompt, chat_id, client, retry=0):
     name = get_field(chat_id, 'name') or "Персонаж"
     personality = get_field(chat_id, 'personality') or ""
     scenario = get_field(chat_id, 'scenario') or ""
@@ -44,7 +52,8 @@ def query_dolphin(prompt, chat_id, client):
             temperature=0.8,
             top_p=0.9,
             presence_penalty=0.5,
-            frequency_penalty=0.5
+            frequency_penalty=0.5,
+            timeout=90
         )
         reply = completion.choices[0].message.content
         if not reply:
@@ -53,6 +62,11 @@ def query_dolphin(prompt, chat_id, client):
             return "😅 Давай не будем об этом."
         add_to_history(chat_id, prompt, reply)
         return reply
+        
     except Exception as e:
         print(f"Ошибка: {e}")
-        return "🌫️ Ошибка связи"
+        if retry < 3:
+            time.sleep(2)
+            return query_dolphin(prompt, chat_id, client, retry + 1)
+        else:
+            return "🌫️ Не удалось соединиться с сервером. Попробуй позже."

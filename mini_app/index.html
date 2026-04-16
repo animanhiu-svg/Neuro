@@ -541,8 +541,7 @@
             /* ========================================== */
             /* МОДУЛЬ №16: ОТПРАВКА СООБЩЕНИЙ В ЧАТ      */
             /* ========================================== */
-                        /* ========================================== */
-        
+                        
             function addMessageToUI(container, text, sender, time, avatarUrl) {
                 if (sender === 'user') {
                     const div = document.createElement('div');
@@ -564,7 +563,6 @@
                 container.scrollTop = container.scrollHeight;
             }
 
-            // 13.2: Отправка на сервер (с кнопкой ресенда)
             async function sendMessageToServer(character, text, messagesContainer, storageKey, onReply) {
                 const typingDiv = document.createElement('div');
                 typingDiv.className = 'message bot';
@@ -628,17 +626,28 @@
                     console.error(err);
                     typingDiv.remove();
                     
+                    const errorMessages = [
+                        '🌫️ Тишина... персонаж задумался',
+                        '📡 Сигнал потерян... попробуй ещё раз',
+                        '🌀 Магия связи дала сбой',
+                        '🔮 Ничего не пришло из пустоты',
+                        '⏳ Кажется, персонаж завис в размышлениях'
+                    ];
+                    const randomError = errorMessages[Math.floor(Math.random() * errorMessages.length)];
                     const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                    
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'message bot';
                     errorDiv.innerHTML = `
-                        <div class="message-avatar" style="background-image: url('${character.photo || ""}');"></div>
-                        <div class="message-content">
-                            <div class="message-bubble">🌫️ Ошибка связи</div>
-                            <div class="message-time">${time}</div>
-                            <button class="resend-btn" style="background: white; border: none; border-radius: 16px; padding: 2px 10px; margin-top: 4px; font-size: 10px; color: #121212; cursor: pointer;">↻ Отправить снова</button>
-                        </div>
-                    `;
+    <div class="message-avatar" style="background-image: url('${character.photo || ""}');"></div>
+    <div class="message-content" style="max-width: 100%;">
+        <div class="message-bubble" style="text-align: center;">${escapeHtml(randomError)}</div>
+        <div class="message-time" style="text-align: center;">${time}</div>
+        <div style="display: flex; justify-content: center; margin-top: 4px;">
+            <button class="resend-btn" style="background: white; border: none; border-radius: 16px; padding: 2px 10px; font-size: 9px; color: #121212; cursor: pointer; width: auto;">↻ Отправить снова</button>
+        </div>
+    </div>
+    `;
                     messagesContainer.appendChild(errorDiv);
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     
@@ -650,36 +659,7 @@
                     };
                 }
             }
-    
-    const errorMessages = [
-        '🌫️ Тишина... персонаж задумался',
-        '📡 Сигнал потерян... попробуй ещё раз',
-        '🌀 Магия связи дала сбой',
-        '🔮 Ничего не пришло из пустоты',
-        '⏳ Кажется, персонаж завис в размышлениях'
-    ];
-    const randomError = errorMessages[Math.floor(Math.random() * errorMessages.length)];
-    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-    
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'message bot';
-    errorDiv.innerHTML = `
-        <div class="message-avatar" style="background-image: url('${character.photo || ""}');"></div>
-        <div class="message-content">
-            <div class="message-bubble">${escapeHtml(randomError)}</div>
-            <div class="message-time">${time}</div>
-            <button class="resend-btn" style="background: white; border: none; border-radius: 20px; padding: 4px 12px; margin-top: 6px; font-size: 11px; color: #121212; cursor: pointer;">↻ Отправить заново</button>
-        </div>
-    `;
-    messagesContainer.appendChild(errorDiv);
-    
-    errorDiv.querySelector('.resend-btn').onclick = async () => {
-        errorDiv.querySelector('.resend-btn').textContent = '⟳ Отправка...';
-        errorDiv.querySelector('.resend-btn').disabled = true;
-        await sendMessageToServer(character, text, messagesContainer, storageKey, onReply);
-        errorDiv.remove();
-    };
-}
+
 
                         /* ========================================== */
             /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА                */
@@ -695,6 +675,7 @@ function renderChat(character) {
             <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
             <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
             <div class="chat-name">${escapeHtml(character.name)}</div>
+            <button id="clearChatBtn" style="background: transparent; border: none; color: #ff4d4d; font-size: 12px; cursor: pointer; margin-left: auto;">🗑️</button>
         </div>
         <div class="messages" id="chat-messages"></div>
         <div class="chat-input-container">
@@ -709,6 +690,19 @@ function renderChat(character) {
     const input = document.getElementById('chat-input');
     const sendBtn = document.getElementById('chat-send');
     const backBtn = document.getElementById('chat-back');
+
+    // Кнопка очистки чата
+    const clearBtn = document.getElementById('clearChatBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Очистить историю чата с этим персонажем?')) {
+                localStorage.setItem(storageKey, JSON.stringify([]));
+                messages = [];
+                messagesContainer.innerHTML = '';
+                if (tg.showAlert) tg.showAlert('Чат очищен');
+            }
+        });
+    }
 
     // Добавляем картинку и рамку сценария (первым элементом)
     if (character.scenario) {
@@ -1250,15 +1244,19 @@ function renderChat(character) {
             /* ========================================== */
             const splash = document.getElementById('splash-screen');
             const progressFill = document.getElementById('progress-fill');
-            setTimeout(() => progressFill.style.width = '100%', 100);
+            if (progressFill) {
+                setTimeout(() => progressFill.style.width = '100%', 100);
+            }
             setTimeout(() => {
-                splash.classList.add('hidden');
-                document.getElementById('main-content').classList.add('visible');
-                tg.HapticFeedback?.impactOccurred('medium');
+                if (splash) splash.classList.add('hidden');
+                const mainContent = document.getElementById('main-content');
+                if (mainContent) mainContent.classList.add('visible');
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             }, 3200);
 
             renderFeed();
-            barItems[0].classList.add('active');
+            const firstBar = document.querySelector('.bar-item[data-tab="feed"]');
+            if (firstBar) firstBar.classList.add('active');
 
             function escapeHtml(str) {
                 if (!str) return '';

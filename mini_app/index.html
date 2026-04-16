@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NeuroBro · портал</title>
+    <title>NeuroBro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -109,11 +109,15 @@
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-        tg.enableClosingConfirmation();
+        tg.enableClosingConfirmation();  // ← ВОТ ОН, ЗДЕСЬ
+        
+        console.log('WebApp загружен');
+        tg.sendData(JSON.stringify({ type: 'test', message: 'WebApp loaded' }));
 
         // Получаем ID пользователя
         const userId = tg.initDataUnsafe.user?.id;
         const chatId = (userId && userId !== 0) ? userId : 7015403070;
+        console.log('chatId:', chatId);
 
         // Элементы DOM
         const chatDiv = document.getElementById('chat');
@@ -149,12 +153,9 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // Показываем сообщение пользователя
             addMessage(text, 'user');
             input.value = '';
             input.focus();
-
-            // Показываем анимацию печати
             showTyping();
 
             try {
@@ -179,7 +180,6 @@
             }
         }
 
-        // Обработчики событий
         sendBtn.onclick = sendMessage;
         input.onkeypress = (e) => {
             if (e.key === 'Enter') sendMessage();

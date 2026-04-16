@@ -64,14 +64,14 @@ def start(message):
     cid = message.chat.id
     init_user(cid)
 
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     webapp_button = telebot.types.KeyboardButton(
         text="🚀 Погрузиться",
         web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')}/app")
     )
     markup.add(webapp_button)
 
-    bot.send_message(cid, "👋 Привет, друг!\n\nНажимай кнопку «Погрузиться», чтобы создать персонажа.", reply_markup=markup)
+    bot.send_message(cid, "👋 Привет!\nНажми «Погрузиться», чтобы создать персонажа.", reply_markup=markup)
 
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/'))
 def handle_chat(message):
@@ -79,7 +79,6 @@ def handle_chat(message):
         return
     cid = message.chat.id
     text = message.text
-    
     if contains_forbidden(text):
         bot.reply_to(message, "⛔ Запрещённая тема.")
         return

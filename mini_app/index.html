@@ -675,6 +675,7 @@ function renderChat(character) {
             <button class="chat-back" id="chat-back"><i data-lucide="arrow-left"></i> Назад</button>
             <div class="chat-avatar" style="background-image: url('${character.photo || ""}');"></div>
             <div class="chat-name">${escapeHtml(character.name)}</div>
+            <button id="clearChatBtn" style="background: transparent; border: none; color: #ff4d4d; font-size: 12px; cursor: pointer; margin-left: auto;">🗑️</button>
         </div>
         <div class="messages" id="chat-messages"></div>
         <div class="chat-input-container">
@@ -689,6 +690,19 @@ function renderChat(character) {
     const input = document.getElementById('chat-input');
     const sendBtn = document.getElementById('chat-send');
     const backBtn = document.getElementById('chat-back');
+
+    // Кнопка очистки чата
+    document.getElementById('clearChatBtn').addEventListener('click', () => {
+        if (confirm('Очистить историю чата с этим персонажем?')) {
+            localStorage.setItem(storageKey, JSON.stringify([]));
+            messages = [];
+            messagesContainer.innerHTML = '';
+            tg.showAlert('Чат очищен');
+        }
+    });
+
+    // ... остальной код (messages.forEach, addUserMessage, handleSend и т.д.)
+}
 
     // Добавляем картинку и рамку сценария (первым элементом)
     if (character.scenario) {

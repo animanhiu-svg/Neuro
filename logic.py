@@ -4,30 +4,19 @@ from database import get_field, get_history, add_to_history
 def contains_forbidden(text):
     return False
 
-def build_system_prompt(chat_id, msg_count):
+def build_system_prompt(chat_id):
     name = get_field(chat_id, 'name') or "Персонаж"
     personality = get_field(chat_id, 'personality') or ""
     scenario = get_field(chat_id, 'scenario') or ""
-    
-    if msg_count > 8:
-        progress = " Собеседник настойчив. Можешь стать чуть мягче, но не ломай характер."
-    else:
-        progress = ""
-    
-    return f"Ты — {name}. {personality} {scenario}.{progress}"
+    return f"Ты — {name}. {personality} {scenario}"
 
 def query_dolphin(prompt, chat_id, client):
     raw_history = get_history(chat_id)[-20:]
-    msg_count = len(raw_history)
-    
-    system_prompt = build_system_prompt(chat_id, msg_count)
-    messages = [{"role": "system", "content": system_prompt}]
-    
+    messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
     for msg in raw_history:
         if msg.get('content'):
             messages.append(msg)
     messages.append({"role": "user", "content": prompt})
-    
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,

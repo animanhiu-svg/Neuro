@@ -29,8 +29,8 @@ def build_system_prompt(chat_id, msg_count):
 
 Правила:
 - Отвечай от лица {name}
-- Следуй своему характеру, но старайся идти навстречу пользователю
-- Длина ответа: от 1 до 150 слов
+- Следуй своему характеру
+- Длина ответа: по ситуации (обычно 1-3 предложения, но можешь и чуть длиннее)
 - Эмодзи используй изредка
 - Не будь помощником, ты живой человек"""
 
@@ -39,7 +39,7 @@ def query_dolphin(prompt, chat_id, character_id, client):
     
     prompt_with_name = f"{prompt}\n\n(Ты — {name}. Не забывай, кто ты.)"
     
-    raw_history = get_history(chat_id, character_id)
+    raw_history = get_history(chat_id, character_id)[-160:]
     msg_count = len(raw_history)
     
     system_prompt = build_system_prompt(chat_id, msg_count)
@@ -53,7 +53,7 @@ def query_dolphin(prompt, chat_id, character_id, client):
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=400,
+            max_tokens=180,  # Хватит для 40 слов
             temperature=0.75,
             top_p=0.9
         )

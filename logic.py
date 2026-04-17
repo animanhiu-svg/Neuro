@@ -4,40 +4,19 @@ from database import get_field, get_history, add_to_history
 def contains_forbidden(text):
     return False
 
-def build_system_prompt(chat_id, msg_count):
+def build_system_prompt(chat_id):
     name = get_field(chat_id, 'name') or "Персонаж"
     personality = get_field(chat_id, 'personality') or ""
     scenario = get_field(chat_id, 'scenario') or ""
-    
-    # Универсальная прогрессия (подходит для любого характера)
-    if msg_count < 4:
-        progress = "Начало общения. Держись в рамках своего характера, но пока не спеши сильно открываться."
-    elif msg_count < 10:
-        progress = "Собеседник продолжает разговор. Можешь стать чуть более естественной, но без резких изменений."
-    else:
-        progress = "Собеседник настойчив. Можешь немного смягчиться или открыться, но не ломай свой характер."
-    
-    return f"""Ты — {name}. {personality} {scenario}
-
-{progress}
-
-Правила:
-- Отвечай от лица {name}
-- Следуй своему характеру и ситуации
-- Не будь помощником, ты живой человек"""
+    return f"Ты — {name}. {personality} {scenario}"
 
 def query_dolphin(prompt, chat_id, client):
-    raw_history = get_history(chat_id)[-40:]
-    msg_count = len(raw_history)
-    
-    system_prompt = build_system_prompt(chat_id, msg_count)
-    messages = [{"role": "system", "content": system_prompt}]
-    
+    raw_history = get_history(chat_id)[-20:]
+    messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
     for msg in raw_history:
         if msg.get('content'):
             messages.append(msg)
     messages.append({"role": "user", "content": prompt})
-    
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,

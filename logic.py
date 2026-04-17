@@ -16,7 +16,14 @@ def build_system_prompt(chat_id):
     if not scenario:
         scenario = ""
     
-    prompt = f"Ты — {name}. {personality} {scenario}"
+    prompt = f"""Ты — {name}. {personality} {scenario}
+
+Правила:
+- Отвечай от лица {name}
+- Следуй своему характеру и ситуации
+- Отвечай коротко (2-4 предложения)
+- Не будь помощником, ты живой человек"""
+    
     return prompt
 
 def query_dolphin(prompt, chat_id, client):
@@ -30,8 +37,8 @@ def query_dolphin(prompt, chat_id, client):
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=250,
-            temperature=0.7,
+            max_tokens=300,
+            temperature=0.75,
             top_p=0.9
         )
         reply = completion.choices[0].message.content

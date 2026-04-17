@@ -579,14 +579,15 @@
                 const userPrompt = userPromptParts.join('\n');
 
                 const payload = {
-                    chat_id: chat_id,
-                    message: text,
-                    character: {
-                        nsfw_mode: false,
-                        user_prompt: userPrompt
-                    },
-                    history: []
-                };
+    chat_id: chat_id,
+    character_id: character.id,
+    message: text,
+    character: {
+        nsfw_mode: false,
+        user_prompt: userPrompt
+    },
+    history: []
+};
 
                 try {
                     const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
@@ -663,8 +664,7 @@
 
                         /* ========================================== */
             /* МОДУЛЬ №17: ОТРИСОВКА ЧАТА                */
-            /* ========================================== */
-          /* ========================================== */
+            
 function renderChat(character) {
     const storageKey = `chat_${character.id}`;
     let messages = [];
@@ -694,23 +694,55 @@ function renderChat(character) {
     // Кнопка очистки чата
     const clearBtn = document.getElementById('clearChatBtn');
     if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
+        clearBtn.addEventListener('click', async () => {
             if (confirm('Очистить историю чата с этим персонажем?')) {
+                // Очищаем локальную историю
                 localStorage.setItem(storageKey, JSON.stringify([]));
                 messages = [];
                 messagesContainer.innerHTML = '';
+                
+                // Очищаем историю на сервере
+                try {
+                    await fetch('/clear_history', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            chat_id: chat_id, 
+                            character_id: character.id 
+                        })
+                    });
+                } catch(e) {
+                    console.error('Ошибка очистки истории на сервере:', e);
+                }
+                
+                // Добавляем сценарий обратно (если есть)
+                if (character.scenario) {
+                    const scenarioWrapper = document.createElement('div');
+                    scenarioWrapper.style.position = 'relative';
+                    scenarioWrapper.style.marginBottom = '20px';
+                    scenarioWrapper.style.marginTop = '30px';
+                    scenarioWrapper.innerHTML = `
+                        <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
+                             style="position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"
+                             alt="decor">
+                        <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px;">
+                            <div style="font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.85); font-style: italic; text-align: center;">${escapeHtml(character.scenario)}</div>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(scenarioWrapper);
+                }
+                
                 if (tg.showAlert) tg.showAlert('Чат очищен');
             }
         });
     }
 
-    // Добавляем картинку и рамку сценария (первым элементом)
+    // Добавляем сценарий в начало чата (если есть)
     if (character.scenario) {
         const scenarioWrapper = document.createElement('div');
         scenarioWrapper.style.position = 'relative';
         scenarioWrapper.style.marginBottom = '20px';
         scenarioWrapper.style.marginTop = '30px';
-        
         scenarioWrapper.innerHTML = `
             <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
                  style="position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"

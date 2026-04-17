@@ -24,7 +24,7 @@ def query_dolphin(prompt, chat_id, client):
     # Напоминание имени в каждом запросе
     prompt_with_name = f"{prompt}\n\n(Ты — {name}. Не забывай, кто ты.)"
     
-    raw_history = get_history(chat_id)[-20:]
+    raw_history = get_history(chat_id)[-40:]  # 40 последних сообщений
     messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
     for msg in raw_history:
         if msg.get('content'):

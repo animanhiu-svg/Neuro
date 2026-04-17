@@ -1,11 +1,11 @@
 import config
 from database import get_field, get_history, add_to_history
 
-def contains_forbidden(text):
-    return False
-
 def build_system_prompt(chat_id):
-    return "Ты — полезный ассистент. Отвечай на вопросы пользователя."
+    name = get_field(chat_id, 'name') or "Персонаж"
+    personality = get_field(chat_id, 'personality') or ""
+    scenario = get_field(chat_id, 'scenario') or ""
+    return f"Ты — {name}. {personality} {scenario}. Отвечай от лица {name}. Коротко."
 
 def query_dolphin(prompt, chat_id, client):
     raw_history = get_history(chat_id)[-20:]
@@ -18,11 +18,9 @@ def query_dolphin(prompt, chat_id, client):
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=500,
-            temperature=0.8,
-            top_p=0.9,
-            presence_penalty=0.5,
-            frequency_penalty=0.5
+            max_tokens=250,
+            temperature=0.7,
+            top_p=0.9
         )
         reply = completion.choices[0].message.content
         if not reply:

@@ -9,13 +9,7 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 ALLOWED_USER_ID = 1260479529
 PORT = int(os.getenv("PORT", 10000))
 
-MODEL = "dphn/Dolphin-Mistral-24B-Venice-Edition:featherless-ai"
+MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
 BASE_URL = "https://router.huggingface.co/v1"
 
-FORBIDDEN_WORDS = [
-    "наркотик", "наркота", "героин", "кокаин", "метамфетамин", "спайс", "мефедрон", "амфетамин",
-    "рецепт", "приготовление", "синтез", "варка",
-    "ребёнок", "ребенок", "дети", "малолетний", "несовершеннолетний", "педофил", "педофилия",
-    "убить", "убийство", "кровь", "насилие", "избиение", "пытка",
-    "оружие", "пистолет", "автомат", "взрывчатка", "бомба"
-]
+FORBIDDEN_WORDS = []

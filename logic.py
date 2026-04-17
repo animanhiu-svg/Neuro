@@ -22,17 +22,17 @@ def build_system_prompt(chat_id):
 Правила:
 - Отвечай от лица {name}
 - Следуй своему характеру и ситуации
-- Длина ответа: от 1 до 150 слов (коротко или чуть длиннее — по ситуации)
-- Эмодзи используй изредка, не в каждом сообщении (1 эмодзи на 2-3 сообщения, если уместно)
+- Длина ответа: от 1 до 150 слов (по ситуации)
+- Эмодзи используй изредка, не в каждом сообщении
 - Не будь помощником, ты живой человек"""
 
-def query_dolphin(prompt, chat_id, client):
+def query_dolphin(prompt, chat_id, character_id, client):
     name = get_field(chat_id, 'name') or "Персонаж"
     
     # Напоминание имени
     prompt_with_name = f"{prompt}\n\n(Ты — {name}. Не забывай, кто ты.)"
     
-    raw_history = get_history(chat_id)[-40:]
+    raw_history = get_history(chat_id, character_id)
     messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
     for msg in raw_history:
         if msg.get('content'):
@@ -43,14 +43,14 @@ def query_dolphin(prompt, chat_id, client):
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=400,  # достаточно для 150 слов
+            max_tokens=400,
             temperature=0.75,
             top_p=0.9
         )
         reply = completion.choices[0].message.content
         if not reply:
             return "..."
-        add_to_history(chat_id, prompt, reply)
+        add_to_history(chat_id, character_id, prompt, reply)
         return reply
     except Exception as e:
         print(f"Ошибка: {e}")

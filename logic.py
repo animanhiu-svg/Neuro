@@ -5,7 +5,7 @@ from database import get_field, get_history, add_to_history
 def contains_forbidden(text):
     return False
 
-def build_system_prompt(chat_id):
+def build_system_prompt(chat_id, msg_count):
     name = get_field(chat_id, 'name')
     personality = get_field(chat_id, 'personality')
     scenario = get_field(chat_id, 'scenario')
@@ -17,7 +17,15 @@ def build_system_prompt(chat_id):
     if not scenario:
         scenario = "обычный разговор"
     
-    return f"""Ты — {name}. {personality} {scenario}
+    # ПРОГРЕССИЯ: первые сообщения строго по роли, потом мягче
+    if msg_count < 4:
+        progress = " Сейчас ты в начале общения. Держись строго в рамках своего характера и сценария."
+    elif msg_count < 10:
+        progress = " Разговор продолжается. Можешь стать чуть естественнее, но не ломай роль."
+    else:
+        progress = " Собеседник настойчив. Можешь постепенно становиться чуть открытее, но не меняй характер резко."
+    
+    return f"""Ты — {name}. {personality} {scenario}.{progress}
 
 Правила:
 - Отвечай от лица {name}
@@ -33,7 +41,10 @@ def query_dolphin(prompt, chat_id, character_id, client):
     prompt_with_name = f"{prompt}\n\n(Ты — {name}. Не забывай, кто ты.)"
     
     raw_history = get_history(chat_id, character_id)
-    messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
+    msg_count = len(raw_history)  # СЧЁТЧИК СООБЩЕНИЙ
+    
+    system_prompt = build_system_prompt(chat_id, msg_count)
+    messages = [{"role": "system", "content": system_prompt}]
     for msg in raw_history:
         if msg.get('content'):
             messages.append(msg)

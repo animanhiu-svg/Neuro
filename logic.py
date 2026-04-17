@@ -1,6 +1,9 @@
 import config
 from database import get_field, get_history, add_to_history
 
+def contains_forbidden(text):
+    return False
+
 def build_system_prompt(chat_id):
     name = get_field(chat_id, 'name') or "Персонаж"
     personality = get_field(chat_id, 'personality') or ""

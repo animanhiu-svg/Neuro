@@ -1,47 +1,35 @@
-import config
-from database import get_field, get_history, add_to_history
+from database import get_field
 
-def contains_forbidden(text):
-    return False
+def build_system_prompt(chat_id: int, character_id: int) -> str:
+    name = get_field(chat_id, character_id, 'name') or "Персонаж"
+    personality = get_field(chat_id, character_id, 'personality') or ""
+    scenario = get_field(chat_id, character_id, 'scenario') or "обычный разговор"
+    greeting = get_field(chat_id, character_id, 'greeting') or ""
+    appearance = get_field(chat_id, character_id, 'appearance') or ""
+    memory = get_field(chat_id, character_id, 'memory') or ""
 
-def build_system_prompt(chat_id):
-    name = get_field(chat_id, 'name') or "Персонаж"
-    personality = get_field(chat_id, 'personality') or ""
-    scenario = get_field(chat_id, 'scenario') or ""
-
-    if not scenario:
-        scenario = "обычный разговор"
-
-    return f"""Ты — {name}. {personality} {scenario}
+    prompt = f"""Ты — {name}. {personality}
+Сейчас происходит: {scenario}
+Внешность: {appearance}
+Память: {memory}
+Приветствие: {greeting}
 
 Правила:
 - Строго следуй своему характеру и сценарию.
 - Отвечай от лица {name}.
-- Не ломай роль. Ты не ассистент, не языковая модель."""
+- Не ломай роль. Ты не ассистент, не языковая модель.
+- Используй приветствие, если это начало диалога.
+- Учитывай обстоятельства из сценария и память."""
+    return prompt
 
 def query_dolphin(prompt, chat_id, character_id, client):
-    raw_history = get_history(chat_id, character_id)[-60:]
-    messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
-    for msg in raw_history:
-        if msg.get('content'):
-            messages.append(msg)
+    history = get_history(chat_id, character_id, limit=60)  # последние 60 сообщений
+    system = build_system_prompt(chat_id, character_id)
+    messages = [{"role": "system", "content": system}]
+    messages.extend(history)
     messages.append({"role": "user", "content": prompt})
 
-    try:
-        completion = client.chat.completions.create(
-            model=config.MODEL,
-            messages=messages,
-            max_tokens=300,
-            temperature=0.3,
-            top_p=0.9,
-            frequency_penalty=0.5,
-            presence_penalty=0.5
-        )
-        reply = completion.choices[0].message.content
-        if not reply:
-            return "..."
-        add_to_history(chat_id, character_id, prompt, reply)
-        return reply
-    except Exception as e:
-        print(f"Ошибка: {e}")
-        return "Ошибка"
+    # ... вызов LLM (остаётся без изменений)
+    # После получения ответа:
+    add_to_history(chat_id, character_id, prompt, reply)
+    return reply

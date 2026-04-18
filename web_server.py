@@ -81,7 +81,7 @@ def start(message):
     webapp_button = telebot.types.KeyboardButton(
         text="🚀 Погрузиться",
         web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')}/app")
-    
+    style="danger"
     )
     markup.add(webapp_button)
 

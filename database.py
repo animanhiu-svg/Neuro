@@ -4,30 +4,31 @@ import os
 user_settings = {}
 user_history = {}
 
-# === ДОБАВЛЕНО: сохранение/загрузка в файл ===
 DATA_FILE = "neuro_data.json"
 
 def save_data():
     try:
-        with open(DATA_FILE, 'w') as f:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump({
                 'settings': {str(k): v for k, v in user_settings.items()},
                 'history': {str(k): v for k, v in user_history.items()}
-            }, f)
-    except: pass
+            }, f, ensure_ascii=False)
+    except Exception as e:
+        print(f"Ошибка сохранения: {e}")
 
 def load_data():
     global user_settings, user_history
     if os.path.exists(DATA_FILE):
         try:
-            with open(DATA_FILE, 'r') as f:
-                d = json.load(f)
-            user_settings = {eval(k): v for k, v in d.get('settings', {}).items()}
-            user_history = {eval(k): v for k, v in d.get('history', {}).items()}
-        except: pass
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            user_settings = {int(k) if k.isdigit() else k: v for k, v in data.get('settings', {}).items()}
+            user_history = {k: v for k, v in data.get('history', {}).items()}
+            print(f"Загружено {len(user_settings)} настроек, {len(user_history)} историй")
+        except Exception as e:
+            print(f"Ошибка загрузки: {e}")
 
 load_data()
-# === КОНЕЦ ДОБАВЛЕННОГО ===
 
 def get_history_key(chat_id, character_id):
     return f"{chat_id}_{character_id}"

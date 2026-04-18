@@ -1,105 +1,83 @@
-import sqlite3
 import json
-from typing import List, Dict, Any, Optional
+import os
 
-DB_PATH = "neuro_bot.db"
+user_settings = {}
+user_history = {}
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+# === ДОБАВЛЕНО: сохранение/загрузка в файл ===
+DATA_FILE = "neuro_data.json"
 
-def init_db():
-    with get_db() as conn:
-        # Таблица настроек персонажей (привязка к chat_id + character_id)
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS character_settings (
-                chat_id INTEGER,
-                character_id INTEGER,
-                field TEXT,
-                value TEXT,
-                PRIMARY KEY (chat_id, character_id, field)
-            )
-        ''')
-        # Таблица истории сообщений
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS chat_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chat_id INTEGER,
-                character_id INTEGER,
-                role TEXT,
-                content TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        # Индекс для быстрой выборки последних сообщений
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_history ON chat_history(chat_id, character_id, timestamp)')
-        conn.commit()
+def save_data():
+    try:
+        with open(DATA_FILE, 'w') as f:
+            json.dump({
+                'settings': {str(k): v for k, v in user_settings.items()},
+                'history': {str(k): v for k, v in user_history.items()}
+            }, f)
+    except: pass
 
-# Инициализация при старте
-init_db()
+def load_data():
+    global user_settings, user_history
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, 'r') as f:
+                d = json.load(f)
+            user_settings = {eval(k): v for k, v in d.get('settings', {}).items()}
+            user_history = {eval(k): v for k, v in d.get('history', {}).items()}
+        except: pass
 
-def init_user(chat_id: int, character_id: int):
-    """Не нужна для SQLite, но оставим для совместимости"""
-    pass
+load_data()
+# === КОНЕЦ ДОБАВЛЕННОГО ===
 
-def update_field(chat_id: int, character_id: int, field: str, value: Any):
-    with get_db() as conn:
-        # Сохраняем как JSON, чтобы поддерживать любые типы
-        val_json = json.dumps(value, ensure_ascii=False)
-        conn.execute('''
-            INSERT OR REPLACE INTO character_settings (chat_id, character_id, field, value)
-            VALUES (?, ?, ?, ?)
-        ''', (chat_id, character_id, field, val_json))
-        conn.commit()
+def get_history_key(chat_id, character_id):
+    return f"{chat_id}_{character_id}"
 
-def get_field(chat_id: int, character_id: int, field: str, default=None):
-    with get_db() as conn:
-        row = conn.execute('''
-            SELECT value FROM character_settings
-            WHERE chat_id=? AND character_id=? AND field=?
-        ''', (chat_id, character_id, field)).fetchone()
-        if row:
-            return json.loads(row['value'])
-        return default
+def init_user(chat_id):
+    if chat_id not in user_settings:
+        user_settings[chat_id] = {
+            'name': None, 'gender': None, 'age': None,
+            'greeting': None, 'appearance': None,
+            'personality': None, 'scenario': None,
+            'memory': None, 'tags': None, 'photo': None,
+            'limit': 400
+        }
+        save_data()
 
-def add_to_history(chat_id: int, character_id: int, user_msg: Optional[str], bot_msg: Optional[str]):
-    with get_db() as conn:
-        if user_msg:
-            conn.execute('''
-                INSERT INTO chat_history (chat_id, character_id, role, content)
-                VALUES (?, ?, ?, ?)
-            ''', (chat_id, character_id, 'user', user_msg))
-        if bot_msg:
-            conn.execute(''br
-                INSERT INTO chat_history (chat_id, character_id, role, content)
-                VALUES (?, ?, ?, ?)
-            ''', (chat_id, character_id, 'assistant', bot_msg))
-        conn.commit()
+def update_field(chat_id, field, value):
+    init_user(chat_id)
+    user_settings[chat_id][field] = value
+    save_data()
 
-def get_history(chat_id: int, character_id: int, limit: int = 60) -> List[Dict[str, str]]:
-    with get_db() as conn:
-        rows = conn.execute('''
-            SELECT role, content FROM chat_history
-            WHERE chat_id=? AND character_id=?
-            ORDER BY timestamp DESC
-            LIMIT ?
-        ''', (chat_id, character_id, limit)).fetchall()
-        # Возвращаем в хронологическом порядке (от старых к новым)
-        history = [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
-        return history
+def get_field(chat_id, field, default=None):
+    return user_settings.get(chat_id, {}).get(field, default)
 
-def clear_history(chat_id: int, character_id: int):
-    with get_db() as conn:
-        conn.execute('''
-            DELETE FROM chat_history
-            WHERE chat_id=? AND character_id=?
-        ''', (chat_id, character_id))
-        conn.commit()
+def add_to_history(chat_id, character_id, user_msg, bot_msg):
+    key = get_history_key(chat_id, character_id)
+    if key not in user_history:
+        user_history[key] = []
+    if user_msg:
+        user_history[key].append({"role": "user", "content": user_msg})
+    if bot_msg:
+        user_history[key].append({"role": "assistant", "content": bot_msg})
+    if len(user_history[key]) > 200:
+        user_history[key] = user_history[key][-200:]
+    save_data()
 
-def reset_all(chat_id: int):
-    with get_db() as conn:
-        # Удаляем все настройки и историю для данного chat_id
-        conn.execute('DELETE FROM character_settings WHERE chat_id=?', (chat_id,))
-        conn.execute('DELETE FROM chat_history WHERE chat_id=?', (chat_id,))
-        conn.commit()
+def get_history(chat_id, character_id):
+    key = get_history_key(chat_id, character_id)
+    return user_history.get(key, [])[-160:]
+
+def clear_history(chat_id, character_id):
+    key = get_history_key(chat_id, character_id)
+    if key in user_history:
+        user_history[key] = []
+    save_data()
+
+def reset_all(chat_id):
+    if chat_id in user_settings:
+        del user_settings[chat_id]
+    keys_to_delete = [k for k in user_history if k.startswith(f"{chat_id}_")]
+    for k in keys_to_delete:
+        del user_history[k]
+    init_user(chat_id)
+    save_data()

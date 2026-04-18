@@ -4,34 +4,24 @@ from database import get_field, get_history, add_to_history
 def contains_forbidden(text):
     return False
 
-def build_system_prompt(chat_id, character_id):
-    # Добавил character_id, чтобы брать правильные настройки
+def build_system_prompt(chat_id):
     name = get_field(chat_id, 'name') or "Персонаж"
     personality = get_field(chat_id, 'personality') or ""
-    scenario = get_field(chat_id, 'scenario') or "обычный разговор"
-    greeting = get_field(chat_id, 'greeting') or ""
-    appearance = get_field(chat_id, 'appearance') or ""
-    memory = get_field(chat_id, 'memory') or ""
+    scenario = get_field(chat_id, 'scenario') or ""
 
-    prompt = f"""Ты — {name}. {personality}
+    if not scenario:
+        scenario = "обычный разговор"
 
-Сценарий: {scenario}
-Внешность: {appearance}
-Память: {memory}
-Приветствие: {greeting}
+    return f"""Ты — {name}. {personality} {scenario}
 
 Правила:
 - Строго следуй своему характеру и сценарию.
 - Отвечай от лица {name}.
-- Не ломай роль. Ты не ассистент, не языковая модель.
-- Используй приветствие, если диалог только начался.
-- Учитывай сценарий и память в каждом ответе."""
-    
-    return prompt
+- Не ломай роль. Ты не ассистент, не языковая модель."""
 
 def query_dolphin(prompt, chat_id, character_id, client):
     raw_history = get_history(chat_id, character_id)[-60:]
-    messages = [{"role": "system", "content": build_system_prompt(chat_id, character_id)}]
+    messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
     for msg in raw_history:
         if msg.get('content'):
             messages.append(msg)
@@ -41,8 +31,8 @@ def query_dolphin(prompt, chat_id, character_id, client):
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=500,  # Увеличил для лучших ответов
-            temperature=0.8,  # Поднял температуру
+            max_tokens=300,
+            temperature=0.3,
             top_p=0.9,
             frequency_penalty=0.5,
             presence_penalty=0.5
@@ -54,4 +44,4 @@ def query_dolphin(prompt, chat_id, character_id, client):
         return reply
     except Exception as e:
         print(f"Ошибка: {e}")
-        return "Извини, ошибка, давай еще раз?"
+        return "Ошибка"

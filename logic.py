@@ -1,61 +1,41 @@
 import config
-import random
 from database import get_field, get_history, add_to_history
 
 def contains_forbidden(text):
     return False
 
-def build_system_prompt(chat_id, msg_count):
-    name = get_field(chat_id, 'name')
-    personality = get_field(chat_id, 'personality')
-    scenario = get_field(chat_id, 'scenario')
-    
-    if not name:
-        name = "Персонаж"
-    if not personality:
-        personality = "обычный человек"
+def build_system_prompt(chat_id):
+    name = get_field(chat_id, 'name') or "Персонаж"
+    personality = get_field(chat_id, 'personality') or ""
+    scenario = get_field(chat_id, 'scenario') or ""
+
     if not scenario:
         scenario = "обычный разговор"
-    
-    # УНИВЕРСАЛЬНОЕ ПРАВИЛО: иди навстречу пользователю
-    if msg_count < 3:
-        progress = " В начале общения можешь быть осторожной, но не груби. Постарайся ответить, даже если не хочется."
-    elif msg_count < 8:
-        progress = " Собеседник проявляет интерес. Постепенно становись чуть открытее, отвечай подробнее."
-    else:
-        progress = " Ты уже немного доверяешь собеседнику. Можешь говорить о своих чувствах, но оставайся в рамках своего характера."
-    
-    return f"""Ты — {name}. {personality} {scenario}.{progress}
+
+    return f"""Ты — {name}. {personality} {scenario}
 
 Правила:
-- Отвечай от лица {name}
-- Следуй своему характеру
-- Длина ответа: по ситуации (обычно 1-3 предложения, но можешь и чуть длиннее)
-- Эмодзи используй изредка
-- Не будь помощником, ты живой человек"""
+- Строго следуй своему характеру и сценарию.
+- Отвечай от лица {name}.
+- Не ломай роль. Ты не ассистент, не языковая модель."""
 
 def query_dolphin(prompt, chat_id, character_id, client):
-    name = get_field(chat_id, 'name') or "Персонаж"
-    
-    prompt_with_name = f"{prompt}\n\n(Ты — {name}. Не забывай, кто ты.)"
-    
-    raw_history = get_history(chat_id, character_id)[-160:]
-    msg_count = len(raw_history)
-    
-    system_prompt = build_system_prompt(chat_id, msg_count)
-    messages = [{"role": "system", "content": system_prompt}]
+    raw_history = get_history(chat_id, character_id)[-60:]
+    messages = [{"role": "system", "content": build_system_prompt(chat_id)}]
     for msg in raw_history:
         if msg.get('content'):
             messages.append(msg)
-    messages.append({"role": "user", "content": prompt_with_name})
-    
+    messages.append({"role": "user", "content": prompt})
+
     try:
         completion = client.chat.completions.create(
             model=config.MODEL,
             messages=messages,
-            max_tokens=180,  # Хватит для 40 слов
-            temperature=0.75,
-            top_p=0.9
+            max_tokens=300,
+            temperature=0.3,
+            top_p=0.9,
+            frequency_penalty=0.5,
+            presence_penalty=0.5
         )
         reply = completion.choices[0].message.content
         if not reply:

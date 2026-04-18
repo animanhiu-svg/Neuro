@@ -10,8 +10,8 @@ def save_data():
     try:
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump({
-                'settings': {str(k): v for k, v in user_settings.items()},
-                'history': {str(k): v for k, v in user_history.items()}
+                'settings': user_settings,
+                'history': user_history
             }, f, ensure_ascii=False)
     except Exception as e:
         print(f"Ошибка сохранения: {e}")
@@ -22,8 +22,8 @@ def load_data():
         try:
             with open(DATA_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            user_settings = {int(k) if k.isdigit() else k: v for k, v in data.get('settings', {}).items()}
-            user_history = {k: v for k, v in data.get('history', {}).items()}
+                user_settings = data.get('settings', {})
+                user_history = data.get('history', {})
             print(f"Загружено {len(user_settings)} настроек, {len(user_history)} историй")
         except Exception as e:
             print(f"Ошибка загрузки: {e}")

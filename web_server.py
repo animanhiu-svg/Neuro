@@ -25,10 +25,19 @@ def chat():
     chat_id = data.get('chat_id')
     character_id = data.get('character_id')
     message = data.get('message')
+    character = data.get('character')
+    
     if not chat_id or not character_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
+    
+    # Сохраняем персонажа при каждом сообщении
+    if character and character.get('name'):
+        for key, value in character.items():
+            if value:
+                update_field(chat_id, key, value)
+    
     try:
         reply = query_dolphin(message, chat_id, character_id, client)
         return jsonify({'reply': reply})
@@ -44,7 +53,6 @@ def save_character():
     character = data.get('character')
     if not chat_id or not character:
         return jsonify({'error': 'Missing data'}), 400
-    
     init_user(chat_id)
     for key, value in character.items():
         if value:

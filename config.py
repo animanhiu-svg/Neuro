@@ -9,7 +9,7 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 ALLOWED_USER_ID = 1260479529
 PORT = int(os.getenv("PORT", 10000))
 
-MODEL = "google/gemma-4-31B-it"
+MODEL = "zai-org/GLM-5.1"
 BASE_URL = "https://router.huggingface.co/v1"
 
 FORBIDDEN_WORDS = []

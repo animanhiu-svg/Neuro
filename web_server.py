@@ -1,6 +1,7 @@
 import os
 import json
 import telebot
+import time
 from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 import config
@@ -25,15 +26,35 @@ def chat():
     chat_id = data.get('chat_id')
     character_id = data.get('character_id')
     message = data.get('message')
+    character = data.get('character')
+    
     if not chat_id or not character_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
-    try:
-        reply = query_dolphin(message, chat_id, character_id, client)
-        return jsonify({'reply': reply})
-    except Exception as e:
-        return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
+    
+    if character and character.get('name'):
+        for key, value in character.items():
+            if value:
+                update_field(chat_id, key, value)
+    
+    # ПОВТОРНАЯ ОТПРАВКА - 3 попытки
+    for attempt in range(3):
+        try:
+            reply = query_dolphin(message, chat_id, character_id, client)
+            if reply and reply != "..." and reply != "Ошибка":
+                return jsonify({'reply': reply})
+            else:
+                print(f"Попытка {attempt+1} не удалась, ответ: {reply}")
+                if attempt < 2:
+                    time.sleep(1)  # ждем 1 секунду перед повтором
+        except Exception as e:
+            print(f"Попытка {attempt+1} ошибка: {e}")
+            if attempt < 2:
+                time.sleep(1)
+    
+    # Если все попытки провалились
+    return jsonify({'reply': "⚠️ Не удалось получить ответ. Нажми «Отправить снова»."}), 500
 
 @app.route('/save_character', methods=['POST'])
 def save_character():
@@ -97,7 +118,6 @@ def handle_chat(message):
         return
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-    # Для сообщений из Telegram нет character_id, используем 0
     reply = query_dolphin(text, cid, 0, client)
     bot.send_message(cid, reply)
 

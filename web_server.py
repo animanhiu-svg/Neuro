@@ -1,7 +1,6 @@
 import os
 import json
 import telebot
-import time
 from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 import config
@@ -38,23 +37,15 @@ def chat():
             if value:
                 update_field(chat_id, key, value)
     
-    # ПОВТОРНАЯ ОТПРАВКА - 3 попытки
-    for attempt in range(3):
-        try:
-            reply = query_dolphin(message, chat_id, character_id, client)
-            if reply and reply != "..." and reply != "Ошибка":
-                return jsonify({'reply': reply})
-            else:
-                print(f"Попытка {attempt+1} не удалась, ответ: {reply}")
-                if attempt < 2:
-                    time.sleep(1)  # ждем 1 секунду перед повтором
-        except Exception as e:
-            print(f"Попытка {attempt+1} ошибка: {e}")
-            if attempt < 2:
-                time.sleep(1)
-    
-    # Если все попытки провалились
-    return jsonify({'reply': "⚠️ Не удалось получить ответ. Нажми «Отправить снова»."}), 500
+    try:
+        reply = query_dolphin(message, chat_id, character_id, client)
+        # Если ответ пустой или три точки - возвращаем ошибку 500
+        if not reply or reply == "...":
+            return jsonify({'reply': ''}), 500
+        return jsonify({'reply': reply})
+    except Exception as e:
+        # Любая ошибка - возвращаем 500, HTML покажет свою заглушку
+        return jsonify({'reply': ''}), 500
 
 @app.route('/save_character', methods=['POST'])
 def save_character():

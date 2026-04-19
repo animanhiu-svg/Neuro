@@ -1,5 +1,4 @@
 import config
-import time
 from database import get_field, get_history, add_to_history
 
 def contains_forbidden(text):
@@ -40,9 +39,9 @@ def query_dolphin(prompt, chat_id, character_id, client):
         )
         reply = completion.choices[0].message.content
         if not reply:
-            return None  # Вернет None, сервер повторит попытку
+            return None  # Триггерит ошибку 500 на сервере
         add_to_history(chat_id, character_id, prompt, reply)
         return reply
     except Exception as e:
         print(f"Ошибка: {e}")
-        return None  # Вернет None, сервер повторит попытку
+        return None  # Триггерит ошибку 500 на сервере

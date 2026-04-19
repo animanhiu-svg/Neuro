@@ -1,6 +1,7 @@
 import os
 import json
 import telebot
+import time
 from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 import config
@@ -12,6 +13,8 @@ bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')
 
+last_request_time = 0
+
 @app.route('/')
 @app.route('/app')
 def serve_app():
@@ -19,21 +22,41 @@ def serve_app():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    global last_request_time
+    
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
+    
     chat_id = data.get('chat_id')
     character_id = data.get('character_id')
     message = data.get('message')
+    character = data.get('character')
+    
     if not chat_id or not character_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
+    # Задержка 2 секунды между запросами (защита от бана HF)
+    elapsed = time.time() - last_request_time
+    if elapsed < 2:
+        time.sleep(2 - elapsed)
+    last_request_time = time.time()
+
     init_user(chat_id)
+    
+    if character and character.get('name'):
+        for key, value in character.items():
+            if value:
+                update_field(chat_id, key, value)
+    
     try:
         reply = query_dolphin(message, chat_id, character_id, client)
+        if not reply or reply == "...":
+            return jsonify({'reply': ''}), 500
         return jsonify({'reply': reply})
     except Exception as e:
-        return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
+        print(f"Ошибка: {e}")
+        return jsonify({'reply': ''}), 500
 
 @app.route('/save_character', methods=['POST'])
 def save_character():
@@ -97,7 +120,6 @@ def handle_chat(message):
         return
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-    # Для сообщений из Telegram нет character_id, используем 0
     reply = query_dolphin(text, cid, 0, client)
     bot.send_message(cid, reply)
 

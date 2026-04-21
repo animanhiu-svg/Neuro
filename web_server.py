@@ -8,7 +8,7 @@ import config
 from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
 from logic import contains_forbidden, query_dolphin
 
-client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
+client = OpenAI(base_url=config.BASE_URL, api_key=config.DEEPSEEK_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')
@@ -36,7 +36,6 @@ def chat():
     if not chat_id or not character_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
-    # Задержка 2 секунды между запросами (защита от бана HF)
     elapsed = time.time() - last_request_time
     if elapsed < 2:
         time.sleep(2 - elapsed)

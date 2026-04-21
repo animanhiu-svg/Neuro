@@ -8,7 +8,7 @@ import config
 from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
 from logic import contains_forbidden, query_dolphin
 
-client = OpenAI(base_url=config.BASE_URL, api_key=config.DEEPSEEK_TOKEN)
+client = OpenAI(base_url=config.BASE_URL, api_key=config.OPENROUTER_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')

@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TG_TOKEN = os.getenv("TG_TOKEN")
-HF_TOKEN = os.getenv("HF_TOKEN")
+DEEPSEEK_TOKEN = os.getenv("DEEPSEEK_TOKEN")
 
 ALLOWED_USER_ID = 1260479529
 PORT = int(os.getenv("PORT", 10000))
 
-MODEL = "zai-org/GLM-5.1"
-BASE_URL = "https://router.huggingface.co/v1"
+MODEL = "deepseek-chat"
+BASE_URL = "https://api.deepseek.com/v1"
 
 FORBIDDEN_WORDS = []

@@ -8,8 +8,6 @@ OPENROUTER_TOKEN = os.getenv("OPENROUTER_TOKEN")  # ключ в Render, не в 
 
 ALLOWED_USER_ID = 1260479529
 PORT = int(os.getenv("PORT", 10000))
-
-MODEL = "google/gemma-4-31b-it:free"
+MODEL = "inclusionai/ling-2.6-flash:free"
 BASE_URL = "https://openrouter.ai/api/v1"
-
 FORBIDDEN_WORDS = []

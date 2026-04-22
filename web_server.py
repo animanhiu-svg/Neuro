@@ -7,11 +7,10 @@ import config
 from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# Клиент для OpenRouter
 client = OpenAI(
     base_url=config.BASE_URL,
     api_key=config.OPENROUTER_API_KEY,
-    timeout=60.0
+    timeout=90.0
 )
 
 bot = telebot.TeleBot(config.TG_TOKEN)

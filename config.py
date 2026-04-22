@@ -6,8 +6,8 @@ load_dotenv()
 TG_TOKEN = os.getenv("TG_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-ALLOWED_USER_ID = 1260479529
-PORT = int(os.getenv("PORT", 10000))
+ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", 1260479529))
+PORT = int(os.getenv("PORT", 8080))
 
 MODEL = "meta-llama/llama-3.1-70b-instruct"
 BASE_URL = "https://openrouter.ai/api/v1"

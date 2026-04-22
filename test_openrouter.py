@@ -2,7 +2,7 @@ import os
 from openai import OpenAI
 
 # Вставь сюда свой ключ временно (потом удали)
-OPENROUTER_API_KEY = "sk-or-v1-твой_ключ_сюда"
+OPENROUTER_API_KEY = "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"
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",

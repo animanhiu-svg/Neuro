@@ -1,26 +1,21 @@
 import os
 import json
 import telebot
-import requests
 from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 import config
-from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
+from database import init_user, update_field, get_field, get_history, add_to_history
 from logic import contains_forbidden, query_dolphin
 
-# Клиент OpenAI для работы с моделью
+# Клиент для OpenRouter
 client = OpenAI(
     base_url=config.BASE_URL,
-    api_key=config.HF_TOKEN,
-    timeout=60.0  # увеличенный таймаут для тяжёлых моделей
+    api_key=config.OPENROUTER_API_KEY,
+    timeout=60.0
 )
 
 bot = telebot.TeleBot(config.TG_TOKEN)
 app = Flask(__name__, static_folder='mini_app')
-
-# ==========================================
-# Flask эндпоинты
-# ==========================================
 
 @app.route('/')
 @app.route('/app')
@@ -59,27 +54,12 @@ def save_character():
             update_field(chat_id, key, value)
     return jsonify({'status': 'ok'})
 
-@app.route('/clear_history', methods=['POST'])
-def clear_history_endpoint():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No JSON data'}), 400
-    chat_id = data.get('chat_id')
-    if not chat_id:
-        return jsonify({'error': 'Missing chat_id'}), 400
-    clear_history(chat_id)
-    return jsonify({'status': 'ok'})
-
 @app.route('/webhook', methods=['POST'])
 def webhook():
     json_str = request.get_data().decode('UTF-8')
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
     return 'ok', 200
-
-# ==========================================
-# Telegram бот
-# ==========================================
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -112,14 +92,9 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, client)
     bot.send_message(cid, reply)
 
-# ==========================================
-# Настройка вебхука
-# ==========================================
-
 def setup_webhook():
     base_url = os.getenv('RAILWAY_PUBLIC_DOMAIN')
     if not base_url:
-        # fallback на Render, если нет Railway
         base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
     webhook_url = f"https://{base_url}/webhook"
     try:
@@ -131,11 +106,6 @@ def setup_webhook():
 
 setup_webhook()
 
-# ==========================================
-# Запуск сервера
-# ==========================================
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    print(f"Сервер запущен на порту {port}")
     app.run(host='0.0.0.0', port=port)

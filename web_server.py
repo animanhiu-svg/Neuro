@@ -6,11 +6,15 @@ from openai import OpenAI
 import config
 from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
 from logic import contains_forbidden, query_dolphin
+from threading import Thread
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
 
 app = Flask(__name__, static_folder='mini_app')
+
+# Railway URL
+RAILWAY_URL = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'neuro-production-c40f.up.railway.app')
 
 @app.route('/')
 @app.route('/app')
@@ -80,8 +84,7 @@ def start(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     webapp_button = telebot.types.KeyboardButton(
         text="🚀 Погрузиться",
-        web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')}/app")
-    
+        web_app=telebot.types.WebAppInfo(url=f"https://{RAILWAY_URL}/app")
     )
     markup.add(webapp_button)
 
@@ -98,13 +101,11 @@ def handle_chat(message):
         return
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-    # Для сообщений из Telegram нет character_id, используем 0
     reply = query_dolphin(text, cid, 0, client)
     bot.send_message(cid, reply)
 
 def setup_webhook():
-    base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
-    webhook_url = f"https://{base_url}/webhook"
+    webhook_url = f"https://{RAILWAY_URL}/webhook"
     try:
         bot.remove_webhook()
         bot.set_webhook(url=webhook_url)
@@ -112,8 +113,15 @@ def setup_webhook():
     except Exception as e:
         print(f"❌ Ошибка установки вебхука: {e}")
 
-setup_webhook()
-
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get('PORT', 8080))
+    
+    # Вебхук НЕ используем, юзаем polling
+    print(f"🚀 Бот запущен на Railway: {RAILWAY_URL}")
+    print(f"📱 Mini-app: https://{RAILWAY_URL}/app")
+    
+    # Запускаем Flask в фоне
+    Thread(target=lambda: app.run(host='0.0.0.0', port=port, use_reloader=False)).start()
+    
+    # Бот через polling — надежно и просто
+    bot.infinity_polling()

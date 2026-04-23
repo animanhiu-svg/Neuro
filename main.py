@@ -6,7 +6,6 @@ from openai import OpenAI
 import config
 from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
 from logic import contains_forbidden, query_dolphin
-from threading import Thread
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
@@ -113,15 +112,8 @@ def setup_webhook():
     except Exception as e:
         print(f"❌ Ошибка установки вебхука: {e}")
 
+setup_webhook()
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    
-    # Вебхук НЕ используем, юзаем polling
-    print(f"🚀 Бот запущен на Railway: {RAILWAY_URL}")
-    print(f"📱 Mini-app: https://{RAILWAY_URL}/app")
-    
-    # Запускаем Flask в фоне
-    Thread(target=lambda: app.run(host='0.0.0.0', port=port, use_reloader=False)).start()
-    
-    # Бот через polling — надежно и просто
-    bot.infinity_polling()
+    app.run(host='0.0.0.0', port=port)

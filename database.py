@@ -29,12 +29,14 @@ def add_to_history(chat_id, character_id, user_msg, bot_msg):
         user_history[key].append({"role": "user", "content": user_msg})
     if bot_msg:
         user_history[key].append({"role": "assistant", "content": bot_msg})
-    if len(user_history[key]) > 100:
-        user_history[key] = user_history[key][-100:]
+    # Увеличил до 200 сообщений
+    if len(user_history[key]) > 200:
+        user_history[key] = user_history[key][-200:]
 
 def get_history(chat_id, character_id):
     key = get_history_key(chat_id, character_id)
-    return user_history.get(key, [])[-80:]
+    # Возвращаем последние 160 сообщений
+    return user_history.get(key, [])[-160:]
 
 def clear_history(chat_id, character_id):
     key = get_history_key(chat_id, character_id)
@@ -44,7 +46,6 @@ def clear_history(chat_id, character_id):
 def reset_all(chat_id):
     if chat_id in user_settings:
         del user_settings[chat_id]
-    # Удаляем всю историю пользователя
     keys_to_delete = [k for k in user_history if k.startswith(f"{chat_id}_")]
     for k in keys_to_delete:
         del user_history[k]

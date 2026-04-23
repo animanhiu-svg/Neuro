@@ -6,6 +6,7 @@ from openai import OpenAI
 import config
 from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
 from logic import contains_forbidden, query_dolphin
+from threading import Thread
 
 client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
@@ -65,13 +66,6 @@ def clear_history_endpoint():
     clear_history(chat_id, character_id)
     return jsonify({'status': 'ok'})
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    json_str = request.get_data().decode('UTF-8')
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return 'ok', 200
-
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.id != config.ALLOWED_USER_ID:
@@ -91,7 +85,9 @@ def start(message):
 
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith('/'))
 def handle_chat(message):
+    print(f"📨 Получено сообщение: {message.text}")  # Диагностика
     if message.chat.id != config.ALLOWED_USER_ID:
+        print(f"⛔ Не тот юзер: {message.chat.id}")
         return
     cid = message.chat.id
     text = message.text
@@ -103,17 +99,22 @@ def handle_chat(message):
     reply = query_dolphin(text, cid, 0, client)
     bot.send_message(cid, reply)
 
-def setup_webhook():
-    webhook_url = f"https://{RAILWAY_URL}/webhook"
-    try:
-        bot.remove_webhook()
-        bot.set_webhook(url=webhook_url)
-        print(f"✅ Вебхук установлен: {webhook_url}")
-    except Exception as e:
-        print(f"❌ Ошибка установки вебхука: {e}")
-
-setup_webhook()
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+    
+    # Запускаем Flask в отдельном потоке
+    Thread(target=lambda: app.run(host='0.0.0.0', port=port, use_reloader=False)).start()
+    
+    # Удаляем вебхук нахуй
+    print("🚀 Удаляем вебхук...")
+    try:
+        bot.remove_webhook()
+        print("✅ Вебхук удален")
+    except Exception as e:
+        print(f"⚠️ Ошибка удаления: {e}")
+    
+    print(f"🤖 Запускаем polling...")
+    print(f"📱 Mini-app: https://{RAILWAY_URL}/app")
+    
+    # Запускаем бота
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)

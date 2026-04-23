@@ -4,13 +4,14 @@ import telebot
 from flask import Flask, request, jsonify, send_from_directory
 from openai import OpenAI
 import config
-from database import init_user, update_field, get_field, get_history, add_to_history
+from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
 from logic import contains_forbidden, query_dolphin
 
+# ТОЛЬКО HUGGING FACE
 client = OpenAI(
     base_url=config.BASE_URL,
-    api_key=config.OPENROUTER_API_KEY,
-    timeout=90.0
+    api_key=config.HF_TOKEN,
+    timeout=60.0
 )
 
 bot = telebot.TeleBot(config.TG_TOKEN)
@@ -51,6 +52,17 @@ def save_character():
     for key, value in character.items():
         if value:
             update_field(chat_id, key, value)
+    return jsonify({'status': 'ok'})
+
+@app.route('/clear_history', methods=['POST'])
+def clear_history_endpoint():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No JSON data'}), 400
+    chat_id = data.get('chat_id')
+    if not chat_id:
+        return jsonify({'error': 'Missing chat_id'}), 400
+    clear_history(chat_id)
     return jsonify({'status': 'ok'})
 
 @app.route('/webhook', methods=['POST'])

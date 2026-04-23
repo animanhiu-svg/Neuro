@@ -7,14 +7,9 @@ import config
 from database import init_user, update_field, get_field, get_history, add_to_history, clear_history
 from logic import contains_forbidden, query_dolphin
 
-# ТОЛЬКО HUGGING FACE
-client = OpenAI(
-    base_url=config.BASE_URL,
-    api_key=config.HF_TOKEN,
-    timeout=60.0
-)
-
+client = OpenAI(base_url=config.BASE_URL, api_key=config.HF_TOKEN)
 bot = telebot.TeleBot(config.TG_TOKEN)
+
 app = Flask(__name__, static_folder='mini_app')
 
 @app.route('/')
@@ -28,13 +23,14 @@ def chat():
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
+    character_id = data.get('character_id')
     message = data.get('message')
-    if not chat_id or not message:
+    if not chat_id or not character_id or not message:
         return jsonify({'error': 'Missing parameters'}), 400
 
     init_user(chat_id)
     try:
-        reply = query_dolphin(message, chat_id, client)
+        reply = query_dolphin(message, chat_id, character_id, client)
         return jsonify({'reply': reply})
     except Exception as e:
         return jsonify({'reply': f"⚠️ Ошибка: {str(e)[:100]}"}), 500
@@ -60,9 +56,10 @@ def clear_history_endpoint():
     if not data:
         return jsonify({'error': 'No JSON data'}), 400
     chat_id = data.get('chat_id')
-    if not chat_id:
-        return jsonify({'error': 'Missing chat_id'}), 400
-    clear_history(chat_id)
+    character_id = data.get('character_id')
+    if not chat_id or not character_id:
+        return jsonify({'error': 'Missing chat_id or character_id'}), 400
+    clear_history(chat_id, character_id)
     return jsonify({'status': 'ok'})
 
 @app.route('/webhook', methods=['POST'])
@@ -83,7 +80,8 @@ def start(message):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     webapp_button = telebot.types.KeyboardButton(
         text="🚀 Погрузиться",
-        web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RAILWAY_PUBLIC_DOMAIN', 'neuro-12pd.onrender.com')}/app")
+        web_app=telebot.types.WebAppInfo(url=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')}/app")
+    
     )
     markup.add(webapp_button)
 
@@ -100,13 +98,12 @@ def handle_chat(message):
         return
     init_user(cid)
     bot.send_chat_action(cid, 'typing')
-    reply = query_dolphin(text, cid, client)
+    # Для сообщений из Telegram нет character_id, используем 0
+    reply = query_dolphin(text, cid, 0, client)
     bot.send_message(cid, reply)
 
 def setup_webhook():
-    base_url = os.getenv('RAILWAY_PUBLIC_DOMAIN')
-    if not base_url:
-        base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
+    base_url = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'neuro-12pd.onrender.com')
     webhook_url = f"https://{base_url}/webhook"
     try:
         bot.remove_webhook()
@@ -118,5 +115,5 @@ def setup_webhook():
 setup_webhook()
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)

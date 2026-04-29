@@ -44,4 +44,4 @@ def query_dolphin(prompt, chat_id, character_id, client):
         return reply
     except Exception as e:
         print(f"Ошибка: {e}")
-        return f"Ошибка: {str(e)[:100]}"
+        return "Ошибка"

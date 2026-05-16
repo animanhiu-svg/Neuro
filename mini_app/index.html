@@ -722,7 +722,7 @@ function renderChat(character) {
                     scenarioWrapper.style.marginBottom = '20px';
                     scenarioWrapper.style.marginTop = '30px';
                     scenarioWrapper.innerHTML = `
-                        <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png?token=GHSAT0AAAAAAD5ED73PFFKMSK2FS2LYQ5SU2QIYGSQ" 
+                        <img src="https://raw.githubusercontent.com/animanhiu-svg/Neuro/main/mini_app/feather.png" 
                              style="position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 260px; z-index: 10;"
                              alt="decor">
                         <div style="background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 40px; border: 1px solid rgba(255,255,255,0.15); padding: 20px;">
@@ -765,24 +765,16 @@ function renderChat(character) {
         localStorage.setItem(storageKey, JSON.stringify(messages));
     }
 
-     async function handleSend() {
-    const text = input.value.trim();
-    if (!text) return;
-    
-    // Удаляем все старые сообщения с ошибкой
-    const oldErrorMessages = document.querySelectorAll('.message.bot .resend-btn');
-    for (let i = 0; i < oldErrorMessages.length; i++) {
-        const errorDiv = oldErrorMessages[i].closest('.message.bot');
-        if (errorDiv) errorDiv.remove();
+    async function handleSend() {
+        const text = input.value.trim();
+        if (!text) return;
+        addUserMessage(text);
+        input.value = '';
+        await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
+            messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
+            localStorage.setItem(storageKey, JSON.stringify(messages));
+        });
     }
-    
-    addUserMessage(text);
-    input.value = '';
-    await sendMessageToServer(character, text, messagesContainer, storageKey, (reply) => {
-        messages.push({ text: reply, sender: 'bot', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }), avatar: character.photo });
-        localStorage.setItem(storageKey, JSON.stringify(messages));
-    });
-}
 
     sendBtn.addEventListener('click', handleSend);
     input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
